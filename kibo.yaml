@@ -1,0 +1,15 @@
+path: 
+train: train
+val: val
+
+names:
+  0: beaker
+  1: goggle
+  2: hammer
+  3: kapton_tape
+  4: pipette
+  5: screwdriver
+  6: thermometer
+  7: top
+  8: watch
+  9: wrench
