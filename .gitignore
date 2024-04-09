@@ -11,3 +11,5 @@ datasets/*
 # 3rd party libraries
 opencv/*
 
+# vscode stuff
+.vscode/*
