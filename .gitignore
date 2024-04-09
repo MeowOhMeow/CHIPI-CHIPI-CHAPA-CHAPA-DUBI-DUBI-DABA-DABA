@@ -1,1 +1,9 @@
 **/test*
+
+**/*.exe
+**/*.o
+
+datasets/*
+opencv/*
+YOLO/*
+**/.*
