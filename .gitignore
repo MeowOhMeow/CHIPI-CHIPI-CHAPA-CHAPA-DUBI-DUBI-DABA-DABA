@@ -8,4 +8,4 @@ opencv/*
 YOLO/*
 **/.*
 visualizer/screenshot.png
-!/graph/
+!basic_structure/graph/test
