@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class Graph<T, U> {
 	private List<Map<Integer, Float>> adjacencyList;
@@ -81,7 +82,46 @@ public class Graph<T, U> {
 	public VertexProperty<T> getVertexProperty(Vertex vertex) {
 		return getVertexProperty(vertex.getId());
 	}
+	
+	public Map<Integer, Map<Float, EdgeProperty<U>>> getOutEdges(int vertex) {
+	    Set<Integer> s = adjacencyList.get(vertex).keySet();
+	    Map<Integer, Map<Float, EdgeProperty<U>>> outEdges = new HashMap<>();
+	    for (int num : s) {
+	        float weight = adjacencyList.get(vertex).get(num);
+	        EdgeProperty<U> edgeProperty = getEdgeProperty(vertex, num);
+	        Map<Float, EdgeProperty<U>> edgeInfo = new HashMap<>();
+	        edgeInfo.put(weight, edgeProperty);
+	        outEdges.put(num, edgeInfo);
+	    }
+	    return outEdges;
+	}
 
+	
+	public Map<Integer, Map<Float, EdgeProperty<U>>> getOutEdges(Vertex vertex) {
+		return getOutEdges(vertex.getId());
+	}
+	
+	public Map<Integer, Map<Float, EdgeProperty<U>>> getInEdges(int vertex) {
+	    Map<Integer, Map<Float, EdgeProperty<U>>> inEdges = new HashMap<>();
+	    for (int i = 0; i < adjacencyList.size(); i++) {
+	        for (Map.Entry<Integer, Float> entry : adjacencyList.get(i).entrySet()) {
+	            if (entry.getKey() == vertex) {
+	            	float weight = adjacencyList.get(i).get(vertex);
+	    	        EdgeProperty<U> edgeProperty = getEdgeProperty(i, vertex);
+	    	        Map<Float, EdgeProperty<U>> edgeInfo = new HashMap<>();
+	    	        edgeInfo.put(weight, edgeProperty);
+	    	        inEdges.put(i, edgeInfo);
+	            }
+	        }
+	    }
+	    return inEdges;
+	}
+
+	
+	public Map<Integer, Map<Float, EdgeProperty<U>>> getInEdges(Vertex vertex) {
+		return getInEdges(vertex.getId());
+	}
+	
 	public void setEdgeProperty(int source, int target, EdgeProperty<U> property) {
 		if (property.notEquals(emptyEdgeProperty)) {
 			edgePropertiesMap.get(source).put(target, property);
@@ -92,6 +132,14 @@ public class Graph<T, U> {
 		setEdgeProperty(source.getId(), target.getId(), property);
 	}
 
+	public void setEdgeWeight(int source, int target, float weight) {
+		adjacencyList.get(source).put(target, weight);
+	}
+
+	public void setEdgeWeight(Vertex source, Vertex target, float weight) {
+		setEdgeWeight(source.getId(), target.getId(), weight);
+	}
+	
 	public void setVertexProperty(int vertex, VertexProperty<T> property) {
 		vertexPropertiesMap.set(vertex, property);
 	}
@@ -99,8 +147,18 @@ public class Graph<T, U> {
 	public void setVertexProperty(Vertex vertex, VertexProperty<T> property) {
 		setVertexProperty(vertex.getId(), property);
 	}
-
+	
+	public Map<Integer, VertexProperty<T>> getAllVertices() {
+	    Map<Integer, VertexProperty<T>> verticesList = new HashMap<>();
+	    for (int i = 0; i < adjacencyList.size(); i++) {
+	        verticesList.put(i, getVertexProperty(i)); // 添加顶点属性
+	    }
+	    return verticesList;
+	}
+	
 	public int size() {
 		return adjacencyList.size();
 	}
+
+
 }
