@@ -1,5 +1,6 @@
-package artag;
+package aruco_process;
 import java.awt.Point;
+import java.awt.geom.Point2D;
 import java.util.List;
 
 import org.opencv.*;
@@ -16,8 +17,7 @@ public class Aruco {
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		Mat image=Imgcodecs.imread("1.png");
-		distortImage(image);
+		Point a=new Point(1.5d,11.5d);
 		
 	}
 	
@@ -52,13 +52,13 @@ public class Aruco {
 
         Calib3d.undistort(img, undistortedImg, mtx, dist, newCameraMatrix);
         Imgcodecs.imwrite("distort.png",undistortedImg);
-
+        //api.saveMatImage(undistortImg,"undistortImg.png")
     }	
 	
 	public static void findArucoAndCut(Mat img , Mat mtx , MatOfDouble dist , int w , int h) {
 
 
-		/**
+		
         Dictionary arucoDict = Aruco.getPredefinedDictionary(5);
         DetectorParameters parameters = DetectorParameters.create();
         List<Mat> corners = new ArrayList<Mat>();
@@ -72,8 +72,38 @@ public class Aruco {
 
         Aruco.estimatePoseSingleMarkers(corners, 0.05, mtx, dist, rvec, tvec); //unit=cm
 
-		**/
+		Point2D.Double vert;
+		Point2D.Double hoz;
+		//我不知道coreners的資料型態= =
+		hoz.x=(corners.get(0)).get(0,0)[0]-(corners.get(0)).get(0,1)[0];
+		hoz.y=(corners.get(0)).get(0,0)[1]-(corners.get(0)).get(0,1)[1];
 		
+		vert.x=(corners.get(0)).get(0,0)[0]-(corners.get(0)).get(0,3)[0];
+		vert.y=(corners.get(0)).get(0,0)[1]-(corners.get(0)).get(0,3)[1];
+		
+		Point2D.Double lt,rt,lb,rb,rt_dst,rb_dst,lb_dst;
+		
+		lt.x=(corners.get(0)).get(0,0)[0]+(20.75/5)*hoz.x+(1.25/5)*vert.x;
+		lt.y=(corners.get(0)).get(0,0)[1]+(20.75/5)*hoz.y+(1.25/5)*vert.y;
+		
+		rt.x=(corners.get(0)).get(0,0)[0]+(0.75/5)*hoz.x+(1.25/5)*vert.x;
+		rt.x=(corners.get(0)).get(0,0)[1]+(0.75/5)*hoz.y+(1.25/5)*vert.y;
+		
+		lb.x=(corners.get(0)).get(0,0)[0]+(20.75/5)*hoz.x+(-13.75/5)*vert.x;
+		lb.y=(corners.get(0)).get(0,0)[1]+(20.75/5)*hoz.y+(-13.75/5)*vert.y;
+		
+		rb.x=(corners.get(0)).get(0,0)[0]+(0.75/5)*hoz.x+(-13.75/5)*vert.x;
+		rb.y=(corners.get(0)).get(0,0)[1]+(0.75/5)*hoz.y+(-13.75/5)*vert.y;
+		
+
+		rt_dst.x=lt.x+cal_dist(lt,rt);
+		rt_dst.y=lt.y;
+		
+		rb_dst.x=rt_dst.x;
+		rb_dst.y=rt_dst.y+cal_dist(rb,rt);
+		
+		lb_dst.x=lt.x;
+		lb_dst.y=lt.y+cal_dist(lt,lb);
     }
 	
 	public static double[][] quaternionRotationMatrix(double[] Q) {
@@ -126,7 +156,7 @@ public class Aruco {
     }
 	
 	
-	public static double cal_dist(Point a , Point b) {
+	public static double cal_dist(Point2D.Double a , Point2D.Double b) {
 		
 		double d= Math.sqrt((a.x-b.x)*(a.x-b.x)+(a.y-b.y)*(a.y-b.y));
 		
