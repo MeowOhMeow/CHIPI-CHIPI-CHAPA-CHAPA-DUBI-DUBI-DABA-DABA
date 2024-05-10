@@ -24,10 +24,8 @@ public class YOLOInference {
 	public static long channels;
 	public static long netHeight;
 	public static long netWidth;
-	public static float srcw;
-	public static float srch;
-	public static float confThreshold = 0.25f;
-	public static float nmsThreshold = 0.5f;
+	// public static float confThreshold = 0.25f;
+	// public static float nmsThreshold = 0.5f;
 	static Mat src;
 
 	public static void setModel(Resources resources, String packageName) {
