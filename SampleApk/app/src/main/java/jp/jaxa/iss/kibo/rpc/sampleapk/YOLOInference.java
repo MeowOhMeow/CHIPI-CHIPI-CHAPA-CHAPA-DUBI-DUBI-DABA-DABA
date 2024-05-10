@@ -34,6 +34,40 @@ public class YOLOInference {
 		OrtEnvironment env = OrtEnvironment.getEnvironment();
 		OrtSession session = null;
 		// TODO: load model here
+		int id = this.getResources().getIdentifier("best", "raw", this.getPackageName());
+		InputStream in = this.getResources().openRawResource(id);
+		byte[] data = null;
+		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+		try {
+			byte[] chunk = new byte[1024]; // Adjust the chunk size as needed
+			int bytesRead;
+			while ((bytesRead = in.read(chunk)) != -1) {
+				buffer.write(chunk, 0, bytesRead);
+			}
+			data = buffer.toByteArray();
+		} catch (IOException e) {
+			// Handle IO error
+			//Output ot log
+			Log.i("CHIPI-CHIPI", "Error: fail to bytesRead.");
+		} finally {
+			try {
+				if (in != null) {
+					in.close();
+				}
+				buffer.close();
+			} catch (IOException e) {
+				// Handle IO error during closing
+				//Output ot log
+				Log.i("CHIPI-CHIPI", "Error: fail to close buffer.");
+			}
+		}
+		OrtEnvironment env = OrtEnvironment.getEnvironment();
+		OrtSession session = null;
+		try {
+			session = env.createSession(data);
+		} catch (Exception e) {
+			Log.i("CHIPI-CHIPI", "Error: fail to create Ortsession.");
+		}
 	}
 
 	public static OnnxTensor transfer2Tensor(Mat dst) {
