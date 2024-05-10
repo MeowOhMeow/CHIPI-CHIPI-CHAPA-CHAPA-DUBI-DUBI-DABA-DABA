@@ -8,6 +8,7 @@ android {
         applicationId "jp.jaxa.iss.kibo.rpc.sampleapk" +
                 ""
         minSdkVersion 24
+        //minSdkVersion 26
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
@@ -35,6 +36,9 @@ android {
 }
 
 dependencies {
+    //implementation 'com.microsoft.onnxruntime:onnxruntime-android:latest.release'  // full package
+    implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.11.0'
+    //implementation 'com.quickbirdstudios:opencv:4.5.3.0'
     compile project(':guest_science_library')
     compile project(':kibo_rpc_api')
     compile fileTree(dir: 'libs', include: ['*.jar'])
