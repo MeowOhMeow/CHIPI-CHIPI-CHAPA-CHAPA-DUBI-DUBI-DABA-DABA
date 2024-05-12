@@ -26,51 +26,38 @@ public class YOLOInference {
 	public static OrtEnvironment env;
 	public static OrtSession session;
 	public static long count;
-	public static long channels;
 	public static long netHeight;
 	public static long netWidth;
-	// public static float confThreshold = 0.25f;
-	// public static float nmsThreshold = 0.5f;
-	static Mat src;
+	public static float confThreshold = 0.25f;
+	public static float nmsThreshold = 0.5f;
 
-	/*public static void setModel(Resources resources, String packageName) {
-        env = OrtEnvironment.getEnvironment();
-        session = null;
-        // TODO: load model here
-        int id = resources.getIdentifier("best", "raw", packageName);
-        InputStream in = resources.openRawResource(id);
-        byte[] data = null;
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        try {
-            byte[] chunk = new byte[1024]; // Adjust the chunk size as needed
-            int bytesRead;
-            while ((bytesRead = in.read(chunk)) != -1) {
-                buffer.write(chunk, 0, bytesRead);
-            }
-            data = buffer.toByteArray();
-        } catch (IOException e) {
-            // Handle IO error
-            //Output ot log
-            Log.i("CHIPI-CHIPI", "Error: fail to bytesRead.");
-        } finally {
-            try {
-                if (in != null) {
-                    in.close();
-                }
-                buffer.close();
-            } catch (IOException e) {
-                // Handle IO error during closing
-                //Output ot log
-                Log.i("CHIPI-CHIPI", "Error: fail to close buffer.");
-            }
-        }
-        env = OrtEnvironment.getEnvironment();
-        try {
-            session = env.createSession(data);
-        } catch (Exception e) {
-            Log.i("CHIPI-CHIPI", "Error: fail to create Ortsession.");
-        }
-    }*/
+	public static void init(Resources resources) {
+		// 創建了一個ONNX執行環境，用於管理和執行ONNX模型的相關操作
+		env = OrtEnvironment.getEnvironment();
+		session = null;
+		// 獲取了一個AssetManager對象，用於讀取應用程序的資源文件
+		AssetManager assetManager = resources.getAssets();
+		try {
+			// 創建了一個會話選項對象，用於配置會話的相關選項。
+			OrtSession.SessionOptions options = new OrtSession.SessionOptions();
+			// 從assets文件夾中讀取了ONNX模型文件，並將其讀取到一個byte數組中。
+			InputStream stream = assetManager.open("best.onnx");
+			ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+
+			byte[] buffer = new byte[4096];
+			int bytesRead;
+			while ((bytesRead = stream.read(buffer)) != -1) {
+				byteStream.write(buffer, 0, bytesRead);
+			}
+
+			byteStream.flush(); // 在將資料寫入到ByteArrayOutputStream（byteStream）後，調用flush方法來確保所有的暫存資料都被刷新到內存中。這一步確保所有的資料都被處理並準備好被讀取。
+			byte[] bytes = byteStream.toByteArray(); // 調用toByteArray方法將ByteArrayOutputStream中的資料轉換為一個byte陣列
+			session = env.createSession(bytes, options); // 使用ONNX執行環境（OrtEnvironment）中的createSession方法來創建一個ONNX會話。
+		} catch (IOException | OrtException e) {
+			Log.i("CHIPI-CHIPI", "Error: fail to create Ortsession with exception: " + e.getMessage());
+			throw new RuntimeException(e);
+		}
+	}
 
 	public static OnnxTensor transfer2Tensor(Mat dst) {
 		Imgproc.cvtColor(dst, dst, Imgproc.COLOR_BGR2RGB);
@@ -114,35 +101,7 @@ public class YOLOInference {
 		return chw;
 	}
 
-	public static int[] getPredictions(Resources resources, Mat img) {
-		//新增內容以下
-		// 創建了一個ONNX執行環境，用於管理和執行ONNX模型的相關操作
-		OrtEnvironment environment = OrtEnvironment.getEnvironment();
-		OrtSession session =null;
-		// 獲取了一個AssetManager對象，用於讀取應用程序的資源文件
-		AssetManager assetManager = resources.getAssets();
-		try {
-			//創建了一個會話選項對象，用於配置會話的相關選項。
-			OrtSession.SessionOptions options = new OrtSession.SessionOptions();
-			//從assets文件夾中讀取了ONNX模型文件，並將其讀取到一個byte數組中。
-			InputStream stream = assetManager.open("best.onnx");
-			ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-
-			byte[] buffer = new byte[4096];
-			int bytesRead;
-			while ((bytesRead = stream.read(buffer)) != -1) {
-				byteStream.write(buffer, 0, bytesRead);
-			}
-
-			byteStream.flush(); // 在將資料寫入到ByteArrayOutputStream（byteStream）後，調用flush方法來確保所有的暫存資料都被刷新到內存中。這一步確保所有的資料都被處理並準備好被讀取。
-			byte[] bytes = byteStream.toByteArray(); // 調用toByteArray方法將ByteArrayOutputStream中的資料轉換為一個byte陣列
-			session = environment.createSession(bytes, options); //使用ONNX執行環境（OrtEnvironment）中的createSession方法來創建一個ONNX會話。
-		} catch (IOException | OrtException e) {
-			throw new RuntimeException(e);
-			//Log.i("CHIPI-CHIPI", "Error: fail to create Ortsession.");
-		}
-		//新增內容以上
-
+	public static int[] getPredictions(Mat img) {
 		int[] count = new int[10];
 		if (session == null) {
 			Log.i("CHIPI-CHIPI", "session is null");
@@ -184,7 +143,7 @@ public class YOLOInference {
 			result = session.run(Collections.singletonMap("images", tensor));
 		} catch (OrtException e) {
 			// TODO: log and handle error
-			e.printStackTrace();
+			Log.i("CHIPI-CHIPI", "Error: fail to run session with exception: " + e.getMessage());
 		}
 		OnnxTensor res = (OnnxTensor) result.get(0);
 		float[][][] dataRes = new float[0][][];
@@ -192,7 +151,7 @@ public class YOLOInference {
 			dataRes = (float[][][]) res.getValue();
 		} catch (OrtException e) {
 			// TODO: log and handle error
-			e.printStackTrace();
+			Log.i("CHIPI-CHIPI", "Error: fail to get value with exception: " + e.getMessage());
 		}
 		float[][] output0 = dataRes[0];
 
@@ -224,7 +183,7 @@ public class YOLOInference {
 				}
 			}
 
-			if (max_score >= 0.5) {
+			if (max_score >= confThreshold) {
 				int class_id = 0;
 				float max_class_score = 0;
 				for (int j = 4; j < output_trans[0].length; j++) {
@@ -260,7 +219,7 @@ public class YOLOInference {
 		}
 
 		MatOfFloat con = new MatOfFloat(confArr);
-		Dnn.NMSBoxes(boxes, con, 0.5F, 0.5F, indexs);
+		Dnn.NMSBoxes(boxes, con, confThreshold, nmsThreshold, indexs);
 		if (indexs.empty()) {
 			Log.i("CHIPI-CHIPI", "indexs is empty");
 			return count;

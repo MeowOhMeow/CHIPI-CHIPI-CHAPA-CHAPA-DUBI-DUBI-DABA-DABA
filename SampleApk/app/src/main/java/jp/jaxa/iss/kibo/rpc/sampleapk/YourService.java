@@ -2,6 +2,8 @@ package jp.jaxa.iss.kibo.rpc.sampleapk;
 
 import android.util.Log;
 
+import java.util.Map;
+
 import org.opencv.core.Mat;
 
 import gov.nasa.arc.astrobee.Kinematics;
@@ -17,46 +19,17 @@ import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
 public class YourService extends KiboRpcService {
     private Point[] areaPoints = new Point[4];
     private Quaternion[] areaQuaternions = new Quaternion[4];
-
-    private static String MapOfItem(int index) {
-        String itemName = "";
-        switch (index) {
-            case 0:
-                itemName = "beaker";
-                break;
-            case 1:
-                itemName = "goggle";
-                break;
-            case 2:
-                itemName = "hammer";
-                break;
-            case 3:
-                itemName = "kapton_tape";
-                break;
-            case 4:
-                itemName = "pipette";
-                break;
-            case 5:
-                itemName = "screwdriver";
-                break;
-            case 6:
-                itemName = "thermometer";
-                break;
-            case 7:
-                itemName = "top";
-                break;
-            case 8:
-                itemName = "watch";
-                break;
-            case 9:
-                itemName = "wrench";
-                break;
-            default:
-                itemName = "Unknown";
-                break;
-        }
-        return itemName;
-    }
+    private String[] itemMap = {
+            "beaker",
+            "goggle",
+            "hammer",
+            "kapton_tape",
+            "pipette",
+            "screwdriver",
+            "thermometer",
+            "top",
+            "watch",
+            "wrench" };
 
     public YourService() {
         areaPoints[0] = new Point(10.9078d, -10.0293d, 5.1124d);
@@ -71,8 +44,8 @@ public class YourService extends KiboRpcService {
 
     private void goToTakeAPic(int area) {
         // Move to a point.
-        Point point = areaPoints[area-1];
-        Quaternion quaternion = areaQuaternions[area-1];
+        Point point = areaPoints[area - 1];
+        Quaternion quaternion = areaQuaternions[area - 1];
         api.moveTo(point, quaternion, true);
 
         Kinematics result = api.getRobotKinematics();
@@ -88,10 +61,10 @@ public class YourService extends KiboRpcService {
         // Get a camera image.
         Log.i("CHIPI-CHIPI", "begin of inference");
         Mat image = api.getMatNavCam();
-        int[] count = YOLOInference.getPredictions(getResources(), image);
+        int[] count = YOLOInference.getPredictions(image);
         for (int i = 0; i < count.length; ++i) {
             if (count[i] != 0)
-                api.setAreaInfo(area, MapOfItem(i), count[i]);
+                api.setAreaInfo(area, itemMap[i], count[i]);
         }
         Log.i("CHIPI-CHIPI", "end of inference");
 
@@ -102,6 +75,8 @@ public class YourService extends KiboRpcService {
 
     @Override
     protected void runPlan1() {
+        YOLOInference.init(this.getResources());
+
         // The mission starts.
         api.startMission();
 
@@ -109,10 +84,13 @@ public class YourService extends KiboRpcService {
         Log.i("CHIPI-CHIPI", "Starting point: " + result.getPosition() + "" + result.getOrientation());
 
         goToTakeAPic(1);
+        // intersecting point
         api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), true);
         goToTakeAPic(2);
+        // intersecting point
         api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), true);
         goToTakeAPic(3);
+        // intersecting point
         api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), true);
         goToTakeAPic(4);
 
