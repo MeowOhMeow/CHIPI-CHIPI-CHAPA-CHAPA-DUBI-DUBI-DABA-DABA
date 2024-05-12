@@ -2,13 +2,12 @@ package jp.jaxa.iss.kibo.rpc.sampleapk;
 
 import android.util.Log;
 
-import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
+import org.opencv.core.Mat;
 
+import gov.nasa.arc.astrobee.Kinematics;
 import gov.nasa.arc.astrobee.types.Point;
 import gov.nasa.arc.astrobee.types.Quaternion;
-import gov.nasa.arc.astrobee.Kinematics;
-
-import org.opencv.core.Mat;
+import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
 
 /**
  * Class meant to handle commands from the Ground Data System and execute them
@@ -72,8 +71,8 @@ public class YourService extends KiboRpcService {
 
     private void goToTakeAPic(int area) {
         // Move to a point.
-        Point point = areaPoints[area];
-        Quaternion quaternion = areaQuaternions[area];
+        Point point = areaPoints[area-1];
+        Quaternion quaternion = areaQuaternions[area-1];
         api.moveTo(point, quaternion, true);
 
         Kinematics result = api.getRobotKinematics();
@@ -89,7 +88,7 @@ public class YourService extends KiboRpcService {
         // Get a camera image.
         Log.i("CHIPI-CHIPI", "begin of inference");
         Mat image = api.getMatNavCam();
-        int[] count = YOLOInference.getPredictions(image);
+        int[] count = YOLOInference.getPredictions(getResources(), image);
         for (int i = 0; i < count.length; ++i) {
             if (count[i] != 0)
                 api.setAreaInfo(area, MapOfItem(i), count[i]);
@@ -109,13 +108,13 @@ public class YourService extends KiboRpcService {
         Kinematics result = api.getRobotKinematics();
         Log.i("CHIPI-CHIPI", "Starting point: " + result.getPosition() + "" + result.getOrientation());
 
-        goToTakeAPic(0);
-        api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), true);
         goToTakeAPic(1);
-        api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), true);
+        api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), true);
         goToTakeAPic(2);
-        api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), true);
+        api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), true);
         goToTakeAPic(3);
+        api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), true);
+        goToTakeAPic(4);
 
         // When you move to the front of the astronaut, report the rounding completion.
         api.reportRoundingCompletion();
