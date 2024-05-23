@@ -210,7 +210,7 @@ public class YOLOInference {
 			}
 		}
 
-		// Non-maximum suppression
+		// Non-maximum suppression(置信度非極大值的box刪掉)
 		MatOfInt indexs = new MatOfInt();
 		MatOfRect2d boxes = new MatOfRect2d(boxes_list.toArray(new Rect2d[0]));
 		float[] confArr = new float[scores.size()];
@@ -219,15 +219,34 @@ public class YOLOInference {
 		}
 
 		MatOfFloat con = new MatOfFloat(confArr);
-		Dnn.NMSBoxes(boxes, con, confThreshold, nmsThreshold, indexs);
+		Dnn.NMSBoxes(boxes, con, confThreshold, nmsThreshold, indexs); // condidence高的物品選出來，再用IOU(intersection overlap
+																		// union)把此物品過於重疊的眶刪掉
 		if (indexs.empty()) {
 			Log.i("CHIPI-CHIPI", "indexs is empty");
 			return count;
 		}
 
 		int[] ints = indexs.toArray();
+		float[] confidences = con.toArray();
+
+		float[] conf = new float[10];
 		for (int i : ints) {
-			count[classIds.get(i)]++;
+			conf[classIds.get(i)] += confidences[i];
+		}
+		float baseconf = conf[0];
+		int returnindex = 0;
+		for (int i = 0; i < 10; i++) {
+			if (conf[i] >= baseconf) {
+				returnindex = i;
+				baseconf = conf[i];
+			}
+
+		}
+
+		for (int i : ints) {
+			if (classIds.get(i) == returnindex) {
+				count[classIds.get(i)]++;
+			}
 		}
 
 		return count;
