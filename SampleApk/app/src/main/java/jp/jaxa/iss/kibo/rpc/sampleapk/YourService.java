@@ -84,14 +84,50 @@ public class YourService extends KiboRpcService {
 
         Kinematics result = api.getRobotKinematics();
         Log.i("CHIPI-CHIPI", "Starting point: " + result.getPosition() + "" + result.getOrientation());
-
+        /////////////////
         Mat img1=goToTakeAPic(1);
         double[] ans=ArtagProcess.process(img1,1);
         Point snap=new Point(ans[0],ans[1],ans[2]);
 
-        api.moveTo(snap, new Quaternion(0.707f, -0.707f, 0f, 0f), true);
+        //api.moveTo(snap, areaQuaternions[0], true);
         Mat distort = api.getMatNavCam();
-        api.saveMatImage(distort, "distort"  + ".jpg");
+        api.saveMatImage(distort, "snap1"  + ".jpg");
+        /////////////////
+        api.moveTo(areaPoints[1], areaQuaternions[1], true);
+        Mat distort1 = api.getMatNavCam();
+        api.saveMatImage(distort1, "cam2"  + ".jpg");
+        Mat img2=goToTakeAPic(2);
+        ans=ArtagProcess.process(img2,2);
+        snap=new Point(ans[0],ans[1],ans[2]);
+
+        api.moveTo(snap, areaQuaternions[1], true);
+        distort = api.getMatNavCam();
+        api.saveMatImage(distort, "snap2"  + ".jpg");
+        /*
+        /////////////////
+        api.moveTo(areaPoints[2], areaQuaternions[2], true);
+        distort = api.getMatNavCam();
+        api.saveMatImage(distort, "cam3"  + ".jpg");
+        Mat img3=goToTakeAPic(3);
+        ans=ArtagProcess.process(img3,3);
+        snap=new Point(ans[0],ans[1],ans[2]);
+
+        api.moveTo(snap, areaQuaternions[2], true);
+        distort = api.getMatNavCam();
+        api.saveMatImage(distort, "snap3"  + ".jpg");
+        ///////////////////
+        api.moveTo(areaPoints[3], areaQuaternions[3], true);
+        distort = api.getMatNavCam();
+        api.saveMatImage(distort, "cam4"  + ".jpg");
+        Mat img4=goToTakeAPic(4);
+        ans=ArtagProcess.process(img4,4);
+        snap=new Point(ans[0],ans[1],ans[2]);
+
+        api.moveTo(snap, areaQuaternions[3], true);
+        distort = api.getMatNavCam();
+        api.saveMatImage(distort, "snap4"  + ".jpg");
+        */
+
         /* 
         // intersecting point
         api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), true);

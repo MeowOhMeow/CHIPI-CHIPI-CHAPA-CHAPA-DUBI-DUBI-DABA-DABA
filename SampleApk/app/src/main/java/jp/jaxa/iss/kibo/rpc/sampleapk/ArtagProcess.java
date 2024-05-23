@@ -28,8 +28,11 @@ import org.opencv.imgproc.*;
 import org.opencv.aruco.*;
 
 public class ArtagProcess extends KiboRpcService{
-    
+
+
     //---------------------------------------------
+
+
 	public static double[] process(Mat img,int index) {
 		//parameter initialization
 		Mat mtx=new Mat();
@@ -49,7 +52,7 @@ public class ArtagProcess extends KiboRpcService{
 		int h=0;
 		double cz=0;
 		double cy=0;
-		
+		double[] item={0,0,0};
 		Log.i("artag","Start process"); //////////
 
         //img processing
@@ -59,7 +62,7 @@ public class ArtagProcess extends KiboRpcService{
 
 
 
-		Mat yolo_img=findArucoAndCut(undistort,mtx,dist,w,h,cy,cz);
+		Mat yolo_img=findArucoAndCut(undistort,mtx,dist,w,h,item);
 		Log.i("artag","Aruco finding image complete"); ////////////
 		//api.saveMatImage(yolo_img, "yolo" + index + ".jpg");
 
@@ -68,13 +71,15 @@ public class ArtagProcess extends KiboRpcService{
 
         //coordinates transformation
         index--;
-		double[] item= {0.5,cy,cz};
+		item[0]=0.5;
         double[][] center ={{10.9078,-10.0293,5.1124},{10.925,-8.875,4.272676419},{10.41031163,-6.8525,4.945},{10.925,-7.925,4.291426151}};
         double[][] Q= {{0.707,-0.707,0,0},{0.5,-0.5,0.5,0.5},{0,0,0.71,0.71},{0.5,-0.5,0.5,0.5}};
         double snap_distance=0.6;
         double[] snap_point={item[0]-snap_distance,item[1],item[2],1};
-        double[] ans=cameraToWorld(center[index],Q[index],snap_point);
-
+        Log.i("coo","camera coordinate: "+String.valueOf(snap_point[0])+","+String.valueOf(snap_point[1])+","+String.valueOf(snap_point[2]));
+        double[] point={-1*snap_point[2],-1*snap_point[1],-1*snap_point[0],1};
+        double[] ans=cameraToWorld(center[index],Q[index],point);
+		Log.i("coo","world coordinate: "+String.valueOf(ans[0])+","+String.valueOf(ans[1])+","+String.valueOf(ans[2]));
 		return ans;
 		//Artag_output output=new Artag_output(undistort,yolo_img,ans);
 		
@@ -194,15 +199,15 @@ public class ArtagProcess extends KiboRpcService{
 	}
 	//---------------------------------
 	
-	public static Mat findArucoAndCut(Mat img , Mat mtx , MatOfDouble dist , int w , int h , double cy , double cz) {
+	public static Mat findArucoAndCut(Mat img , Mat mtx , MatOfDouble dist , int w , int h , double[] item) {
 
 
 		
         Dictionary arucoDict = Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
         DetectorParameters parameters = DetectorParameters.create();
         List<Mat> corners = new ArrayList<Mat>();
-        MatOfDouble rvec = new MatOfDouble();
-        MatOfDouble tvec = new MatOfDouble();
+        Mat rvec = new Mat();
+        Mat tvec = new Mat();
         Mat ids = new Mat();
         
         //ArucoDetector detector= new ArucoDetector(dictionary,parameters);
@@ -289,8 +294,8 @@ public class ArtagProcess extends KiboRpcService{
 
 		Log.i("coo","y:"+String.valueOf((lt[0]+rt[0])/2));
 		Log.i("coo","x:"+String.valueOf((rt[1]+rb[1])/2));
-		cz=(-640+(lt[0]+rt[0])/2)*(0.05/cal_len(vert));
-		cy=(480-(rt[1]+rb[1])/2)*(0.05/cal_len(hoz));
+		item[2]=(-640+(lt[0]+rt[0]+lb[0]+rb[0])/4)*(0.05/cal_len(hoz));
+		item[1]=(480-(rt[1]+rb[1]+lt[1]+lb[1])/4)*(0.05/cal_len(hoz));
 		
 		return perspective;
     }
