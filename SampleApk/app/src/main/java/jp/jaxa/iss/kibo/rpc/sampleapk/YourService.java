@@ -94,6 +94,17 @@ public class YourService extends KiboRpcService {
         api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), true);
         goToTakeAPic(4);
 
+        /* 
+        // intersecting point
+        api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), true);
+        goToTakeAPic(2);
+        // intersecting point
+        api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), true);
+        goToTakeAPic(3);
+        // intersecting point
+        api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), true);
+        goToTakeAPic(4);
+        */
         // When you move to the front of the astronaut, report the rounding completion.
         api.reportRoundingCompletion();
 
