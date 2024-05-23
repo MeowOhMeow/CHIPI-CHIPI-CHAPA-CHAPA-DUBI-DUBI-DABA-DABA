@@ -14,3 +14,14 @@ opencv/*
 
 # . stuff
 **/.*
+**/test*
+
+**/*.exe
+**/*.o
+
+datasets/*
+opencv/*
+YOLO/*
+**/.*
+visualizer/screenshot.png
+!basic_structure/graph/test
