@@ -42,7 +42,7 @@ public class YourService extends KiboRpcService {
         areaQuaternions[3] = new Quaternion(0f, 0.707f, 0.707f, 0f);
     }
 
-    private void goToTakeAPic(int area) {
+    private Mat goToTakeAPic(int area) {
         // Move to a point.
         Point point = areaPoints[area - 1];
         Quaternion quaternion = areaQuaternions[area - 1];
@@ -61,38 +61,65 @@ public class YourService extends KiboRpcService {
         // Get a camera image.
         Log.i("CHIPI-CHIPI", "begin of inference");
         Mat image = api.getMatNavCam();
-        int[] count = YOLOInference.getPredictions(image);
+        /*int[] count = YOLOInference.getPredictions(image);
         for (int i = 0; i < count.length; ++i) {
             if (count[i] != 0)
                 api.setAreaInfo(area, itemMap[i], count[i]);
         }
+        */
         Log.i("CHIPI-CHIPI", "end of inference");
 
         api.saveMatImage(image, "Area" + area + ".jpg");
 
         api.flashlightControlFront(0f);
+        return image;
     }
 
     @Override
     protected void runPlan1() {
-        YOLOInference.init(this.getResources());
+        //YOLOInference.init(this.getResources());
 
         // The mission starts.
         api.startMission();
 
         Kinematics result = api.getRobotKinematics();
         Log.i("CHIPI-CHIPI", "Starting point: " + result.getPosition() + "" + result.getOrientation());
+        /////////////////
+        Mat img1=goToTakeAPic(1);
 
-        goToTakeAPic(1);
-        // intersecting point
-        api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), true);
-        goToTakeAPic(2);
-        // intersecting point
-        api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), true);
-        goToTakeAPic(3);
-        // intersecting point
-        api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), true);
-        goToTakeAPic(4);
+        double[] ans=ArtagProcess.process(img1,1);
+        Point snap=new Point(ans[0],ans[1],ans[2]);
+        api.moveTo(snap, areaQuaternions[0], true);
+        Mat distort = api.getMatNavCam();
+        api.saveMatImage(distort, "snap1"  + ".jpg");
+        api.moveTo(areaPoints[0], areaQuaternions[0], true);
+        /////////////////
+        Mat img2=goToTakeAPic(2);
+        ans=ArtagProcess.process(img2,2);
+        snap=new Point(ans[0],ans[1],ans[2]);
+
+        api.moveTo(snap, areaQuaternions[1], true);
+        distort = api.getMatNavCam();
+        api.saveMatImage(distort, "snap2"  + ".jpg");
+        api.moveTo(areaPoints[1], areaQuaternions[1], true);
+        /////////////////
+        Mat img3=goToTakeAPic(3);
+        ans=ArtagProcess.process(img3,3);
+        snap=new Point(ans[0],ans[1],ans[2]);
+
+        api.moveTo(snap, areaQuaternions[2], true);
+        distort = api.getMatNavCam();
+        api.saveMatImage(distort, "snap3"  + ".jpg");
+        api.moveTo(areaPoints[2], areaQuaternions[2], true);
+        ///////////////////
+        Mat img4=goToTakeAPic(4);
+        ans=ArtagProcess.process(img4,4);
+        snap=new Point(ans[0],ans[1],ans[2]);
+
+        api.moveTo(snap, areaQuaternions[3], true);
+        distort = api.getMatNavCam();
+        api.saveMatImage(distort, "snap4"  + ".jpg");
+        api.moveTo(areaPoints[3], areaQuaternions[3], true);
 
         /* 
         // intersecting point
