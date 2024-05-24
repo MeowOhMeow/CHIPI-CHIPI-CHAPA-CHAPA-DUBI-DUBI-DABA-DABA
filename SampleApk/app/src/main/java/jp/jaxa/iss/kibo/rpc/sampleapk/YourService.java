@@ -18,6 +18,7 @@ import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
 
 public class YourService extends KiboRpcService {
     private Point[] areaPoints = new Point[4];
+    private Point[] snapPoints = new Point[4];
     private Quaternion[] areaQuaternions = new Quaternion[4];
     private String[] itemMap = {
             "beaker",
@@ -77,49 +78,25 @@ public class YourService extends KiboRpcService {
 
     @Override
     protected void runPlan1() {
+        double[][] navCamIntrinsics = api.getNavCamIntrinsics();
+        ArtagProcess.setCameraMatrix(navCamIntrinsics[0]);
+        ArtagProcess.setDistortCoefficient(navCamIntrinsics[1]);
         //YOLOInference.init(this.getResources());
 
         // The mission starts.
         api.startMission();
 
-        Kinematics result = api.getRobotKinematics();
-        Log.i("CHIPI-CHIPI", "Starting point: " + result.getPosition() + "" + result.getOrientation());
+        Kinematics kinematics = api.getRobotKinematics();
+        Log.i("CHIPI-CHIPI", "Starting point: " + kinematics.getPosition() + "" + kinematics.getOrientation());
         /////////////////
         Mat img1=goToTakeAPic(1);
 
-        double[] ans=ArtagProcess.process(img1,1);
-        Point snap=new Point(ans[0],ans[1],ans[2]);
-        api.moveTo(snap, areaQuaternions[0], true);
+        kinematics = api.getRobotKinematics();
+        ArtagOutput result = ArtagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), img1);
+        snapPoints[0] = result.getSnapWorld();
+        api.moveTo(result.getSnapWorld(), areaQuaternions[0], true);
         Mat distort = api.getMatNavCam();
         api.saveMatImage(distort, "snap1"  + ".jpg");
-        api.moveTo(areaPoints[0], areaQuaternions[0], true);
-        /////////////////
-        Mat img2=goToTakeAPic(2);
-        ans=ArtagProcess.process(img2,2);
-        snap=new Point(ans[0],ans[1],ans[2]);
-
-        api.moveTo(snap, areaQuaternions[1], true);
-        distort = api.getMatNavCam();
-        api.saveMatImage(distort, "snap2"  + ".jpg");
-        api.moveTo(areaPoints[1], areaQuaternions[1], true);
-        /////////////////
-        Mat img3=goToTakeAPic(3);
-        ans=ArtagProcess.process(img3,3);
-        snap=new Point(ans[0],ans[1],ans[2]);
-
-        api.moveTo(snap, areaQuaternions[2], true);
-        distort = api.getMatNavCam();
-        api.saveMatImage(distort, "snap3"  + ".jpg");
-        api.moveTo(areaPoints[2], areaQuaternions[2], true);
-        ///////////////////
-        Mat img4=goToTakeAPic(4);
-        ans=ArtagProcess.process(img4,4);
-        snap=new Point(ans[0],ans[1],ans[2]);
-
-        api.moveTo(snap, areaQuaternions[3], true);
-        distort = api.getMatNavCam();
-        api.saveMatImage(distort, "snap4"  + ".jpg");
-        api.moveTo(areaPoints[3], areaQuaternions[3], true);
 
         /* 
         // intersecting point
