@@ -32,17 +32,20 @@ public class ArtagProcess extends KiboRpcService {
 	private static Mat tvec = new Mat();
 	private static Mat distortCoefficient = new Mat();
 	private static Mat cameraMatrix = new Mat();
+	private static Mat newCameraMatrix = new Mat();
 
 	public static void setDistortCoefficient(double[] distortCoefficient) {
 		MatOfDouble matOfDouble = new MatOfDouble();
 		matOfDouble.fromArray(distortCoefficient);
 		ArtagProcess.distortCoefficient = matOfDouble.reshape(1, 1);
+		Log.i("ArtagProcess","dist: "+distortCoefficient[0]+" "+distortCoefficient[1]+" "+distortCoefficient[2]+" "+distortCoefficient[3]+" "+distortCoefficient[4]);
 	}
 
 	public static void setCameraMatrix(double[] cameraMatrix) {
 		MatOfDouble matOfDouble = new MatOfDouble();
 		matOfDouble.fromArray(cameraMatrix);
 		ArtagProcess.cameraMatrix = matOfDouble.reshape(1, 3);
+		Log.i("ArtagProcess","c_mtx: "+cameraMatrix[0]+" "+cameraMatrix[1]+" "+cameraMatrix[2]+" "+cameraMatrix[3]+" "+cameraMatrix[4]+" "+cameraMatrix[5]+" "+cameraMatrix[6]+" "+cameraMatrix[7]+" "+cameraMatrix[8]);
 	}
 
 	public static void setSnapDistance(double snapDistance) {
@@ -55,6 +58,7 @@ public class ArtagProcess extends KiboRpcService {
 		Mat undistortedImage = undistortImage(img);
 		Log.i("ArtagProcess", "Image undistorted");
 
+		//Mat resultImage = findArucoAndCut(undistortedImage);
 		Mat resultImage = findArucoAndCut(undistortedImage);
 		Log.i("ArtagProcess", "Image found ar tag");
 
@@ -69,13 +73,23 @@ public class ArtagProcess extends KiboRpcService {
 		double[] arTagInCamera = { tvec.get(0, 0)[0], tvec.get(0, 0)[1], tvec.get(0, 0)[2] };
 		Mat rotationMatrix = new Mat();
 		Calib3d.Rodrigues(rvec, rotationMatrix);
+		//Mat rotationMatrix= rotation.inv();
 		double[][] R = {
 				{ rotationMatrix.get(0, 0)[0], rotationMatrix.get(0, 1)[0], rotationMatrix.get(0, 2)[0] },
 				{ rotationMatrix.get(1, 0)[0], rotationMatrix.get(1, 1)[0], rotationMatrix.get(1, 2)[0] },
 				{ rotationMatrix.get(2, 0)[0], rotationMatrix.get(2, 1)[0], rotationMatrix.get(2, 2)[0] } };
 
-		Log.i("ArtagProcess", "tvec: " + arTagInCamera);
-		Log.i("ArtagProcess", "R: " + R);
+		Log.i("ArtagProcess", "tvec: " + arTagInCamera[0]+" " + arTagInCamera[1]+" " + arTagInCamera[2]);
+		Log.i("ArtagProcess", "R: " + R[0][0]+" " + R[0][1]+" " +R[0][2]);
+		Log.i("ArtagProcess", "   " + R[1][0]+" " + R[1][1]+" " +R[1][2]);
+		Log.i("ArtagProcess", "   " + R[2][0]+" " + R[2][1]+" " +R[2][2]);
+		double[][] nc = {
+				{ newCameraMatrix.get(0, 0)[0], newCameraMatrix.get(0, 1)[0], newCameraMatrix.get(0, 2)[0] },
+				{ newCameraMatrix.get(1, 0)[0], newCameraMatrix.get(1, 1)[0], newCameraMatrix.get(1, 2)[0] },
+				{ newCameraMatrix.get(2, 0)[0], newCameraMatrix.get(2, 1)[0], newCameraMatrix.get(2, 2)[0] } };
+		Log.i("ArtagProcess","nc_mtx: "+nc[0][0]+" "+nc[0][1]+" "+nc[0][2]+" "+nc[1][0]+" "+nc[1][1]+" "+nc[1][2]+" "+nc[2][0]+" "+nc[2][1]+" "+nc[2][2]);
+
+
 		// artag to camera
 		double[] item_artag = { 0, 0.0375, -0.135, 1 };
 		double[][] Rt01 = {
@@ -96,8 +110,8 @@ public class ArtagProcess extends KiboRpcService {
 		}
 		// convert to x to front, y to right, z to down
 		double[] item_camera = { itemPointInCamera[2], itemPointInCamera[0], itemPointInCamera[1] };
-
-		double[] snapPoint = { item_camera[0] - snapDistance, item_camera[1], item_camera[2], 1 };
+		double[] center_offset = { 0.1177 , -0.0422 , -0.0826 };
+		double[] snapPoint = { item_camera[0] - snapDistance - center_offset[0] , item_camera[1] - center_offset[1] , item_camera[2] - center_offset[2] , 1 };
 
 		double[] Q = { orientation.getW(), orientation.getX(), orientation.getY(), orientation.getZ() };
 		double[] centerPoint = { center.getX(), center.getY(), center.getZ() };
@@ -110,7 +124,7 @@ public class ArtagProcess extends KiboRpcService {
 		int w = img.cols();
 		int h = img.rows();
 
-		Mat newCameraMatrix = Calib3d.getOptimalNewCameraMatrix(cameraMatrix, distortCoefficient, new Size(w, h), 1,
+		newCameraMatrix = Calib3d.getOptimalNewCameraMatrix(cameraMatrix, distortCoefficient, new Size(w, h), 1,
 				new Size(w, h));
 		Mat undistortedImg = new Mat();
 
@@ -199,7 +213,7 @@ public class ArtagProcess extends KiboRpcService {
 		Log.i("ArtagProcess", "corners size:" + String.valueOf(corners.size()));
 		Log.i("ArtagProcess", "detect complete");
 
-		Aruco.estimatePoseSingleMarkers(corners, 0.05f, cameraMatrix, distortCoefficient, rvecs, tvecs); // unit=cm
+		Aruco.estimatePoseSingleMarkers(corners, 0.05f, newCameraMatrix, distortCoefficient, rvecs, tvecs); // unit=cm
 		Log.i("ArtagProcess", "corners size:" + String.valueOf(corners.size()));
 		rvec = rvecs.row(0);
 		tvec = tvecs.row(0);

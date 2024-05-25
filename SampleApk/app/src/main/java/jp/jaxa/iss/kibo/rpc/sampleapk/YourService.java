@@ -97,6 +97,42 @@ public class YourService extends KiboRpcService {
         api.moveTo(result.getSnapWorld(), areaQuaternions[0], true);
         Mat distort = api.getMatNavCam();
         api.saveMatImage(distort, "snap1"  + ".jpg");
+        api.moveTo(areaPoints[0], areaQuaternions[0], true);
+        ///////////////
+        api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), true);
+        img1=goToTakeAPic(2);
+
+        kinematics = api.getRobotKinematics();
+        result = ArtagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), img1);
+        snapPoints[1] = result.getSnapWorld();
+        api.moveTo(result.getSnapWorld(), areaQuaternions[1], true);
+        distort = api.getMatNavCam();
+        api.saveMatImage(distort, "snap2"  + ".jpg");
+        api.moveTo(areaPoints[1], areaQuaternions[1], true);
+        /////////////////
+        api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), true);
+        img1=goToTakeAPic(3);
+
+        kinematics = api.getRobotKinematics();
+        result = ArtagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), img1);
+        snapPoints[2] = result.getSnapWorld();
+        api.moveTo(result.getSnapWorld(), areaQuaternions[2], true);
+        distort = api.getMatNavCam();
+        api.saveMatImage(distort, "snap3"  + ".jpg");
+        api.moveTo(areaPoints[2], areaQuaternions[2], true);
+        /////////////////
+        api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), true);
+        img1=goToTakeAPic(4);
+
+        kinematics = api.getRobotKinematics();
+        result = ArtagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), img1);
+        snapPoints[3] = result.getSnapWorld();
+        api.moveTo(result.getSnapWorld(), areaQuaternions[3], true);
+        distort = api.getMatNavCam();
+        api.saveMatImage(distort, "snap4"  + ".jpg");
+        //api.moveTo(areaPoints[1], areaQuaternions[3], true);
+
+        /////////////////////
 
         /* 
         // intersecting point
