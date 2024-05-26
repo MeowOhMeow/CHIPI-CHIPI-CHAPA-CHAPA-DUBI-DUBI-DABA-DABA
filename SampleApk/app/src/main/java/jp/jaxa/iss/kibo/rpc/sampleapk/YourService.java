@@ -20,17 +20,6 @@ public class YourService extends KiboRpcService {
     private Point[] areaPoints = new Point[4];
     private Point[] snapPoints = new Point[4];
     private Quaternion[] areaQuaternions = new Quaternion[4];
-    private String[] itemMap = {
-            "beaker",
-            "goggle",
-            "hammer",
-            "kapton_tape",
-            "pipette",
-            "screwdriver",
-            "thermometer",
-            "top",
-            "watch",
-            "wrench" };
 
     public YourService() {
         areaPoints[0] = new Point(10.9078d, -10.0293d, 5.1124d);
@@ -43,14 +32,14 @@ public class YourService extends KiboRpcService {
         areaQuaternions[3] = new Quaternion(0f, 0.707f, 0.707f, 0f);
     }
 
-    private Mat goToTakeAPic(int area) {
+    private void goToTakeAPic(int areaIdx) {
         // Move to a point.
-        Point point = areaPoints[area - 1];
-        Quaternion quaternion = areaQuaternions[area - 1];
-        api.moveTo(point, quaternion, true);
+        Point point = areaPoints[areaIdx];
+        Quaternion quaternion = areaQuaternions[areaIdx];
+        api.moveTo(point, quaternion, false);
 
-        Kinematics result = api.getRobotKinematics();
-        Log.i("CHIPI-CHIPI", "Area " + area + ": " + result.getPosition() + "" + result.getOrientation());
+        Kinematics kinematics = api.getRobotKinematics();
+        Log.i("CHIPI-CHIPI", "Area " + areaIdx + ": " + kinematics.getPosition() + "" + kinematics.getOrientation());
 
         api.flashlightControlFront(0.01f);
         try {
@@ -62,18 +51,26 @@ public class YourService extends KiboRpcService {
         // Get a camera image.
         Log.i("CHIPI-CHIPI", "begin of inference");
         Mat image = api.getMatNavCam();
-        /*int[] count = YOLOInference.getPredictions(image);
-        for (int i = 0; i < count.length; ++i) {
-            if (count[i] != 0)
-                api.setAreaInfo(area, itemMap[i], count[i]);
+        api.saveMatImage(image, "Area" + areaIdx + ".jpg");
+        api.flashlightControlFront(0f);
+
+        ArtagOutput detection = ArtagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image);
+
+        Log.i("CHIPI-CHIPI", "Item location: " + detection.getSnapWorld());
+        api.saveMatImage(detection.getResultImage(), "Area" + areaIdx + "_result.jpg");
+
+        snapPoints[areaIdx] = detection.getSnapWorld();
+
+        AreaItem areaItem = YOLOInference.getPredictions(detection.getResultImage());
+        if (areaItem.getItem() == null) {
+            Log.i("CHIPI-CHIPI", "No item detected");
+            return;
         }
-        */
+        api.setAreaInfo(areaIdx + 1, areaItem.getItem(), areaItem.getCount());
+
         Log.i("CHIPI-CHIPI", "end of inference");
 
-        api.saveMatImage(image, "Area" + area + ".jpg");
-
-        api.flashlightControlFront(0f);
-        return image;
+        return;
     }
 
     @Override
@@ -81,70 +78,26 @@ public class YourService extends KiboRpcService {
         double[][] navCamIntrinsics = api.getNavCamIntrinsics();
         ArtagProcess.setCameraMatrix(navCamIntrinsics[0]);
         ArtagProcess.setDistortCoefficient(navCamIntrinsics[1]);
-        //YOLOInference.init(this.getResources());
+        YOLOInference.init(this.getResources());
 
         // The mission starts.
         api.startMission();
 
         Kinematics kinematics = api.getRobotKinematics();
         Log.i("CHIPI-CHIPI", "Starting point: " + kinematics.getPosition() + "" + kinematics.getOrientation());
-        /////////////////
-        Mat img1=goToTakeAPic(1);
 
-        kinematics = api.getRobotKinematics();
-        ArtagOutput result = ArtagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), img1);
-        snapPoints[0] = result.getSnapWorld();
-        api.moveTo(result.getSnapWorld(), areaQuaternions[0], true);
-        Mat distort = api.getMatNavCam();
-        api.saveMatImage(distort, "snap1"  + ".jpg");
-        api.moveTo(areaPoints[0], areaQuaternions[0], true);
-        ///////////////
-        api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), true);
-        img1=goToTakeAPic(2);
 
-        kinematics = api.getRobotKinematics();
-        result = ArtagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), img1);
-        snapPoints[1] = result.getSnapWorld();
-        api.moveTo(result.getSnapWorld(), areaQuaternions[1], true);
-        distort = api.getMatNavCam();
-        api.saveMatImage(distort, "snap2"  + ".jpg");
-        api.moveTo(areaPoints[1], areaQuaternions[1], true);
-        /////////////////
-        api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), true);
-        img1=goToTakeAPic(3);
-
-        kinematics = api.getRobotKinematics();
-        result = ArtagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), img1);
-        snapPoints[2] = result.getSnapWorld();
-        api.moveTo(result.getSnapWorld(), areaQuaternions[2], true);
-        distort = api.getMatNavCam();
-        api.saveMatImage(distort, "snap3"  + ".jpg");
-        api.moveTo(areaPoints[2], areaQuaternions[2], true);
-        /////////////////
-        api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), true);
-        img1=goToTakeAPic(4);
-
-        kinematics = api.getRobotKinematics();
-        result = ArtagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), img1);
-        snapPoints[3] = result.getSnapWorld();
-        api.moveTo(result.getSnapWorld(), areaQuaternions[3], true);
-        distort = api.getMatNavCam();
-        api.saveMatImage(distort, "snap4"  + ".jpg");
-        //api.moveTo(areaPoints[1], areaQuaternions[3], true);
-
-        /////////////////////
-
-        /* 
-        // intersecting point
-        api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), true);
+        goToTakeAPic(0);
+        // koz 1
+        api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), false);
+        goToTakeAPic(1);
+        // koz 2
+        api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), false);
         goToTakeAPic(2);
-        // intersecting point
-        api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), true);
+        // koz 3
+        api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), false);
         goToTakeAPic(3);
-        // intersecting point
-        api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), true);
-        goToTakeAPic(4);
-        */
+
         // When you move to the front of the astronaut, report the rounding completion.
         api.reportRoundingCompletion();
 

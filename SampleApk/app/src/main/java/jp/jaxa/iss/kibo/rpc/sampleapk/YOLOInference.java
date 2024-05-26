@@ -101,11 +101,10 @@ public class YOLOInference {
 		return chw;
 	}
 
-	public static int[] getPredictions(Mat img) {
-		int[] count = new int[10];
+	public static AreaItem getPredictions(Mat img) {
 		if (session == null) {
 			Log.i("CHIPI-CHIPI", "session is null");
-			return count;
+			return new AreaItem();
 		}
 
 		Mat image = img.clone();
@@ -211,44 +210,41 @@ public class YOLOInference {
 		}
 
 		// Non-maximum suppression(置信度非極大值的box刪掉)
-		MatOfInt indexs = new MatOfInt();
+		MatOfInt candidates = new MatOfInt();
 		MatOfRect2d boxes = new MatOfRect2d(boxes_list.toArray(new Rect2d[0]));
 		float[] confArr = new float[scores.size()];
 		for (int i = 0; i < scores.size(); i++) {
 			confArr[i] = scores.get(i);
 		}
 
-		MatOfFloat con = new MatOfFloat(confArr);
-		Dnn.NMSBoxes(boxes, con, confThreshold, nmsThreshold, indexs); // condidence高的物品選出來，再用IOU(intersection overlap
+		MatOfFloat confs = new MatOfFloat(confArr);
+		Dnn.NMSBoxes(boxes, confs, confThreshold, nmsThreshold, candidates); // condidence高的物品選出來，再用IOU(intersection overlap
 																		// union)把此物品過於重疊的眶刪掉
-		if (indexs.empty()) {
-			Log.i("CHIPI-CHIPI", "indexs is empty");
-			return count;
+		if (candidates.empty()) {
+			Log.i("CHIPI-CHIPI", "indices is empty");
+			return new AreaItem();
 		}
 
-		int[] ints = indexs.toArray();
-		float[] confidences = con.toArray();
+		int[] indices = candidates.toArray();
+		float[] confidences = confs.toArray();
 
-		float[] conf = new float[10];
-		for (int i : ints) {
-			conf[classIds.get(i)] += confidences[i];
+		float[] itemTotalConfs = new float[10];
+		int[] count = new int[10];
+		for (int idx : indices) {
+			int classId = classIds.get(idx);
+			itemTotalConfs[classId] += confidences[idx];
+			count[classId]++;
 		}
-		float baseconf = conf[0];
-		int returnindex = 0;
-		for (int i = 0; i < 10; i++) {
-			if (conf[i] >= baseconf) {
-				returnindex = i;
-				baseconf = conf[i];
-			}
-
-		}
-
-		for (int i : ints) {
-			if (classIds.get(i) == returnindex) {
-				count[classIds.get(i)]++;
+		float maxConf = itemTotalConfs[0];
+		int returnIdx = 0;
+		for (int idx = 0; idx < 10; idx++) {
+			if (itemTotalConfs[idx] > maxConf) {
+				returnIdx = idx;
+				maxConf = itemTotalConfs[idx];
 			}
 		}
+		AreaItem areaItem = new AreaItem(returnIdx, count[returnIdx]);
 
-		return count;
+		return areaItem;
 	}
 }
