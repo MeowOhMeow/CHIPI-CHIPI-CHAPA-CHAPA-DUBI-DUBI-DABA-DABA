@@ -140,7 +140,7 @@ public class YourService extends KiboRpcService {
         goToTakeAPic(3);
 
         // move to astronaut
-        api.moveTo(new Point(11.1852d, -7.0784d, 4.8828d), new Quaternion(0.707f, 0.707f, 0f, 0f), false);
+        api.moveTo(new Point(11.1852d, -6.7607d, 4.8828d), new Quaternion(0.707f, 0.707f, 0f, 0f), false);
 
         api.reportRoundingCompletion();
 
