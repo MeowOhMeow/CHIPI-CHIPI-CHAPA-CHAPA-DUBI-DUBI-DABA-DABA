@@ -18,7 +18,7 @@ import org.opencv.imgproc.*;
 import org.opencv.aruco.*;
 
 /**
- * Process the image and return the snap point
+ * @brief Process the image and return the snap point
  * 
  * Usage:
  * 1. setDistortCoefficient(double[] distortCoefficient)
@@ -34,6 +34,10 @@ public class ArtagProcess extends KiboRpcService {
 	private static Mat cameraMatrix = new Mat();
 	private static Mat newCameraMatrix = new Mat();
 
+	/**
+	 * @brief Set the distortion coefficient
+	 * @param distortCoefficient
+	 */
 	public static void setDistortCoefficient(double[] distortCoefficient) {
 		MatOfDouble matOfDouble = new MatOfDouble();
 		matOfDouble.fromArray(distortCoefficient);
@@ -41,6 +45,10 @@ public class ArtagProcess extends KiboRpcService {
 		Log.i("ArtagProcess","dist: "+distortCoefficient[0]+" "+distortCoefficient[1]+" "+distortCoefficient[2]+" "+distortCoefficient[3]+" "+distortCoefficient[4]);
 	}
 
+	/**
+	 * @brief Set the camera matrix
+	 * @param cameraMatrix
+	 */
 	public static void setCameraMatrix(double[] cameraMatrix) {
 		MatOfDouble matOfDouble = new MatOfDouble();
 		matOfDouble.fromArray(cameraMatrix);
@@ -48,10 +56,21 @@ public class ArtagProcess extends KiboRpcService {
 		Log.i("ArtagProcess","c_mtx: "+cameraMatrix[0]+" "+cameraMatrix[1]+" "+cameraMatrix[2]+" "+cameraMatrix[3]+" "+cameraMatrix[4]+" "+cameraMatrix[5]+" "+cameraMatrix[6]+" "+cameraMatrix[7]+" "+cameraMatrix[8]);
 	}
 
+	/**
+	 * @brief Set the snap distance
+	 * @param snapDistance
+	 */
 	public static void setSnapDistance(double snapDistance) {
 		ArtagProcess.snapDistance = snapDistance;
 	}
 
+	/**
+	 * @brief Process the image and return the snap point
+	 * @param center: astrobee center point
+	 * @param orientation: astrobee orientation
+	 * @param img: image from astrobee camera
+	 * @return ArtagOutput: snap point and result image
+	 */
 	public static ArtagOutput process(Point center, Quaternion orientation, Mat img) {
 		Log.i("ArtagProcess", "Start process");
 		// img processing
@@ -68,6 +87,14 @@ public class ArtagProcess extends KiboRpcService {
 		return new ArtagOutput(snapWorld, resultImage);
 	}
 
+	/**
+	 * @brief Get the world point from the camera point
+	 * @param center: astrobee center point
+	 * @param orientation: astrobee orientation
+	 * @param rvec: rotation vector
+	 * @param tvec: translation vector
+	 * @return Point: world point
+	 */
 	private static Point getWorldPoint(Point center, Quaternion orientation, Mat rvec, Mat tvec) {
 		// get tvec and rotation matrix
 		double[] arTagInCamera = { tvec.get(0, 0)[0], tvec.get(0, 0)[1], tvec.get(0, 0)[2] };
@@ -120,6 +147,11 @@ public class ArtagProcess extends KiboRpcService {
 		return new Point(worldPoint[0], worldPoint[1], worldPoint[2]);
 	}
 
+	/**
+	 * @brief Undistort the image
+	 * @param img: image from astrobee camera
+	 * @return Mat: undistorted image
+	 */
 	private static Mat undistortImage(Mat img) {
 		int w = img.cols();
 		int h = img.rows();
@@ -133,9 +165,9 @@ public class ArtagProcess extends KiboRpcService {
 	}
 
 	/**
-	 * Convert a quaternion to a 3x3 rotation matrix
+	 * @brief Convert a quaternion to a 3x3 rotation matrix
 	 * 
-	 * @param Q : quaternion in (w, x, y, z)
+	 * @param Q: quaternion in (w, x, y, z)
 	 * @return 3x3 rotation matrix
 	 */
 	private static double[][] quaternionToRotationMatrix(double[] Q) {
@@ -167,7 +199,7 @@ public class ArtagProcess extends KiboRpcService {
 	}
 
 	/**
-	 * Transform a point from camera to world coordinates
+	 * @brief Transform a point from camera to world coordinates
 	 * 
 	 * @param pos
 	 * @param quaternion
@@ -195,11 +227,38 @@ public class ArtagProcess extends KiboRpcService {
 		return result;
 	}
 
+	/**
+	 * @brief Calculate the distance between two points
+	 * 
+	 * @param a
+	 * @param b
+	 * @return distance between a and b
+	 */
 	private static double calDist(double[] a, double[] b) {
 		double d = Math.sqrt((a[0] - b[0]) * (a[0] - b[0]) + (a[1] - b[1]) * (a[1] - b[1]));
 		return d;
 	}
 
+	/**
+	 * @brief Calculate the Euclidean distance of a vector
+	 * 
+	 * @param vec
+	 * @return Euclidean distance of vec
+	 */
+	private static double getEuclideanDistance(double[] vec) {
+		double sum = 0;
+		for (int i = 0; i < vec.length; i++) {
+			sum += vec[i] * vec[i];
+		}
+		return Math.sqrt(sum);
+	}
+
+	/**
+	 * @brief Find the Aruco tag and cut the image
+	 * 
+	 * @param img: image from astrobee camera
+	 * @return Mat: result image
+	 */
 	private static Mat findArucoAndCut(Mat img) {
 		Dictionary arucoDict = Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
 		DetectorParameters parameters = DetectorParameters.create();
@@ -215,18 +274,28 @@ public class ArtagProcess extends KiboRpcService {
 
 		Aruco.estimatePoseSingleMarkers(corners, 0.05f, newCameraMatrix, distortCoefficient, rvecs, tvecs); // unit=cm
 		Log.i("ArtagProcess", "corners size:" + String.valueOf(corners.size()));
-		rvec = rvecs.row(0);
-		tvec = tvecs.row(0);
+		int closestIndex = 0;
+		double closestDistance = getEuclideanDistance(tvecs.get(0, 0));
+		for (int index = 1; index < tvecs.rows(); index++) {
+			double distance = getEuclideanDistance(tvecs.get(index, 0));
+			if (distance < closestDistance) {
+				closestDistance = distance;
+				closestIndex = index;
+			}
+		}
+		rvec = rvecs.row(closestIndex);
+		tvec = tvecs.row(closestIndex);
 
-		Log.i("ArtagProcess", "coerners cols:" + (corners.get(0)).cols() + "coerners rows:" + (corners.get(0)).rows());
+		Log.i("ArtagProcess", "coerners cols:" + (corners.get(
+				closestIndex)).cols() + "coerners rows:" + (corners.get(closestIndex)).rows());
 		double[] vert = { 0, 0 };
 		double[] hoz = { 0, 0 };
-		// 我不知道coreners的資料型態= =
-		hoz[0] = (corners.get(0)).get(0, 0)[0] - (corners.get(0)).get(0, 1)[0];
-		hoz[1] = (corners.get(0)).get(0, 0)[1] - (corners.get(0)).get(0, 1)[1];
 
-		vert[0] = (corners.get(0)).get(0, 0)[0] - (corners.get(0)).get(0, 3)[0];
-		vert[1] = (corners.get(0)).get(0, 0)[1] - (corners.get(0)).get(0, 3)[1];
+		hoz[0] = (corners.get(closestIndex)).get(0, 0)[0] - (corners.get(closestIndex)).get(0, 1)[0];
+		hoz[1] = (corners.get(closestIndex)).get(0, 0)[1] - (corners.get(closestIndex)).get(0, 1)[1];
+
+		vert[0] = (corners.get(closestIndex)).get(0, 0)[0] - (corners.get(closestIndex)).get(0, 3)[0];
+		vert[1] = (corners.get(closestIndex)).get(0, 0)[1] - (corners.get(closestIndex)).get(0, 3)[1];
 
 		double[] lt = { 0, 0 };
 		double[] rt = { 0, 0 };
@@ -236,17 +305,17 @@ public class ArtagProcess extends KiboRpcService {
 		double[] rb_dst = { 0, 0 };
 		double[] lb_dst = { 0, 0 };
 
-		lt[0] = (corners.get(0)).get(0, 0)[0] + (20.75 / 5) * hoz[0] + (1.25 / 5) * vert[0];
-		lt[1] = (corners.get(0)).get(0, 0)[1] + (20.75 / 5) * hoz[1] + (1.25 / 5) * vert[1];
+		lt[0] = (corners.get(closestIndex)).get(0, 0)[0] + (20.75 / 5) * hoz[0] + (1.25 / 5) * vert[0];
+		lt[1] = (corners.get(closestIndex)).get(0, 0)[1] + (20.75 / 5) * hoz[1] + (1.25 / 5) * vert[1];
 
-		rt[0] = (corners.get(0)).get(0, 0)[0] + (0.75 / 5) * hoz[0] + (1.25 / 5) * vert[0];
-		rt[1] = (corners.get(0)).get(0, 0)[1] + (0.75 / 5) * hoz[1] + (1.25 / 5) * vert[1];
+		rt[0] = (corners.get(closestIndex)).get(0, 0)[0] + (0.75 / 5) * hoz[0] + (1.25 / 5) * vert[0];
+		rt[1] = (corners.get(closestIndex)).get(0, 0)[1] + (0.75 / 5) * hoz[1] + (1.25 / 5) * vert[1];
 
-		lb[0] = (corners.get(0)).get(0, 0)[0] + (20.75 / 5) * hoz[0] + (-13.75 / 5) * vert[0];
-		lb[1] = (corners.get(0)).get(0, 0)[1] + (20.75 / 5) * hoz[1] + (-13.75 / 5) * vert[1];
+		lb[0] = (corners.get(closestIndex)).get(0, 0)[0] + (20.75 / 5) * hoz[0] + (-13.75 / 5) * vert[0];
+		lb[1] = (corners.get(closestIndex)).get(0, 0)[1] + (20.75 / 5) * hoz[1] + (-13.75 / 5) * vert[1];
 
-		rb[0] = (corners.get(0)).get(0, 0)[0] + (0.75 / 5) * hoz[0] + (-13.75 / 5) * vert[0];
-		rb[1] = (corners.get(0)).get(0, 0)[1] + (0.75 / 5) * hoz[1] + (-13.75 / 5) * vert[1];
+		rb[0] = (corners.get(closestIndex)).get(0, 0)[0] + (0.75 / 5) * hoz[0] + (-13.75 / 5) * vert[0];
+		rb[1] = (corners.get(closestIndex)).get(0, 0)[1] + (0.75 / 5) * hoz[1] + (-13.75 / 5) * vert[1];
 
 		rt_dst[0] = lt[0] + calDist(lt, rt);
 		rt_dst[1] = lt[1];
