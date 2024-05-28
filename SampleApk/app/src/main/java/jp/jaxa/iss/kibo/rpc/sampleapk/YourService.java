@@ -17,14 +17,20 @@ import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
  * Class meant to handle commands from the Ground Data System and execute them
  * in Astrobee.
  */
-
 public class YourService extends KiboRpcService {
+    private static final String TAG = "YourService";
+    private static final int LOOP_LIMIT = 10;
+
     private Point[] areaPoints = new Point[4];
     private Point[] snapPoints = new Point[4];
     private Quaternion[] areaOrientations = new Quaternion[4];
     private List<List<Point>> routes;
     private Map<String, Integer> areaInfo = new java.util.HashMap<>();
 
+    /**
+     * Constructor for the YourService class. This will initialize the area points,
+     * orientations, and routes.
+     */
     public YourService() {
         areaPoints[0] = new Point(10.9078d, -10.0293d, 5.1124d);
         areaPoints[1] = new Point(10.8828d, -8.7924d, 4.3904d);
@@ -51,6 +57,31 @@ public class YourService extends KiboRpcService {
         routes.get(3).add(areaPoints[3]);
     }
 
+    /**
+     * Take a snapshot and save it.
+     * 
+     * @param name:     name of the image
+     * @param waitTime: time to wait before taking the snapshot. unit: ms
+     * @return the snapshot image
+     */
+    private Mat takeAndSaveSnapshot(String name, int waitTime) {
+        api.flashlightControlFront(0.01f);
+        try {
+            Thread.sleep(waitTime);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        Mat image = api.getMatNavCam();
+        api.saveMatImage(image, name);
+        api.flashlightControlFront(0f);
+        return image;
+    }
+
+    /**
+     * Go to an area and take a picture.
+     * 
+     * @param areaIdx: index of the area
+     */
     private void goToTakeAPic(int areaIdx) {
         // Move to a point.
         Point point = areaPoints[areaIdx];
@@ -58,54 +89,44 @@ public class YourService extends KiboRpcService {
         api.moveTo(point, quaternion, false);
 
         Kinematics kinematics = api.getRobotKinematics();
-        Log.i("CHIPI-CHIPI", "Area " + areaIdx + ": " + kinematics.getPosition() + "" + kinematics.getOrientation());
+        Log.i(TAG, "Area " + areaIdx + ": " + kinematics.getPosition() + "" + kinematics.getOrientation());
 
-        api.flashlightControlFront(0.01f);
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        Mat image = takeAndSaveSnapshot("Area" + areaIdx + ".jpg", 500);
 
-        // Get a camera image.
-        Mat image = api.getMatNavCam();
-        api.saveMatImage(image, "Area" + areaIdx + ".jpg");
-        api.flashlightControlFront(0f);
+        Log.i(TAG, "begin of ArtagProcess.process");
+        ARTagOutput detection = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image);
 
-        Log.i("CHIPI-CHIPI", "begin of ArtagProcess.process");
-        ArtagOutput detection = ArtagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image);
-
-        Log.i("CHIPI-CHIPI", "Item location: " + detection.getSnapWorld());
+        Log.i(TAG, "Item location: " + detection.getSnapWorld());
         api.saveMatImage(detection.getResultImage(), "Area" + areaIdx + "_result.jpg");
 
         snapPoints[areaIdx] = detection.getSnapWorld();
 
-        Log.i("CHIPI-CHIPI", "begin of inference");
+        Log.i(TAG, "begin of inference");
         AreaItem areaItem = YOLOInference.getPredictions(detection.getResultImage());
         if (areaItem.getItem() == null) {
-            Log.i("CHIPI-CHIPI", "No item detected");
+            Log.i(TAG, "No item detected");
         } else {
-            Log.i("CHIPI-CHIPI", "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
+            Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
         }
         api.setAreaInfo(areaIdx + 1, areaItem.getItem(), areaItem.getCount());
         areaInfo.put(areaItem.getItem(), areaIdx);
-
-        return;
     }
 
+    /**
+     * Main loop of the service.
+     */
     @Override
     protected void runPlan1() {
         double[][] navCamIntrinsics = api.getNavCamIntrinsics();
-        ArtagProcess.setCameraMatrix(navCamIntrinsics[0]);
-        ArtagProcess.setDistortCoefficient(navCamIntrinsics[1]);
+        ARTagProcess.setCameraMatrix(navCamIntrinsics[0]);
+        ARTagProcess.setDistortCoefficient(navCamIntrinsics[1]);
         YOLOInference.init(this.getResources());
 
         // The mission starts.
         api.startMission();
 
         Kinematics kinematics = api.getRobotKinematics();
-        Log.i("CHIPI-CHIPI", "Starting point: " + kinematics.getPosition() + "" + kinematics.getOrientation());
-
+        Log.i(TAG, "Starting point: " + kinematics.getPosition() + "" + kinematics.getOrientation());
 
         goToTakeAPic(0);
         // koz 1
@@ -121,36 +142,25 @@ public class YourService extends KiboRpcService {
         // move to astronaut
         api.moveTo(new Point(11.1852d, -7.0784d, 4.8828d), new Quaternion(0.707f, 0.707f, 0f, 0f), false);
 
-        // When you move to the front of the astronaut, report the rounding completion.
-        api.reportRoundingCompletion();
+        api.notifyRecognitionItem();
 
         kinematics = api.getRobotKinematics();
-        Log.i("CHIPI-CHIPI", "Astronaut: " + kinematics.getPosition() + "" + kinematics.getOrientation());
+        Log.i(TAG, "Astronaut: " + kinematics.getPosition() + "" + kinematics.getOrientation());
 
-        api.flashlightControlFront(0.01f);
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        Mat image = takeAndSaveSnapshot("Astronaut.jpg", 1000);
+        // int loopCounter = 0;
 
-        // Get a camera image.
-        Mat image = api.getMatNavCam();
-        api.saveMatImage(image, "Astronaut.jpg");
-        api.flashlightControlFront(0f);
-
-        Log.i("CHIPI-CHIPI", "begin of ArtagProcess.process");
-        ArtagOutput detection = ArtagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image);
+        Log.i(TAG, "begin of ArtagProcess.process");
+        ARTagOutput detection = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image);
 
         api.saveMatImage(detection.getResultImage(), "Astronaut_result.jpg");
 
-        Log.i("CHIPI-CHIPI", "begin of inference");
+        Log.i(TAG, "begin of inference");
         AreaItem areaItem = YOLOInference.getPredictions(detection.getResultImage());
         if (areaItem.getItem() == null) {
-            Log.i("CHIPI-CHIPI", "No item detected");
-        }
-        else {
-            Log.i("CHIPI-CHIPI", "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
+            Log.i(TAG, "No item detected");
+        } else {
+            Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
         }
 
         // Let's notify the astronaut when you recognize it.
@@ -171,7 +181,7 @@ public class YourService extends KiboRpcService {
 
             // Get a camera image.
             image = api.getMatNavCam();
-            api.saveMatImage(image, "SnapAtArea" + (areaIdx + 1)  + ".jpg");
+            api.saveMatImage(image, "SnapAtArea" + (areaIdx + 1) + ".jpg");
             api.flashlightControlFront(0f);
         }
 
