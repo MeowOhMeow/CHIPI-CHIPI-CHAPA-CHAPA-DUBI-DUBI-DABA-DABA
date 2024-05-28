@@ -142,7 +142,7 @@ public class YourService extends KiboRpcService {
         // move to astronaut
         api.moveTo(new Point(11.1852d, -7.0784d, 4.8828d), new Quaternion(0.707f, 0.707f, 0f, 0f), false);
 
-        api.notifyRecognitionItem();
+        api.reportRoundingCompletion();
 
         kinematics = api.getRobotKinematics();
         Log.i(TAG, "Astronaut: " + kinematics.getPosition() + "" + kinematics.getOrientation());
