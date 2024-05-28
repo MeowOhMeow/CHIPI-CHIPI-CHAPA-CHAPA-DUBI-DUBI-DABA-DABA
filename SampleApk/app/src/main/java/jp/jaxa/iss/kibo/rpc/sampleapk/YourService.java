@@ -84,8 +84,6 @@ public class YourService extends KiboRpcService {
         AreaItem areaItem = YOLOInference.getPredictions(detection.getResultImage());
         if (areaItem.getItem() == null) {
             Log.i("CHIPI-CHIPI", "No item detected");
-            api.setAreaInfo(areaIdx + 1, null, -1);
-            return;
         } else {
             Log.i("CHIPI-CHIPI", "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
         }
