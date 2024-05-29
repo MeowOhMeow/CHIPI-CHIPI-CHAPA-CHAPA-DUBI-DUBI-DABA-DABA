@@ -89,10 +89,9 @@ public class ARTagProcess {
 
 		// Mat resultImage = findArucoAndCut(undistortedImage);
 		Mat resultImage = findArUcoAndCut(undistortedImage);
-		Log.i(TAG, "Image found ar tag");
 
 		Point snapWorld = getWorldPoint(center, orientation);
-		Log.i(TAG, "Get world point: " + snapWorld);
+		Log.i(TAG, "Snap point in world: " + snapWorld);
 
 		return new ARTagOutput(snapWorld, resultImage);
 	}
@@ -119,15 +118,9 @@ public class ARTagProcess {
 		Log.i(TAG, "R: " + R[0][0] + " " + R[0][1] + " " + R[0][2]);
 		Log.i(TAG, "   " + R[1][0] + " " + R[1][1] + " " + R[1][2]);
 		Log.i(TAG, "   " + R[2][0] + " " + R[2][1] + " " + R[2][2]);
-		double[][] nc = {
-				{ newCameraMatrix.get(0, 0)[0], newCameraMatrix.get(0, 1)[0], newCameraMatrix.get(0, 2)[0] },
-				{ newCameraMatrix.get(1, 0)[0], newCameraMatrix.get(1, 1)[0], newCameraMatrix.get(1, 2)[0] },
-				{ newCameraMatrix.get(2, 0)[0], newCameraMatrix.get(2, 1)[0], newCameraMatrix.get(2, 2)[0] } };
-		Log.i(TAG, "nc_mtx: " + nc[0][0] + " " + nc[0][1] + " " + nc[0][2] + " " + nc[1][0] + " " + nc[1][1] + " "
-				+ nc[1][2] + " " + nc[2][0] + " " + nc[2][1] + " " + nc[2][2]);
 
 		// artag to camera
-		double[] item_artag = { 0, 0.0375, -0.135, 1 };
+		double[] item_artag = { -0.135, 0.0375, 0, 1 };
 		double[][] Rt01 = {
 				{ R[0][0], R[0][1], R[0][2], arTagInCamera[0] },
 				{ R[1][0], R[1][1], R[1][2], arTagInCamera[1] },
@@ -146,9 +139,7 @@ public class ARTagProcess {
 		}
 		// convert to x to front, y to right, z to down
 		double[] item_camera = { itemPointInCamera[2], itemPointInCamera[0], itemPointInCamera[1] };
-		double[] center_offset = { 0.1177, -0.0422, -0.0826 };
-		double[] snapPoint = { item_camera[0] - snapDistance - center_offset[0], item_camera[1] - center_offset[1],
-				item_camera[2] - center_offset[2], 1 };
+		double[] snapPoint = { item_camera[0] - snapDistance, item_camera[1], item_camera[2], 1 };
 
 		double[] Q = { orientation.getW(), orientation.getX(), orientation.getY(), orientation.getZ() };
 		double[] centerPoint = { center.getX(), center.getY(), center.getZ() };
@@ -205,7 +196,7 @@ public class ARTagProcess {
 
 		// 3x3 rotation matrix
 
-		return new double[][]{ { r00, r01, r02 }, { r10, r11, r12 }, { r20, r21, r22 } };
+		return new double[][] { { r00, r01, r02 }, { r10, r11, r12 }, { r20, r21, r22 } };
 	}
 
 	/**
@@ -314,17 +305,25 @@ public class ARTagProcess {
 		double[] rightBottomDst = { 0, 0 };
 		double[] leftBottomDst = { 0, 0 };
 
-		leftTopCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (20.75 / 5f) * horizontal[0] + (1.25 / 5f) * vertical[0];
-		leftTopCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (20.75 / 5f) * horizontal[1] + (1.25 / 5f) * vertical[1];
+		leftTopCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (20.75 / 5f) * horizontal[0]
+				+ (1.25 / 5f) * vertical[0];
+		leftTopCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (20.75 / 5f) * horizontal[1]
+				+ (1.25 / 5f) * vertical[1];
 
-		rightTopCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (0.75 / 5f) * horizontal[0] + (1.25 / 5f) * vertical[0];
-		rightTopCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (0.75 / 5f) * horizontal[1] + (1.25 / 5f) * vertical[1];
+		rightTopCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (0.75 / 5f) * horizontal[0]
+				+ (1.25 / 5f) * vertical[0];
+		rightTopCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (0.75 / 5f) * horizontal[1]
+				+ (1.25 / 5f) * vertical[1];
 
-		leftBottomCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (20.75 / 5f) * horizontal[0] + (-13.75 / 5f) * vertical[0];
-		leftBottomCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (20.75 / 5f) * horizontal[1] + (-13.75 / 5f) * vertical[1];
+		leftBottomCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (20.75 / 5f) * horizontal[0]
+				+ (-13.75 / 5f) * vertical[0];
+		leftBottomCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (20.75 / 5f) * horizontal[1]
+				+ (-13.75 / 5f) * vertical[1];
 
-		rightBottomCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (0.75 / 5f) * horizontal[0] + (-13.75 / 5f) * vertical[0];
-		rightBottomCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (0.75 / 5f) * horizontal[1] + (-13.75 / 5f) * vertical[1];
+		rightBottomCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (0.75 / 5f) * horizontal[0]
+				+ (-13.75 / 5f) * vertical[0];
+		rightBottomCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (0.75 / 5f) * horizontal[1]
+				+ (-13.75 / 5f) * vertical[1];
 
 		rightTopDst[0] = leftTopCorner[0] + calDist(leftTopCorner, rightTopCorner);
 		rightTopDst[1] = leftTopCorner[1];

@@ -88,13 +88,10 @@ public class YourService extends KiboRpcService {
         Quaternion quaternion = areaOrientations[areaIdx];
         api.moveTo(point, quaternion, false);
 
-        Kinematics kinematics = api.getRobotKinematics();
-        Log.i(TAG, "Area " + areaIdx + ": " + kinematics.getPosition() + "" + kinematics.getOrientation());
-
         Mat image = takeAndSaveSnapshot("Area" + areaIdx + ".jpg", 500);
 
         Log.i(TAG, "begin of ArtagProcess.process");
-        ARTagOutput detection = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image);
+        ARTagOutput detection = ARTagProcess.process(point, quaternion, image);
 
         Log.i(TAG, "Item location: " + detection.getSnapWorld());
         api.saveMatImage(detection.getResultImage(), "Area" + areaIdx + "_result.jpg");
@@ -140,18 +137,17 @@ public class YourService extends KiboRpcService {
         goToTakeAPic(3);
 
         // move to astronaut
-        api.moveTo(new Point(11.1852d, -6.7607d, 4.8828d), new Quaternion(0.707f, 0.707f, 0f, 0f), false);
+        Point pointAtAstronaut = new Point(11.1852d, -6.7607d, 4.8828d);
+        Quaternion quaternionAtAstronaut = new Quaternion(0.707f, 0.707f, 0f, 0f);
+        api.moveTo(pointAtAstronaut, quaternionAtAstronaut, false);
 
         api.reportRoundingCompletion();
-
-        kinematics = api.getRobotKinematics();
-        Log.i(TAG, "Astronaut: " + kinematics.getPosition() + "" + kinematics.getOrientation());
 
         Mat image = takeAndSaveSnapshot("Astronaut.jpg", 1000);
         // int loopCounter = 0;
 
         Log.i(TAG, "begin of ArtagProcess.process");
-        ARTagOutput detection = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image);
+        ARTagOutput detection = ARTagProcess.process(pointAtAstronaut, quaternionAtAstronaut, image);
 
         api.saveMatImage(detection.getResultImage(), "Astronaut_result.jpg");
 
@@ -172,17 +168,9 @@ public class YourService extends KiboRpcService {
                 api.moveTo(point, new Quaternion(), false);
             }
             api.moveTo(snapPoints[areaIdx], areaOrientations[areaIdx], false);
-            api.flashlightControlFront(0.01f);
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
 
             // Get a camera image.
-            image = api.getMatNavCam();
-            api.saveMatImage(image, "SnapAtArea" + (areaIdx + 1) + ".jpg");
-            api.flashlightControlFront(0f);
+            image = takeAndSaveSnapshot("TargetItem.jpg", 500);
         }
 
         // Take a snapshot of the target item.
