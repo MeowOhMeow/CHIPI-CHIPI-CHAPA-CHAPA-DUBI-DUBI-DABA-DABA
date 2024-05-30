@@ -93,6 +93,13 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "begin of ArtagProcess.process");
         ARTagOutput detection = ARTagProcess.process(point, quaternion, image);
 
+        // Exception handling
+        if(dedection == null) {
+            Log.i(TAG, "No image returned from ArtagProcess");
+            snapPoints[areaIdx] = areaPointsoint[areaIdx]; // TBD whether -1 or areaPoints
+            return;
+        }
+
         Log.i(TAG, "Item location: " + detection.getSnapWorld());
         api.saveMatImage(detection.getResultImage(), "Area" + areaIdx + "_result.jpg");
 

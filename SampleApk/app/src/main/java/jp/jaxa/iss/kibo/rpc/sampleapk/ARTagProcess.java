@@ -90,6 +90,11 @@ public class ARTagProcess {
 		// Mat resultImage = findArucoAndCut(undistortedImage);
 		Mat resultImage = findArUcoAndCut(undistortedImage);
 
+		//Exception handling
+		if(resultImage == null){
+			return null;
+		}
+
 		Point snapWorld = getWorldPoint(center, orientation);
 		Log.i(TAG, "Snap point in world: " + snapWorld);
 
@@ -274,6 +279,13 @@ public class ARTagProcess {
 
 		Aruco.estimatePoseSingleMarkers(corners, 0.05f, newCameraMatrix, distortCoefficient, rvecs, tvecs); // unit=cm
 		Log.i(TAG, "corners size:" + corners.size());
+
+		// Exception handling
+		if(coreners.size() == 0){
+			Log.i(TAG, "no aruco tag detected");
+            return null;
+		}
+
 		int closestIndex = 0;
 		double closestDistance = getEuclideanDistance(tvecs.get(0, 0));
 		for (int index = 1; index < tvecs.rows(); index++) {
