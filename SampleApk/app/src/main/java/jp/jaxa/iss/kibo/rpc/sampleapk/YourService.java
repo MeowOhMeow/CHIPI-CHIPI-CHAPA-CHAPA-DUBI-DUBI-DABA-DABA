@@ -94,9 +94,9 @@ public class YourService extends KiboRpcService {
         ARTagOutput detection = ARTagProcess.process(point, quaternion, image);
 
         // Exception handling
-        if(dedection == null) {
+        if (detection == null) {
             Log.i(TAG, "No image returned from ArtagProcess");
-            snapPoints[areaIdx] = areaPointsoint[areaIdx]; // TBD whether -1 or areaPoints
+            snapPoints[areaIdx] = areaPoints[areaIdx]; // TBD whether -1 or areaPoints
             return;
         }
 
@@ -107,11 +107,11 @@ public class YourService extends KiboRpcService {
 
         Log.i(TAG, "begin of inference");
         AreaItem areaItem = YOLOInference.getPredictions(detection.getResultImage());
-        if (areaItem.getItem() == null) {
+        if (areaItem == null) {
             Log.i(TAG, "No item detected");
-        } else {
-            Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
+            return;
         }
+        Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
         api.setAreaInfo(areaIdx + 1, areaItem.getItem(), areaItem.getCount());
         areaInfo.put(areaItem.getItem(), areaIdx);
     }
@@ -155,29 +155,36 @@ public class YourService extends KiboRpcService {
 
         Log.i(TAG, "begin of ArtagProcess.process");
         ARTagOutput detection = ARTagProcess.process(pointAtAstronaut, quaternionAtAstronaut, image);
+        AreaItem areaItem = null;
 
-        api.saveMatImage(detection.getResultImage(), "Astronaut_result.jpg");
-
-        Log.i(TAG, "begin of inference");
-        AreaItem areaItem = YOLOInference.getPredictions(detection.getResultImage());
-        if (areaItem.getItem() == null) {
-            Log.i(TAG, "No item detected");
+        if (detection != null) {
+            Log.i(TAG, "Astronaut location: " + detection.getSnapWorld());
+            api.saveMatImage(detection.getResultImage(), "Astronaut_result.jpg");
+            areaItem = YOLOInference.getPredictions(detection.getResultImage());
         } else {
-            Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
+            Log.i(TAG, "No image returned from ARTagProcess");
         }
 
         // Let's notify the astronaut when you recognize it.
         api.notifyRecognitionItem();
 
-        if (areaItem.getItem() != null) {
-            int areaIdx = areaInfo.get(areaItem.getItem());
-            for (Point point : routes.get(areaIdx)) {
-                api.moveTo(point, new Quaternion(), false);
-            }
-            api.moveTo(snapPoints[areaIdx], areaOrientations[areaIdx], false);
+        if (areaItem != null) {
+            Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
 
-            // Get a camera image.
-            image = takeAndSaveSnapshot("TargetItem.jpg", 500);
+            int areaIdx = areaInfo.get(areaItem.getItem());
+            if (areaIdx != null) {
+                for (Point point : routes.get(areaIdx)) {
+                    api.moveTo(point, new Quaternion(), false);
+                }
+                api.moveTo(snapPoints[areaIdx], areaOrientations[areaIdx], false);
+
+                // Get a camera image.
+                image = takeAndSaveSnapshot("TargetItem.jpg", 500);
+            } else {
+                Log.i(TAG, "Item not found in the areaInfo map");
+            }
+        } else {
+            Log.i(TAG, "No item detected");
         }
 
         // Take a snapshot of the target item.
