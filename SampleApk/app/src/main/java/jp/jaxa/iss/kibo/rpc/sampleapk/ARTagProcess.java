@@ -281,7 +281,7 @@ public class ARTagProcess {
         Log.i(TAG, "corners size:" + corners.size());
 
         // Exception handling
-        if (coreners.size() == 0) {
+        if (corners.size() == 0) {
             Log.i(TAG, "no aruco tag detected");
             return null;
         }
@@ -317,9 +317,12 @@ public class ARTagProcess {
         double[] rightBottomDst = { 0, 0 };
         double[] leftBottomDst = { 0, 0 };
 
-        leftTopCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (20.75 / 5f) * horizontal[0]
+        //float leftParm=20.75f;
+        float leftParm=25.25f;
+
+        leftTopCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (leftParm / 5f) * horizontal[0]
                 + (1.25 / 5f) * vertical[0];
-        leftTopCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (20.75 / 5f) * horizontal[1]
+        leftTopCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (leftParm / 5f) * horizontal[1]
                 + (1.25 / 5f) * vertical[1];
 
         rightTopCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (0.75 / 5f) * horizontal[0]
@@ -327,9 +330,9 @@ public class ARTagProcess {
         rightTopCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (0.75 / 5f) * horizontal[1]
                 + (1.25 / 5f) * vertical[1];
 
-        leftBottomCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (20.75 / 5f) * horizontal[0]
+        leftBottomCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (leftParm / 5f) * horizontal[0]
                 + (-13.75 / 5f) * vertical[0];
-        leftBottomCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (20.75 / 5f) * horizontal[1]
+        leftBottomCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (leftParm / 5f) * horizontal[1]
                 + (-13.75 / 5f) * vertical[1];
 
         rightBottomCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (0.75 / 5f) * horizontal[0]

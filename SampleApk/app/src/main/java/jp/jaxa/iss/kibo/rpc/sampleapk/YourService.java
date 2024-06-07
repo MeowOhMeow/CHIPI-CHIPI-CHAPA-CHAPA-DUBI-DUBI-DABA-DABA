@@ -171,7 +171,7 @@ public class YourService extends KiboRpcService {
         if (areaItem != null) {
             Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
 
-            int areaIdx = areaInfo.get(areaItem.getItem());
+            Integer areaIdx = areaInfo.get(areaItem.getItem());
             if (areaIdx != null) {
                 for (Point point : routes.get(areaIdx)) {
                     api.moveTo(point, new Quaternion(), false);
