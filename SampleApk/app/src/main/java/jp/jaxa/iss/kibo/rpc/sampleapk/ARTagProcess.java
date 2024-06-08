@@ -313,59 +313,50 @@ public class ARTagProcess {
         double[] rightTopCorner = { 0, 0 };
         double[] leftBottomCorner = { 0, 0 };
         double[] rightBottomCorner = { 0, 0 };
-        double[] rightTopDst = { 0, 0 };
-        double[] rightBottomDst = { 0, 0 };
-        double[] leftBottomDst = { 0, 0 };
 
-        //float leftParm=20.75f;
-        float leftParm=25.25f;
+        float scalingFactor = 0.2f;
 
-        leftTopCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (leftParm / 5f) * horizontal[0]
-                + (1.25 / 5f) * vertical[0];
-        leftTopCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (leftParm / 5f) * horizontal[1]
-                + (1.25 / 5f) * vertical[1];
+        leftTopCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + ((20.75f / 5f) * horizontal[0]
+                + (1.25 / 5f) * vertical[0]) * (1 + scalingFactor);
+        leftTopCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + ((20.75f / 5f) * horizontal[1]
+                + (1.25 / 5f) * vertical[1]) * (1 + scalingFactor);
 
-        rightTopCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (0.75 / 5f) * horizontal[0]
-                + (1.25 / 5f) * vertical[0];
-        rightTopCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (0.75 / 5f) * horizontal[1]
-                + (1.25 / 5f) * vertical[1];
+        rightTopCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + ((0.75 / 5f) * horizontal[0]
+                + (1.25 / 5f) * vertical[0]) * (1 + scalingFactor);
+        rightTopCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + ((0.75 / 5f) * horizontal[1]
+                + (1.25 / 5f) * vertical[1]) * (1 + scalingFactor);
 
-        leftBottomCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (leftParm / 5f) * horizontal[0]
-                + (-13.75 / 5f) * vertical[0];
-        leftBottomCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (leftParm / 5f) * horizontal[1]
-                + (-13.75 / 5f) * vertical[1];
+        leftBottomCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + ((20.75f / 5f) * horizontal[0]
+                + (-13.75 / 5f) * vertical[0]) * (1 + scalingFactor);
+        leftBottomCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + ((20.75f / 5f) * horizontal[1]
+                + (-13.75 / 5f) * vertical[1]) * (1 + scalingFactor);
 
-        rightBottomCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + (0.75 / 5f) * horizontal[0]
-                + (-13.75 / 5f) * vertical[0];
-        rightBottomCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + (0.75 / 5f) * horizontal[1]
-                + (-13.75 / 5f) * vertical[1];
+        rightBottomCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + ((0.75 / 5f) * horizontal[0]
+                + (-13.75 / 5f) * vertical[0]) * (1 + scalingFactor);
+        rightBottomCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + ((0.75 / 5f) * horizontal[1]
+                + (-13.75 / 5f) * vertical[1]) * (1 + scalingFactor);
 
-        rightTopDst[0] = leftTopCorner[0] + calDist(leftTopCorner, rightTopCorner);
-        rightTopDst[1] = leftTopCorner[1];
+        double width = calDist(leftTopCorner, rightTopCorner);
+        double height = calDist(leftTopCorner, leftBottomCorner);
 
-        rightBottomDst[0] = rightTopDst[0];
-        rightBottomDst[1] = rightTopDst[1] + calDist(rightBottomCorner, rightTopCorner);
-
-        leftBottomDst[0] = leftTopCorner[0];
-        leftBottomDst[1] = leftTopCorner[1] + calDist(leftTopCorner, leftBottomCorner);
+        double[] rightTopDst = { width, 0 };
+        double[] rightBottomDst = { width, height };
+        double[] leftBottomDst = { 0, height };
 
         Log.i(TAG, "calculation complete");
 
         Mat srcPoint = new Mat(4, 1, CvType.CV_32FC2);
         Mat dstPoint = new Mat(4, 1, CvType.CV_32FC2);
+
         srcPoint.put(0, 0, leftTopCorner);
         srcPoint.put(1, 0, rightTopCorner);
         srcPoint.put(2, 0, leftBottomCorner);
         srcPoint.put(3, 0, rightBottomCorner);
 
-        double[] zero = { 0, 0 };
-        double[] dst2 = { rightTopDst[0] - leftTopCorner[0], rightTopDst[1] - leftTopCorner[1] };
-        double[] dst3 = { leftBottomDst[0] - leftTopCorner[0], leftBottomDst[1] - leftTopCorner[1] };
-        double[] dst4 = { rightBottomDst[0] - leftTopCorner[0], rightBottomDst[1] - leftTopCorner[1] };
-        dstPoint.put(0, 0, zero);
-        dstPoint.put(1, 0, dst2);
-        dstPoint.put(2, 0, dst3);
-        dstPoint.put(3, 0, dst4);
+        dstPoint.put(0, 0, new double[] { 0, 0 });
+        dstPoint.put(1, 0, rightTopDst);
+        dstPoint.put(2, 0, leftBottomDst);
+        dstPoint.put(3, 0, rightBottomDst);
 
         Mat M = Imgproc.getPerspectiveTransform(srcPoint, dstPoint);
         Mat resultImage = new Mat();
