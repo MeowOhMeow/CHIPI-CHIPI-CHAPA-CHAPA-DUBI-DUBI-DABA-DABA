@@ -68,7 +68,7 @@ public class PathfindingMain {
             }
         }
         
-        System.out.println("vertex number: "+ vertexCount);
+        //System.out.println("vertex number: "+ vertexCount);
 
         for (int i = 0; i < num; i++) {
             double x = graph.getVertexProperty(i).getValue().getX();
@@ -179,11 +179,11 @@ public class PathfindingMain {
 
                 for (Obstacle obstacle : obstacles) {
                     if (graph.getVertexProperty(source.getId()).getValue().getX() > obstacle.minX && graph.getVertexProperty(source.getId()).getValue().getX() < obstacle.maxX && graph.getVertexProperty(source.getId()).getValue().getY() > obstacle.minY && graph.getVertexProperty(source.getId()).getValue().getY() < obstacle.maxY && graph.getVertexProperty(source.getId()).getValue().getZ() > obstacle.minZ && graph.getVertexProperty(source.getId()).getValue().getZ() < obstacle.maxZ) {
-                        System.out.println("source in obstacle");
+                        //System.out.println("source in obstacle");
                         return;
                     }
                     if (graph.getVertexProperty(target.getId()).getValue().getX() > obstacle.minX && graph.getVertexProperty(target.getId()).getValue().getX() < obstacle.maxX && graph.getVertexProperty(target.getId()).getValue().getY() > obstacle.minY && graph.getVertexProperty(target.getId()).getValue().getY() < obstacle.maxY && graph.getVertexProperty(target.getId()).getValue().getZ() > obstacle.minZ && graph.getVertexProperty(target.getId()).getValue().getZ() < obstacle.maxZ) {
-                        System.out.println("target in obstacle");
+                        //System.out.println("target in obstacle");
                         return;
                     }
                 }
@@ -191,7 +191,7 @@ public class PathfindingMain {
                 Stack<Vertex> path = ThetaStar.run(source, target, graph, heuristic, obstacles);
                 
                 for (Vertex vertex : path) {
-                    System.out.println("Vertex ID: " + vertex.getId());
+                    //System.out.println("Vertex ID: " + vertex.getId());
                 }
                 
                 // Calculate distance
@@ -202,10 +202,10 @@ public class PathfindingMain {
 
                 List<List<Double>> passingVertex = new ArrayList<>();
 
-                System.out.println("---------------");
-                System.out.println("source: v" + source.getId() + " target: v" + target.getId());
+                //System.out.println("---------------");
+                //System.out.println("source: v" + source.getId() + " target: v" + target.getId());
                 while (!path.isEmpty()) {
-                    System.out.println(" v" + path.peek().getId() + "(x = " + graph.getVertexProperty(path.peek().getId()).getValue().getX() + ", y = " + graph.getVertexProperty(path.peek().getId()).getValue().getY() + ", z = " + graph.getVertexProperty(path.peek().getId()).getValue().getZ() + ")");
+                    //System.out.println(" v" + path.peek().getId() + "(x = " + graph.getVertexProperty(path.peek().getId()).getValue().getX() + ", y = " + graph.getVertexProperty(path.peek().getId()).getValue().getY() + ", z = " + graph.getVertexProperty(path.peek().getId()).getValue().getZ() + ")");
                     passingVertex.add(Arrays.asList(graph.getVertexProperty(path.peek().getId()).getValue().getX(), graph.getVertexProperty(path.peek().getId()).getValue().getY(), graph.getVertexProperty(path.peek().getId()).getValue().getZ()));
                     path.pop();
                 }
@@ -218,12 +218,12 @@ public class PathfindingMain {
                 
             }     
             
-            System.out.println("Distance: " + distance);
-            System.out.println("Turning count: " + turningCount);
+            //System.out.println("Distance: " + distance);
+            //System.out.println("Turning count: " + turningCount);
             inputScanner.close();
             outputWriter.close();
         } catch (FileNotFoundException e) {
-            System.out.println("File not found");
+            //System.out.println("File not found");
         }
     }
 }

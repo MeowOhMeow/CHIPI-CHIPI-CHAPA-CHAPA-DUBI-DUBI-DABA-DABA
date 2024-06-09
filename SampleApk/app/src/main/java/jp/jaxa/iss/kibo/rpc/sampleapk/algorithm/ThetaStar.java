@@ -10,12 +10,12 @@ public class ThetaStar {
     public static double totalLength = 0;
     public static int turningCount = 0;
 
-    public static Stack<Vertex> reconstructPath(Vertex source, Vertex target, List<Integer> pred) {
+    public static Stack<Vertex> reconstructPath(Vertex source, Vertex target, List<Object> pred) {
         Stack<Vertex> path = new Stack<>();
         int current = target.getId();
         while (current != -1 && current != source.getId()) {
             path.push(new Vertex(current));
-            current = pred.get(current);
+            current = (int) pred.get(current);
         }
         path.push(new Vertex(source.getId()));
         return path;
@@ -66,7 +66,7 @@ public class ThetaStar {
             int currentVertex = open.poll().getSecond();
 
             // Correctly convert int[] pred to List<Integer>
-            List<Integer> predList = Arrays.stream(pred).boxed().collect(Collectors.toList());
+            List<Object> predList = Arrays.stream(pred).boxed().collect(Collectors.toList());
 
             if (currentVertex == target.getId()) {
                 totalLength += dist[target.getId()];
