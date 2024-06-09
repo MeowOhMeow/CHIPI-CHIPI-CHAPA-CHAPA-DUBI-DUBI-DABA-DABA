@@ -12,6 +12,7 @@ import gov.nasa.arc.astrobee.Kinematics;
 import gov.nasa.arc.astrobee.types.Point;
 import gov.nasa.arc.astrobee.types.Quaternion;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
+import jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding.PathfindingMain.PathFindingAPI;
 
 /**
  * Class meant to handle commands from the Ground Data System and execute them
@@ -86,7 +87,15 @@ public class YourService extends KiboRpcService {
         // Move to a point.
         Point point = areaPoints[areaIdx];
         Quaternion quaternion = areaOrientations[areaIdx];
-        api.moveTo(point, quaternion, false);
+        //api.moveTo(point, quaternion, false);
+        Kinematics kinematics = api.getRobotKinematics();
+        Point start = new Point(kinematics.getPosition().getX(), kinematics.getPosition().getY(), kinematics.getPosition().getZ());
+        Point end = new Point(point.getX(), point.getY(), point.getZ());
+        List<Point> path = PathFindingAPI.findPath(start, end);
+        for (Point p : path) {
+            api.moveTo(new Point(p.getX(), p.getY(), p.getZ()), quaternion, false);
+            Log.i(TAG, "point" + p + "x: " + p.getX() + " y: " + p.getY() + " z " + p.getZ());
+        }
 
         Mat image = takeAndSaveSnapshot("Area" + areaIdx + ".jpg", 0);
 
@@ -134,13 +143,13 @@ public class YourService extends KiboRpcService {
 
         goToTakeAPic(0);
         // koz 1
-        api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), false);
+        //api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), false);
         goToTakeAPic(1);
         // koz 2
-        api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), false);
+        //api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), false);
         goToTakeAPic(2);
         // koz 3
-        api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), false);
+        //api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), false);
         goToTakeAPic(3);
 
         // move to astronaut
@@ -149,7 +158,6 @@ public class YourService extends KiboRpcService {
         api.moveTo(pointAtAstronaut, quaternionAtAstronaut, false);
 
         api.reportRoundingCompletion();
-
 
         Mat image = takeAndSaveSnapshot("Astronaut.jpg", 1000);
 

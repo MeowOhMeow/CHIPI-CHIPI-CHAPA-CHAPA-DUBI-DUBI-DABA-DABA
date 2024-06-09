@@ -10,12 +10,12 @@ public class ThetaStar {
     public static double totalLength = 0;
     public static int turningCount = 0;
 
-    public static Stack<Vertex> reconstructPath(Vertex source, Vertex target, List<Object> pred) {
+    public static Stack<Vertex> reconstructPath(Vertex source, Vertex target, List<Integer> pred) {
         Stack<Vertex> path = new Stack<>();
         int current = target.getId();
         while (current != -1 && current != source.getId()) {
             path.push(new Vertex(current));
-            current = (int) pred.get(current);
+            current = pred.get(current);
         }
         path.push(new Vertex(source.getId()));
         return path;
@@ -50,6 +50,7 @@ public class ThetaStar {
 
     public static Stack<Vertex> run(Vertex source, Vertex target, Graph<Block, Double> graph,
                                     HeuristicInterface heuristic, List<Obstacle> obstacles) {
+        //System.out.println("theta");
         int numVertices = graph.size();
         double[] dist = new double[numVertices];
         int[] pred = new int[numVertices];
@@ -66,7 +67,10 @@ public class ThetaStar {
             int currentVertex = open.poll().getSecond();
 
             // Correctly convert int[] pred to List<Integer>
-            List<Object> predList = Arrays.stream(pred).boxed().collect(Collectors.toList());
+            List<Integer> predList = new ArrayList<>();
+            for (int i : pred) {
+                predList.add(i);
+            }
 
             if (currentVertex == target.getId()) {
                 totalLength += dist[target.getId()];
@@ -80,13 +84,11 @@ public class ThetaStar {
                 int pp = pred[currentVertex];
 
                 if (pp != -1 && lineOfSight(new Vertex(pp), new Vertex(neighbor), graph, obstacles)) {
-                    double edgeWeight1 = graph.getEdgeWeight(currentVertex, neighbor);
-                    double edgeWeight2 = dist[currentVertex] - dist[pp];
                     double dx = graph.getVertexProperty(neighbor).getValue().getX() - graph.getVertexProperty(new Vertex(pp)).getValue().getX();
                     double dy = graph.getVertexProperty(neighbor).getValue().getY() - graph.getVertexProperty(new Vertex(pp)).getValue().getY();
                     double dz = graph.getVertexProperty(neighbor).getValue().getZ() - graph.getVertexProperty(new Vertex(pp)).getValue().getZ();
                     double edgeWeightPP = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                    
+
                     double alt = dist[pp] + edgeWeightPP;
                     if (alt < dist[neighbor]) {
                         dist[neighbor] = alt;

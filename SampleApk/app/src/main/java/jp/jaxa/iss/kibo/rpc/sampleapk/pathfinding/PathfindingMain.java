@@ -6,126 +6,33 @@ import java.lang.Math;
 
 import gov.nasa.arc.astrobee.types.Point;
 
+import java.util.*;
+
+import java.lang.Math;
+import jp.jaxa.iss.kibo.rpc.sampleapk.graph.*;
+import jp.jaxa.iss.kibo.rpc.sampleapk.algorithm.*;
+
 public class PathfindingMain {
-	
-	public static double calculateDistance(List<Vertex> path, Graph<Block, Double> graph) {
-	    double distance = 0;
-	    for (int i = 0; i < path.size() - 1; i++) {
-	        int currentVertexId = path.get(i).getId();
-	        int nextVertexId = path.get(i + 1).getId();
-	        
-	        double dx = graph.getVertexProperty(currentVertexId).getValue().getX() - graph.getVertexProperty(nextVertexId).getValue().getX();
-	        double dy = graph.getVertexProperty(currentVertexId).getValue().getY() - graph.getVertexProperty(nextVertexId).getValue().getY();
-	        double dz = graph.getVertexProperty(currentVertexId).getValue().getZ() - graph.getVertexProperty(nextVertexId).getValue().getZ();
-	        
-	        distance += Math.sqrt(dx * dx + dy * dy + dz * dz);;
-	    }
-	    return distance;
-	}
 
-	public static int calculateTurningCount(List<Vertex> path, Graph<Block, Double> graph) {
-	    int turningCount = 0;
-	    turningCount = path.size() - 2;
-	    return turningCount;
-	}
+    public static double calculateDistance(List<Vertex> path, Graph<Block, Double> graph) {
+        double distance = 0;
+        for (int i = 0; i < path.size() - 1; i++) {
+            int currentVertexId = path.get(i).getId();
+            int nextVertexId = path.get(i + 1).getId();
 
-    static class Obstacle {
-        double minX, minY, minZ, maxX, maxY, maxZ;
+            double dx = graph.getVertexProperty(currentVertexId).getValue().getX() - graph.getVertexProperty(nextVertexId).getValue().getX();
+            double dy = graph.getVertexProperty(currentVertexId).getValue().getY() - graph.getVertexProperty(nextVertexId).getValue().getY();
+            double dz = graph.getVertexProperty(currentVertexId).getValue().getZ() - graph.getVertexProperty(nextVertexId).getValue().getZ();
 
-        Obstacle(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
-            this.minX = minX;
-            this.minY = minY;
-            this.minZ = minZ;
-            this.maxX = maxX;
-            this.maxY = maxY;
-            this.maxZ = maxZ;
+            distance += Math.sqrt(dx * dx + dy * dy + dz * dz);
         }
+        return distance;
     }
 
-    static class Block {
-        int id;
-        double x, y, z;
-
-        Block(int id, double x, double y, double z) {
-            this.id = id;
-            this.x = x;
-            this.y = y;
-            this.z = z;
-        }
-
-        double getX() { return x; }
-        double getY() { return y; }
-        double getZ() { return z; }
-    }
-
-    static class Vertex {
-        private int id;
-
-        Vertex(int id) {
-            this.id = id;
-        }
-
-        int getId() { return id; }
-    }
-
-    static class VertexProperty<T> {
-        private T value;
-
-        VertexProperty(T value) {
-            this.value = value;
-        }
-
-        T getValue() { return value; }
-    }
-
-    static class Graph<V, E> {
-        private List<Vertex> vertices;
-        private Map<Integer, VertexProperty<V>> vertexProperties;
-        private Map<Integer, ArrayList<Object>> adjacencyList;
-
-        Graph(int numVertices) {
-            vertices = new ArrayList<>(numVertices);
-            vertexProperties = new HashMap<>();
-            adjacencyList = new HashMap<Integer, ArrayList<Object>>();
-        }
-
-        void setVertexProperty(Vertex vertex, VertexProperty<V> property) {
-            vertexProperties.put(vertex.getId(), property);
-            vertices.add(vertex);
-            adjacencyList.put(vertex.getId(), new ArrayList<>());
-        }
-
-        VertexProperty<V> getVertexProperty(int id) {
-            return vertexProperties.get(id);
-        }
-
-        void addDirectedEdge(int from, int to, E weight) {
-            adjacencyList.get(from).add(new Edge<>(to, weight));
-        }
-    }
-
-    static class Edge<E> {
-        int to;
-        E weight;
-
-        Edge(int to, E weight) {
-            this.to = to;
-            this.weight = weight;
-        }
-
-        public int getTo() { return to; }
-        public E getWeight() { return weight; }
-    }
-
-    static class HeuristicA {
-        // Define heuristic implementation
-    }
-
-    static class ThetaStar {
-        static Stack<Vertex> run(Vertex source, Vertex target, Graph<Block, Double> graph, HeuristicA heuristic, List<Obstacle> obstacles) {
-            // Implement Theta* algorithm
-            return new Stack<>();
-        }
+    public static int calculateTurningCount(List<Vertex> path, Graph<Block, Double> graph) {
+        int turningCount = 0;
+        turningCount = path.size() - 2;
+        return turningCount;
     }
 
     public static class PathFindingAPI {
@@ -139,7 +46,7 @@ public class PathfindingMain {
             obstacles.add(new Obstacle(10.87, -7.40, 4.27, 11.6, -7.35, 4.97));
             obstacles.add(new Obstacle(10.25, -7.40, 4.97, 10.87, -7.35, 5.62));
 
-            double minX1 = 10.3 + 0.2, minY1 = -10.2 + 0.2, minZ1 = 4.32 + 0.2, maxX1 = 11.55 - 0.2, maxY1 = -6.0 - 0.2, maxZ1 = 5.57 - 0.2;
+            double minX1 = 10.3 + 0.15, minY1 = -10.2 + 0.15, minZ1 = 4.32 + 0.15, maxX1 = 11.55 - 0.15, maxY1 = -6.0 - 0.15, maxZ1 = 5.57 - 0.15;
 
             int num = 0;
 
@@ -175,7 +82,7 @@ public class PathfindingMain {
                 boolean inObstacleFlag = false;
 
                 for (Obstacle obstacle : obstacles) {
-                    if (x > obstacle.minX - 0.2 && x < obstacle.maxX + 0.2 && y > obstacle.minY - 0.2 && y < obstacle.maxY + 0.2 && z > obstacle.minZ - 0.2 && z < obstacle.maxZ + 0.2) {
+                    if (x > obstacle.minX - 0.15 && x < obstacle.maxX + 0.15 && y > obstacle.minY - 0.15 && y < obstacle.maxY + 0.15 && z > obstacle.minZ - 0.15 && z < obstacle.maxZ + 0.15) {
                         inObstacleFlag = true;
                         break;
                     }
@@ -208,6 +115,8 @@ public class PathfindingMain {
                     }
                 }
             }
+
+            //System.out.println("build edge");
 
             HeuristicA heuristic = new HeuristicA();
 
@@ -252,29 +161,29 @@ public class PathfindingMain {
                 }
             }
 
+            //System.out.println("Before run");
+
             Stack<Vertex> path = ThetaStar.run(source, target, graph, heuristic, obstacles);
+
+            // for (Vertex i : path) {
+            //     System.out.println("id: " + i.getId());
+            // }
+
+            //System.out.println("After run");
 
             List<Point> result = new ArrayList<>();
 
             while (!path.isEmpty()) {
+                //System.out.println("path not empty");
                 Vertex vertex = path.pop();
                 Block block = graph.getVertexProperty(vertex.getId()).getValue();
                 result.add(new Point(block.getX(), block.getY(), block.getZ()));
+                //Log.i(TAG, ("id: " + vertex.getId() + " x: " + block.getX() + " y: " + block.getY() + " z: " + block.getZ()));
             }
 
             return result;
         }
 
-        public static void main(String[] args) {
-            Point start = new Point(10.35, -10.0, 4.52);
-            Point end = new Point(11.35, -7.0, 5.32);
-
-            List<Point> path = findPath(start, end);
-
-            for (Point p : path) {
-                System.out.println("x: " + p.getX() + ", y: " + p.getY() + ", z: " + p.getZ());
-            }
-        }
     }
 }
 
