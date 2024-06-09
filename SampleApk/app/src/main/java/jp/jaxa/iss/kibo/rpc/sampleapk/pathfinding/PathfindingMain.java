@@ -1,12 +1,10 @@
 package jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding;
 
 import java.util.*;
-import jp.jaxa.iss.kibo.rpc.sampleapk.graph.*;
-import jp.jaxa.iss.kibo.rpc.sampleapk.algorithm.*;
 
-import java.io.*;
-import java.util.*;
 import java.lang.Math;
+
+import gov.nasa.arc.astrobee.types.Point;
 
 public class PathfindingMain {
 	
@@ -30,200 +28,252 @@ public class PathfindingMain {
 	    turningCount = path.size() - 2;
 	    return turningCount;
 	}
-	
-    public static void main(String[] args) {
-        List<Obstacle> obstacles = new ArrayList<>();
-        obstacles.add(new Obstacle(10.87, -9.5, 4.27, 11.6, -9.45, 4.97));
-        obstacles.add(new Obstacle(10.25, -9.5, 4.97, 10.87, -9.45, 5.62));
-        obstacles.add(new Obstacle(10.87, -8.5, 4.97, 11.6, -8.45, 5.62));
-        obstacles.add(new Obstacle(10.25, -8.5, 4.27, 10.7, -8.45, 4.97));
-        obstacles.add(new Obstacle(10.87, -7.40, 4.27, 11.6, -7.35, 4.97));
-        obstacles.add(new Obstacle(10.25, -7.40, 4.97, 10.87, -7.35, 5.62));
 
-        double minX1 = 10.3 + 0.2, minY1 = -10.2 + 0.2, minZ1 = 4.32 + 0.2, maxX1 = 11.55 - 0.2, maxY1 = -6.0 - 0.2, maxZ1 = 5.57 - 0.2;
+    static class Obstacle {
+        double minX, minY, minZ, maxX, maxY, maxZ;
 
-        int num = 0;
+        Obstacle(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
+            this.minX = minX;
+            this.minY = minY;
+            this.minZ = minZ;
+            this.maxX = maxX;
+            this.maxY = maxY;
+            this.maxZ = maxZ;
+        }
+    }
 
-        for (double x = minX1; x <= maxX1; x += 0.05) {
-            for (double y = minY1; y <= maxY1; y += 0.05) {
-                for (double z = minZ1; z <= maxZ1; z += 0.05) {
-                    num++;
-                }
-            }
+    static class Block {
+        int id;
+        double x, y, z;
+
+        Block(int id, double x, double y, double z) {
+            this.id = id;
+            this.x = x;
+            this.y = y;
+            this.z = z;
         }
 
-        Graph<Block, Double> graph = new Graph<>(num);
-        Map<List<Double>, Integer> vertexLocation = new HashMap<>();
+        double getX() { return x; }
+        double getY() { return y; }
+        double getZ() { return z; }
+    }
 
-        int vertexCount = 0;
-        for (double z = minZ1; z <= maxZ1; z += 0.05) {
-            for (double y = minY1; y <= maxY1; y += 0.05) {
-                for (double x = minX1; x <= maxX1; x += 0.05) {
-                	Block block = new Block(vertexCount, x, y, z);
-                	VertexProperty<Block> vertexProperty = new VertexProperty<>(block); // 假設 VertexProperty 有相應的構造函數
-                	graph.setVertexProperty(new Vertex(vertexCount), vertexProperty);
-                    vertexLocation.put(Arrays.asList(x, y, z), vertexCount);
-                    vertexCount++;
-                }
-            }
-        }
-        
-        //System.out.println("vertex number: "+ vertexCount);
+    static class Vertex {
+        private int id;
 
-        for (int i = 0; i < num; i++) {
-            double x = graph.getVertexProperty(i).getValue().getX();
-            double y = graph.getVertexProperty(i).getValue().getY();
-            double z = graph.getVertexProperty(i).getValue().getZ();
-
-            boolean inObstacleFlag = false;
-
-            for (Obstacle obstacle : obstacles) {
-                if (x > obstacle.minX - 0.2 && x < obstacle.maxX + 0.2 && y > obstacle.minY - 0.2 && y < obstacle.maxY + 0.2 && z > obstacle.minZ - 0.2 && z < obstacle.maxZ + 0.2) {
-                    inObstacleFlag = true;
-                    break;
-                }
-            }
-
-            if (inObstacleFlag) {
-                continue;
-            } else {
-                if (!vertexLocation.containsKey(Arrays.asList(x, y, z))) {
-                    continue;
-                } else {
-                	if (vertexLocation.containsKey(Arrays.asList(x + 0.05, y, z)))
-                	{
-                		graph.addDirectedEdge(i, vertexLocation.get(Arrays.asList(x + 0.05, y, z)), 0.05);
-                	}
-                	if (vertexLocation.containsKey(Arrays.asList(x, y + 0.05, z)))
-                	{
-                		graph.addDirectedEdge(i, vertexLocation.get(Arrays.asList(x, y + 0.05, z)), 0.05);
-                	}
-                	if (vertexLocation.containsKey(Arrays.asList(x, y, z + 0.05)))
-                	{
-                		graph.addDirectedEdge(i, vertexLocation.get(Arrays.asList(x, y, z + 0.05)), 0.05);
-                	}
-                	if (vertexLocation.containsKey(Arrays.asList(x - 0.05, y, z)))
-                	{
-                		graph.addDirectedEdge(i, vertexLocation.get(Arrays.asList(x - 0.05, y, z)), 0.05);
-                	}
-                	if (vertexLocation.containsKey(Arrays.asList(x, y - 0.05, z)))
-                	{
-                		graph.addDirectedEdge(i, vertexLocation.get(Arrays.asList(x, y - 0.05, z)), 0.05);
-                	}
-                	if (vertexLocation.containsKey(Arrays.asList(x, y, z - 0.05)))
-                	{
-                		graph.addDirectedEdge(i, vertexLocation.get(Arrays.asList(x, y, z - 0.05)), 0.05);
-                	}
-                	
-                	//System.out.println("build edge");
-                }
-            }
+        Vertex(int id) {
+            this.id = id;
         }
 
-        HeuristicA heuristic = new HeuristicA();
+        int getId() { return id; }
+    }
 
-        try {
-        	File inputFile = new File("resources/input.txt");
-            Scanner inputScanner = new Scanner(inputFile);
-            PrintWriter outputWriter = new PrintWriter(new File("resources/Paths.csv"));
+    static class VertexProperty<T> {
+        private T value;
 
-            outputWriter.println("xmin,ymin,zmin,xmax,ymax,zmax");
-            
-            double distance = 0;
-            Integer turningCount = 0;
+        VertexProperty(T value) {
+            this.value = value;
+        }
 
-            List<List<Double>> locationData = new ArrayList<>();
+        T getValue() { return value; }
+    }
 
-            while (inputScanner.hasNextLine()) {
-                String line = inputScanner.nextLine();
-                String[] parts = line.split(" ");
-                double x = Double.parseDouble(parts[0]);
-                double y = Double.parseDouble(parts[1]);
-                double z = Double.parseDouble(parts[2]);
-                locationData.add(Arrays.asList(x, y, z));
-            }
+    static class Graph<V, E> {
+        private List<Vertex> vertices;
+        private Map<Integer, VertexProperty<V>> vertexProperties;
+        private Map<Integer, ArrayList<Object>> adjacencyList;
 
-            for (int k = 0; k < locationData.size() - 1; k++) {
-                double sx = locationData.get(k).get(0);
-                double sy = locationData.get(k).get(1);
-                double sz = locationData.get(k).get(2);
+        Graph(int numVertices) {
+            vertices = new ArrayList<>(numVertices);
+            vertexProperties = new HashMap<>();
+            adjacencyList = new HashMap<Integer, ArrayList<Object>>();
+        }
 
-                double tx = locationData.get(k + 1).get(0);
-                double ty = locationData.get(k + 1).get(1);
-                double tz = locationData.get(k + 1).get(2);
+        void setVertexProperty(Vertex vertex, VertexProperty<V> property) {
+            vertexProperties.put(vertex.getId(), property);
+            vertices.add(vertex);
+            adjacencyList.put(vertex.getId(), new ArrayList<>());
+        }
 
-                double minDistance1 = 1000000;
-                double minDistance2 = 1000000;
-                int s = 0, t = 0;
+        VertexProperty<V> getVertexProperty(int id) {
+            return vertexProperties.get(id);
+        }
 
-                for (int i = 0; i < num; i++) {
-                    double x = graph.getVertexProperty(i).getValue().getX();
-                    double y = graph.getVertexProperty(i).getValue().getY();
-                    double z = graph.getVertexProperty(i).getValue().getZ();
+        void addDirectedEdge(int from, int to, E weight) {
+            adjacencyList.get(from).add(new Edge<>(to, weight));
+        }
+    }
 
-                    distance = Math.sqrt((sx - x) * (sx - x) + (sy - y) * (sy - y) + (sz - z) * (sz - z));
-                    if (distance < minDistance1) {
-                        minDistance1 = distance;
-                        s = i;
-                    }
+    static class Edge<E> {
+        int to;
+        E weight;
 
-                    distance = Math.sqrt((tx - x) * (tx - x) + (ty - y) * (ty - y) + (tz - z) * (tz - z));
-                    if (distance < minDistance2) {
-                        minDistance2 = distance;
-                        t = i;
+        Edge(int to, E weight) {
+            this.to = to;
+            this.weight = weight;
+        }
+
+        public int getTo() { return to; }
+        public E getWeight() { return weight; }
+    }
+
+    static class HeuristicA {
+        // Define heuristic implementation
+    }
+
+    static class ThetaStar {
+        static Stack<Vertex> run(Vertex source, Vertex target, Graph<Block, Double> graph, HeuristicA heuristic, List<Obstacle> obstacles) {
+            // Implement Theta* algorithm
+            return new Stack<>();
+        }
+    }
+
+    public static class PathFindingAPI {
+
+        public static List<Point> findPath(Point start, Point end) {
+            List<Obstacle> obstacles = new ArrayList<>();
+            obstacles.add(new Obstacle(10.87, -9.5, 4.27, 11.6, -9.45, 4.97));
+            obstacles.add(new Obstacle(10.25, -9.5, 4.97, 10.87, -9.45, 5.62));
+            obstacles.add(new Obstacle(10.87, -8.5, 4.97, 11.6, -8.45, 5.62));
+            obstacles.add(new Obstacle(10.25, -8.5, 4.27, 10.7, -8.45, 4.97));
+            obstacles.add(new Obstacle(10.87, -7.40, 4.27, 11.6, -7.35, 4.97));
+            obstacles.add(new Obstacle(10.25, -7.40, 4.97, 10.87, -7.35, 5.62));
+
+            double minX1 = 10.3 + 0.2, minY1 = -10.2 + 0.2, minZ1 = 4.32 + 0.2, maxX1 = 11.55 - 0.2, maxY1 = -6.0 - 0.2, maxZ1 = 5.57 - 0.2;
+
+            int num = 0;
+
+            for (double x = minX1; x <= maxX1; x += 0.05) {
+                for (double y = minY1; y <= maxY1; y += 0.05) {
+                    for (double z = minZ1; z <= maxZ1; z += 0.05) {
+                        num++;
                     }
                 }
+            }
 
-                Vertex source = new Vertex(s);
-                Vertex target = new Vertex(t);
+            Graph<Block, Double> graph = new Graph<>(num);
+            Map<List<Double>, Integer> vertexLocation = new HashMap<>();
+
+            int vertexCount = 0;
+            for (double z = minZ1; z <= maxZ1; z += 0.05) {
+                for (double y = minY1; y <= maxY1; y += 0.05) {
+                    for (double x = minX1; x <= maxX1; x += 0.05) {
+                        Block block = new Block(vertexCount, x, y, z);
+                        VertexProperty<Block> vertexProperty = new VertexProperty<>(block);
+                        graph.setVertexProperty(new Vertex(vertexCount), vertexProperty);
+                        vertexLocation.put(Arrays.asList(x, y, z), vertexCount);
+                        vertexCount++;
+                    }
+                }
+            }
+
+            for (int i = 0; i < num; i++) {
+                double x = graph.getVertexProperty(i).getValue().getX();
+                double y = graph.getVertexProperty(i).getValue().getY();
+                double z = graph.getVertexProperty(i).getValue().getZ();
+
+                boolean inObstacleFlag = false;
 
                 for (Obstacle obstacle : obstacles) {
-                    if (graph.getVertexProperty(source.getId()).getValue().getX() > obstacle.minX && graph.getVertexProperty(source.getId()).getValue().getX() < obstacle.maxX && graph.getVertexProperty(source.getId()).getValue().getY() > obstacle.minY && graph.getVertexProperty(source.getId()).getValue().getY() < obstacle.maxY && graph.getVertexProperty(source.getId()).getValue().getZ() > obstacle.minZ && graph.getVertexProperty(source.getId()).getValue().getZ() < obstacle.maxZ) {
-                        //System.out.println("source in obstacle");
-                        return;
-                    }
-                    if (graph.getVertexProperty(target.getId()).getValue().getX() > obstacle.minX && graph.getVertexProperty(target.getId()).getValue().getX() < obstacle.maxX && graph.getVertexProperty(target.getId()).getValue().getY() > obstacle.minY && graph.getVertexProperty(target.getId()).getValue().getY() < obstacle.maxY && graph.getVertexProperty(target.getId()).getValue().getZ() > obstacle.minZ && graph.getVertexProperty(target.getId()).getValue().getZ() < obstacle.maxZ) {
-                        //System.out.println("target in obstacle");
-                        return;
+                    if (x > obstacle.minX - 0.2 && x < obstacle.maxX + 0.2 && y > obstacle.minY - 0.2 && y < obstacle.maxY + 0.2 && z > obstacle.minZ - 0.2 && z < obstacle.maxZ + 0.2) {
+                        inObstacleFlag = true;
+                        break;
                     }
                 }
 
-                Stack<Vertex> path = ThetaStar.run(source, target, graph, heuristic, obstacles);
-                
-                for (Vertex vertex : path) {
-                    //System.out.println("Vertex ID: " + vertex.getId());
+                if (inObstacleFlag) {
+                    continue;
+                } else {
+                    if (!vertexLocation.containsKey(Arrays.asList(x, y, z))) {
+                        continue;
+                    } else {
+                        if (vertexLocation.containsKey(Arrays.asList(x + 0.05, y, z))) {
+                            graph.addDirectedEdge(i, vertexLocation.get(Arrays.asList(x + 0.05, y, z)), 0.05);
+                        }
+                        if (vertexLocation.containsKey(Arrays.asList(x, y + 0.05, z))) {
+                            graph.addDirectedEdge(i, vertexLocation.get(Arrays.asList(x, y + 0.05, z)), 0.05);
+                        }
+                        if (vertexLocation.containsKey(Arrays.asList(x, y, z + 0.05))) {
+                            graph.addDirectedEdge(i, vertexLocation.get(Arrays.asList(x, y, z + 0.05)), 0.05);
+                        }
+                        if (vertexLocation.containsKey(Arrays.asList(x - 0.05, y, z))) {
+                            graph.addDirectedEdge(i, vertexLocation.get(Arrays.asList(x - 0.05, y, z)), 0.05);
+                        }
+                        if (vertexLocation.containsKey(Arrays.asList(x, y - 0.05, z))) {
+                            graph.addDirectedEdge(i, vertexLocation.get(Arrays.asList(x, y - 0.05, z)), 0.05);
+                        }
+                        if (vertexLocation.containsKey(Arrays.asList(x, y, z - 0.05))) {
+                            graph.addDirectedEdge(i, vertexLocation.get(Arrays.asList(x, y, z - 0.05)), 0.05);
+                        }
+                    }
                 }
-                
-                // Calculate distance
-                distance += calculateDistance(new ArrayList<>(path), graph);
+            }
 
-                // Calculate turning count
-                turningCount += calculateTurningCount(new ArrayList<>(path), graph);
+            HeuristicA heuristic = new HeuristicA();
 
-                List<List<Double>> passingVertex = new ArrayList<>();
+            double sx = start.getX();
+            double sy = start.getY();
+            double sz = start.getZ();
+            double tx = end.getX();
+            double ty = end.getY();
+            double tz = end.getZ();
 
-                //System.out.println("---------------");
-                //System.out.println("source: v" + source.getId() + " target: v" + target.getId());
-                while (!path.isEmpty()) {
-                    //System.out.println(" v" + path.peek().getId() + "(x = " + graph.getVertexProperty(path.peek().getId()).getValue().getX() + ", y = " + graph.getVertexProperty(path.peek().getId()).getValue().getY() + ", z = " + graph.getVertexProperty(path.peek().getId()).getValue().getZ() + ")");
-                    passingVertex.add(Arrays.asList(graph.getVertexProperty(path.peek().getId()).getValue().getX(), graph.getVertexProperty(path.peek().getId()).getValue().getY(), graph.getVertexProperty(path.peek().getId()).getValue().getZ()));
-                    path.pop();
+            double minDistance1 = 1000000;
+            double minDistance2 = 1000000;
+            int s = 0, t = 0;
+
+            for (int i = 0; i < num; i++) {
+                double x = graph.getVertexProperty(i).getValue().getX();
+                double y = graph.getVertexProperty(i).getValue().getY();
+                double z = graph.getVertexProperty(i).getValue().getZ();
+
+                double distance = Math.sqrt((sx - x) * (sx - x) + (sy - y) * (sy - y) + (sz - z) * (sz - z));
+                if (distance < minDistance1) {
+                    minDistance1 = distance;
+                    s = i;
                 }
 
-                for (int i = 0; i < passingVertex.size() - 1; i++) {
-                    outputWriter.println(passingVertex.get(i).get(0) + "," + passingVertex.get(i).get(1) + "," + passingVertex.get(i).get(2) + "," + passingVertex.get(i + 1).get(0) + "," + passingVertex.get(i + 1).get(1) + "," + passingVertex.get(i + 1).get(2));
-                    //System.out.println(passingVertex.get(i).get(0) + "," + passingVertex.get(i).get(1) + "," + passingVertex.get(i).get(2) + "," + passingVertex.get(i + 1).get(0) + "," + passingVertex.get(i + 1).get(1) + "," + passingVertex.get(i + 1).get(2));
+                distance = Math.sqrt((tx - x) * (tx - x) + (ty - y) * (ty - y) + (tz - z) * (tz - z));
+                if (distance < minDistance2) {
+                    minDistance2 = distance;
+                    t = i;
                 }
-                // Print distance and turning count
-                
-            }     
-            
-            //System.out.println("Distance: " + distance);
-            //System.out.println("Turning count: " + turningCount);
-            inputScanner.close();
-            outputWriter.close();
-        } catch (FileNotFoundException e) {
-            //System.out.println("File not found");
+            }
+
+            Vertex source = new Vertex(s);
+            Vertex target = new Vertex(t);
+
+            for (Obstacle obstacle : obstacles) {
+                if (graph.getVertexProperty(source.getId()).getValue().getX() > obstacle.minX && graph.getVertexProperty(source.getId()).getValue().getX() < obstacle.maxX && graph.getVertexProperty(source.getId()).getValue().getY() > obstacle.minY && graph.getVertexProperty(source.getId()).getValue().getY() < obstacle.maxY && graph.getVertexProperty(source.getId()).getValue().getZ() > obstacle.minZ && graph.getVertexProperty(source.getId()).getValue().getZ() < obstacle.maxZ) {
+                    return Collections.emptyList();
+                }
+                if (graph.getVertexProperty(target.getId()).getValue().getX() > obstacle.minX && graph.getVertexProperty(target.getId()).getValue().getX() < obstacle.maxX && graph.getVertexProperty(target.getId()).getValue().getY() > obstacle.minY && graph.getVertexProperty(target.getId()).getValue().getY() < obstacle.maxY && graph.getVertexProperty(target.getId()).getValue().getZ() > obstacle.minZ && graph.getVertexProperty(target.getId()).getValue().getZ() < obstacle.maxZ) {
+                    return Collections.emptyList();
+                }
+            }
+
+            Stack<Vertex> path = ThetaStar.run(source, target, graph, heuristic, obstacles);
+
+            List<Point> result = new ArrayList<>();
+
+            while (!path.isEmpty()) {
+                Vertex vertex = path.pop();
+                Block block = graph.getVertexProperty(vertex.getId()).getValue();
+                result.add(new Point(block.getX(), block.getY(), block.getZ()));
+            }
+
+            return result;
+        }
+
+        public static void main(String[] args) {
+            Point start = new Point(10.35, -10.0, 4.52);
+            Point end = new Point(11.35, -7.0, 5.32);
+
+            List<Point> path = findPath(start, end);
+
+            for (Point p : path) {
+                System.out.println("x: " + p.getX() + ", y: " + p.getY() + ", z: " + p.getZ());
+            }
         }
     }
 }
