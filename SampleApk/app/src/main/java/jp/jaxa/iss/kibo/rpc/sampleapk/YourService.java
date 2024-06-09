@@ -88,7 +88,7 @@ public class YourService extends KiboRpcService {
         Quaternion quaternion = areaOrientations[areaIdx];
         api.moveTo(point, quaternion, false);
 
-        Mat image = takeAndSaveSnapshot("Area" + areaIdx + ".jpg", 500);
+        Mat image = takeAndSaveSnapshot("Area" + areaIdx + ".jpg", 0);
 
         Log.i(TAG, "begin of ArtagProcess.process");
         ARTagOutput detection = ARTagProcess.process(point, quaternion, image);
@@ -150,13 +150,20 @@ public class YourService extends KiboRpcService {
 
         api.reportRoundingCompletion();
 
+
         Mat image = takeAndSaveSnapshot("Astronaut.jpg", 1000);
-        // int loopCounter = 0;
 
         Log.i(TAG, "begin of ArtagProcess.process");
         ARTagOutput detection = ARTagProcess.process(pointAtAstronaut, quaternionAtAstronaut, image);
         AreaItem areaItem = null;
 
+        int loopCounter = 0;
+        while (loopCounter < LOOP_LIMIT && detection == null) {
+            loopCounter++;
+            Log.i(TAG, "Loop counter: " + loopCounter);
+            image = takeAndSaveSnapshot("Astronaut.jpg", 500);
+            detection = ARTagProcess.process(pointAtAstronaut, quaternionAtAstronaut, image);
+        }
         if (detection != null) {
             Log.i(TAG, "Astronaut location: " + detection.getSnapWorld());
             api.saveMatImage(detection.getResultImage(), "Astronaut_result.jpg");
