@@ -88,7 +88,7 @@ public class YourService extends KiboRpcService {
         Quaternion quaternion = areaOrientations[areaIdx];
         api.moveTo(point, quaternion, false);
 
-        Mat image = takeAndSaveSnapshot("Area" + areaIdx + ".jpg", 0);
+        Mat image = takeAndSaveSnapshot("Area" + areaIdx + ".jpg", 1000);
 
         Log.i(TAG, "begin of ArtagProcess.process");
         ARTagOutput detection = ARTagProcess.process(point, quaternion, image);
@@ -161,7 +161,7 @@ public class YourService extends KiboRpcService {
         while (loopCounter < LOOP_LIMIT && detection == null) {
             loopCounter++;
             Log.i(TAG, "Loop counter: " + loopCounter);
-            image = takeAndSaveSnapshot("Astronaut.jpg", 500);
+            image = takeAndSaveSnapshot("Astronaut.jpg", 200);
             detection = ARTagProcess.process(pointAtAstronaut, quaternionAtAstronaut, image);
         }
         if (detection != null) {
@@ -186,7 +186,16 @@ public class YourService extends KiboRpcService {
                 api.moveTo(snapPoints[areaIdx], areaOrientations[areaIdx], false);
 
                 // Get a camera image.
-                image = takeAndSaveSnapshot("TargetItem.jpg", 500);
+                image = takeAndSaveSnapshot("TargetItem.jpg", 1000);
+                detection = ARTagProcess.process(snapPoints[areaIdx], areaOrientations[areaIdx], image);
+                if (detection != null) {
+                    Log.i(TAG, "Item location: " + detection.getSnapWorld());
+                    api.saveMatImage(detection.getResultImage(), "TargetItem_result.jpg");
+                } else {
+                    Log.i(TAG, "No image returned from ARTagProcess");
+                }
+                // second adjustment
+                api.moveTo(detection.getSnapWorld(), areaOrientations[areaIdx], false);
             } else {
                 Log.i(TAG, "Item not found in the areaInfo map");
             }
