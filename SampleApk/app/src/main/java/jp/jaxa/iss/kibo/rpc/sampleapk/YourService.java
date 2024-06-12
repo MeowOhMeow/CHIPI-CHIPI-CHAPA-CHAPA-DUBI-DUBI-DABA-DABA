@@ -88,7 +88,7 @@ public class YourService extends KiboRpcService {
         Quaternion quaternion = areaOrientations[areaIdx];
         api.moveTo(point, quaternion, false);
 
-        Mat image = takeAndSaveSnapshot("Area" + areaIdx + ".jpg", 1000);
+        Mat image = takeAndSaveSnapshot("Area" + areaIdx + ".jpg", 2000);
 
         Log.i(TAG, "begin of ArtagProcess.process");
         ARTagOutput detection = ARTagProcess.process(point, quaternion, image);
@@ -151,7 +151,7 @@ public class YourService extends KiboRpcService {
         api.reportRoundingCompletion();
 
 
-        Mat image = takeAndSaveSnapshot("Astronaut.jpg", 1000);
+        Mat image = takeAndSaveSnapshot("Astronaut.jpg", 2000);
 
         Log.i(TAG, "begin of ArtagProcess.process");
         ARTagOutput detection = ARTagProcess.process(pointAtAstronaut, quaternionAtAstronaut, image);
@@ -186,7 +186,7 @@ public class YourService extends KiboRpcService {
                 api.moveTo(snapPoints[areaIdx], areaOrientations[areaIdx], false);
 
                 // Get a camera image.
-                image = takeAndSaveSnapshot("TargetItem.jpg", 1000);
+                image = takeAndSaveSnapshot("TargetItem.jpg", 2000);
                 detection = ARTagProcess.process(snapPoints[areaIdx], areaOrientations[areaIdx], image);
                 if (detection != null) {
                     Log.i(TAG, "Item location: " + detection.getSnapWorld());
