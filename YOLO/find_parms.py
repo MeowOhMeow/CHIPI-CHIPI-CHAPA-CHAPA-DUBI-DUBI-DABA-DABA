@@ -2,14 +2,18 @@ from ultralytics import YOLO
 import os
 import json
 from collections import defaultdict
+from tqdm import tqdm
+import numpy as np
 
 
-def cal_acc(model, images, labels, batch_size=128):
+def cal_acc(model, conf, iou, images, labels, batch_size=128):
     correct = 0
 
     for i in range(0, len(images), batch_size):
         # Predict in batches
-        results = model(images[i : i + batch_size], verbose=False)
+        results = model.predict(
+            images[i : i + batch_size], conf=conf, iou=iou, verbose=False
+        )
 
         # Prepare labels and counts
         batch_labels = labels[i : i + batch_size]
@@ -25,7 +29,7 @@ def cal_acc(model, images, labels, batch_size=128):
 
         # Compare results with the actual counts
         for result, item_counts in zip(results, batch_item_counts):
-            object_classes = result.boxes.cls.to('cpu').tolist()
+            object_classes = result.boxes.cls.to("cpu").tolist()
 
             for item in object_classes:
                 item_counts[item] -= 1
@@ -47,16 +51,10 @@ labels = [
 ]
 batch_size = 128
 
-# acc = cal_acc(model, images, labels, batch_size)
-# print(f"Accuracy: {acc}")
-
-
-from tqdm import tqdm
-import numpy as np
 
 # testing parmeters
-conf_range = [conf / 100 for conf in range(10, 91, 10)]
-iou_range = [iou / 100 for iou in range(10, 91, 10)]
+conf_range = [conf / 100 for conf in range(10, 91, 20)]
+iou_range = [iou / 100 for iou in range(10, 91, 20)]
 
 best_acc = 0
 best_conf = 0
@@ -65,9 +63,7 @@ results = np.array([], dtype=float)
 
 for conf in tqdm(conf_range, position=0, leave=False):
     for iou in tqdm(iou_range, position=1, leave=False):
-        model.conf = conf
-        model.iou = iou
-        acc = cal_acc(model, images, labels, batch_size)
+        acc = cal_acc(model, conf, iou, images, labels, batch_size)
         results = np.append(results, acc)
         if acc > best_acc:
             best_acc = acc
