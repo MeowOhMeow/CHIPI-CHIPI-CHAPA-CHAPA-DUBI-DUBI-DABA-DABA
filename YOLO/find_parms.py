@@ -1,9 +1,10 @@
 from ultralytics import YOLO
 import os
-import json
 from collections import defaultdict
 from tqdm import tqdm
 import numpy as np
+import matplotlib.pyplot as plt
+import json
 
 
 def cal_acc(model, conf, iou, images, labels, batch_size=128):
@@ -40,21 +41,48 @@ def cal_acc(model, conf, iou, images, labels, batch_size=128):
     return correct / len(images)
 
 
-model = YOLO("YOLO/models/train8.pt")
+if os.path.exists("YOLO/config.json") == False:
+    print("Config file not found")
+    with open("YOLO/config.json", "w") as f:
+        json.dump(
+            {
+                "model_path": "YOLO/models/train8.pt",
+                "images_dir": "YOLO/data/images",
+                "labels_dir": "YOLO/data/labels",
+                "batch_size": 128,
+                "conf_step": 0.1,
+                "iou_step": 0.1,
+            },
+            f,
+            indent=4,
+        )
+    print("Default config file created")
+with open("YOLO/config.json") as f:
+    config = json.load(f)
 
+model = YOLO(config["model_path"])
+
+if not os.path.exists(config["images_dir"]) or not os.path.exists(config["labels_dir"]):
+    print("Images or labels directory not found")
+    exit()
 images = [
-    os.path.join("YOLO/data/images", p) for p in sorted(os.listdir("YOLO/data/images"))
+    os.path.join(config["images_dir"], p)
+    for p in sorted(os.listdir(config["images_dir"]))
 ]
 
 labels = [
-    os.path.join("YOLO/data/labels", p) for p in sorted(os.listdir("YOLO/data/labels"))
+    os.path.join(config["labels_dir"], p)
+    for p in sorted(os.listdir(config["labels_dir"]))
 ]
-batch_size = 128
+print(f"Found {len(images)} images and {len(labels)} labels")
+
+
+batch_size = config["batch_size"]
 
 
 # testing parmeters
-conf_range = [conf / 100 for conf in range(10, 91, 20)]
-iou_range = [iou / 100 for iou in range(10, 91, 20)]
+conf_range = [conf / 100 for conf in range(10, 91, int(config["conf_step"] * 100))]
+iou_range = [iou / 100 for iou in range(10, 91, int(config["iou_step"] * 100))]
 
 best_acc = 0
 best_conf = 0
@@ -76,8 +104,6 @@ print(f"Best iou: {best_iou}")
 
 results = results.reshape(len(conf_range), len(iou_range))
 print(results)
-
-import matplotlib.pyplot as plt
 
 # plot heatmap
 fig, ax = plt.subplots()

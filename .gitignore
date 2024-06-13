@@ -26,3 +26,4 @@ visualizer/screenshot.png
 
 YOLO/data/*
 YOLO/models/*
+YOLO/config.json
