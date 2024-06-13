@@ -33,8 +33,8 @@ public class YOLOInference {
     private static long count;
     private static long netHeight;
     private static long netWidth;
-    private static float confThreshold = 0.3f;
-    private static float nmsThreshold = 0.66f;
+    private static float confThreshold = 0.25f;
+    private static float nmsThreshold = 0.7f;
 
     /**
      * Initialize the YOLO model
