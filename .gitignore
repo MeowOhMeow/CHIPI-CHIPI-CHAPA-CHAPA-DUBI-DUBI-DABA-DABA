@@ -3,7 +3,6 @@
 **/test.*
 
 # ML stuff
-*.pt
 datasets/*
 
 # settings
@@ -21,7 +20,9 @@ opencv/*
 
 datasets/*
 opencv/*
-YOLO/*
 **/.*
 visualizer/screenshot.png
 !basic_structure/graph/test
+
+YOLO/data/*
+YOLO/models/*
