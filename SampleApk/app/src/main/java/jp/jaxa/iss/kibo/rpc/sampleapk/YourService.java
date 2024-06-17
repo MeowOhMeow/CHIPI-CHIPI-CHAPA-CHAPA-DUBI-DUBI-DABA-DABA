@@ -92,6 +92,18 @@ public class YourService extends KiboRpcService {
         Point start = new Point(kinematics.getPosition().getX(), kinematics.getPosition().getY(), kinematics.getPosition().getZ());
         Point end = new Point(point.getX(), point.getY(), point.getZ());
         List<Point> path = PathFindingAPI.findPath(start, end);
+        // show each point in the path and the number of points in the path
+        Log.i(TAG, "------------------- Path -------------------");
+        Log.i(TAG, "Number of points in the path: " + path.size());
+
+        for (int i = 0; i < path.size() - 2; i++) {
+            Point current = path.get(i);
+            Point next = path.get((i + 1));
+            Log.i(TAG, current.getX() + "," + current.getY() + "," + current.getZ() + "," + next.getX() + "," + next.getY() + "," + next.getZ());
+        }
+
+        Log.i(TAG, "--------------------------------------------");
+
         for (Point p : path) {
             api.moveTo(new Point(p.getX(), p.getY(), p.getZ()), quaternion, false);
             Log.i(TAG, "point" + p + "x: " + p.getX() + " y: " + p.getY() + " z " + p.getZ());
@@ -140,17 +152,42 @@ public class YourService extends KiboRpcService {
 
         Kinematics kinematics = api.getRobotKinematics();
         Log.i(TAG, "Starting point: " + kinematics.getPosition() + "" + kinematics.getOrientation());
+        
 
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "go to area 0");
+        Log.i(TAG, "--------------------------------------------");
         goToTakeAPic(0);
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "Area 0 done");
+        Log.i(TAG, "--------------------------------------------");
         // koz 1
         //api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), false);
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "go to area 1");
+        Log.i(TAG, "--------------------------------------------");
         goToTakeAPic(1);
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "Area 1 done");
+        Log.i(TAG, "--------------------------------------------");
         // koz 2
         //api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), false);
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "go to area 2");
+        Log.i(TAG, "--------------------------------------------");
         goToTakeAPic(2);
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "Area 2 done");
+        Log.i(TAG, "--------------------------------------------");
         // koz 3
         //api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), false);
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "go to area 3");
+        Log.i(TAG, "--------------------------------------------");
         goToTakeAPic(3);
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "Area 3 done");
+        Log.i(TAG, "--------------------------------------------");
 
         // move to astronaut
         Point pointAtAstronaut = new Point(11.1852d, -6.7607d, 4.8828d);
@@ -180,6 +217,29 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "No image returned from ARTagProcess");
         }
 
+        /*
+        Kinematics kinematics = api.getRobotKinematics();
+        Point start = new Point(kinematics.getPosition().getX(), kinematics.getPosition().getY(), kinematics.getPosition().getZ());
+        Point end = new Point(point.getX(), point.getY(), point.getZ());
+        List<Point> path = PathFindingAPI.findPath(start, end);
+        // show each point in the path and the number of points in the path
+        Log.i(TAG, "------------------- Path -------------------");
+        Log.i(TAG, "Number of points in the path: " + path.size());
+
+        for (int i = 0; i < path.size() - 2; i++) {
+            Point current = path.get(i);
+            Point next = path.get((i + 1));
+            Log.i(TAG, current.getX() + "," + current.getY() + "," + current.getZ() + "," + next.getX() + "," + next.getY() + "," + next.getZ());
+        }
+
+        Log.i(TAG, "--------------------------------------------");
+
+        for (Point p : path) {
+            api.moveTo(new Point(p.getX(), p.getY(), p.getZ()), quaternion, false);
+            Log.i(TAG, "point" + p + "x: " + p.getX() + " y: " + p.getY() + " z " + p.getZ());
+        }
+         */
+
         // Let's notify the astronaut when you recognize it.
         api.notifyRecognitionItem();
 
@@ -188,10 +248,37 @@ public class YourService extends KiboRpcService {
 
             Integer areaIdx = areaInfo.get(areaItem.getItem());
             if (areaIdx != null) {
-                for (Point point : routes.get(areaIdx)) {
-                    api.moveTo(point, new Quaternion(), false);
+                // for (Point point : routes.get(areaIdx)) {
+                //     api.moveTo(point, new Quaternion(), false);
+                // }
+                // api.moveTo(snapPoints[areaIdx], areaOrientations[areaIdx], false);
+                Point point = areaPoints[areaIdx];
+                Kinematics kinematics1 = api.getRobotKinematics();
+                Point start = new Point(kinematics1.getPosition().getX(), kinematics1.getPosition().getY(), kinematics1.getPosition().getZ());
+                Point end = new Point(point.getX(), point.getY(), point.getZ());
+                
+                List<Point> path = PathFindingAPI.findPath(start, end);
+                // show each point in the path and the number of points in the path
+                Log.i(TAG, "------------------- Path -------------------");
+                Log.i(TAG, "Number of points in the path: " + path.size());
+
+                // show each point in the path and the number of points in the path
+                for (int i = 0; i < path.size() - 2; i++) {
+                    Point current = path.get(i);
+                    Point next = path.get((i + 1));
+                    Log.i(TAG, current.getX() + "," + current.getY() + "," + current.getZ() + "," + next.getX() + "," + next.getY() + "," + next.getZ());
                 }
-                api.moveTo(snapPoints[areaIdx], areaOrientations[areaIdx], false);
+
+                Log.i(TAG, "--------------------------------------------");
+
+                // move to each point in the path
+                for (Point p : path) {
+                    api.moveTo(new Point(p.getX(), p.getY(), p.getZ()), areaOrientations[areaIdx], false);
+                    Log.i(TAG, "point" + p + "x: " + p.getX() + " y: " + p.getY() + " z " + p.getZ());
+                }
+
+                // Move to the target item.
+                Log.i(TAG, "arrived the target item");
 
                 // Get a camera image.
                 image = takeAndSaveSnapshot("TargetItem.jpg", 500);
@@ -204,6 +291,9 @@ public class YourService extends KiboRpcService {
 
         // Take a snapshot of the target item.
         api.takeTargetItemSnapshot();
+
+        // The mission ends.
+        Log.i(TAG, "--- Mission complete ---");
 
     }
 

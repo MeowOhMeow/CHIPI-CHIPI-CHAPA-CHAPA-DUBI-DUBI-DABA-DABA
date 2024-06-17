@@ -1,6 +1,7 @@
 package jp.jaxa.iss.kibo.rpc.sampleapk.algorithm;
 
 import java.util.*;
+import android.util.Log;
 import java.util.stream.Collectors;
 
 import jp.jaxa.iss.kibo.rpc.sampleapk.graph.*;
@@ -51,6 +52,7 @@ public class ThetaStar {
     public static Stack<Vertex> run(Vertex source, Vertex target, Graph<Block, Double> graph,
                                     HeuristicInterface heuristic, List<Obstacle> obstacles) {
         //System.out.println("theta");
+        final String TAG = "ThetaStar";
         int numVertices = graph.size();
         double[] dist = new double[numVertices];
         int[] pred = new int[numVertices];
@@ -88,21 +90,33 @@ public class ThetaStar {
                     double dy = graph.getVertexProperty(neighbor).getValue().getY() - graph.getVertexProperty(new Vertex(pp)).getValue().getY();
                     double dz = graph.getVertexProperty(neighbor).getValue().getZ() - graph.getVertexProperty(new Vertex(pp)).getValue().getZ();
                     double edgeWeightPP = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
                     double alt = dist[pp] + edgeWeightPP;
+                    //Log.i(TAG, "alt: " + alt);
+                    //Log.i(TAG, "dist[neighbor]: " + dist[neighbor]);
+                    
                     if (alt < dist[neighbor]) {
+                        //Log.i(TAG, "-----------------theta success--------------");
                         dist[neighbor] = alt;
                         pred[neighbor] = pp;
                         open.add(new Pair<>(dist[neighbor] + heuristic.get(graph, new Vertex(neighbor), target), neighbor));
                         //System.out.println("actually success");
+                    }else{
+                        //Log.i(TAG, "-----------------success nothing------------");
                     }
-                } else {
+                } else { 
                     double edgeWeight = graph.getEdgeWeight(currentVertex, neighbor);
                     double alt = dist[currentVertex] + edgeWeight;
+
+                    //Log.i(TAG, "alt: " + alt);
+                    //Log.i(TAG, "dist[neighbor]: " + dist[neighbor]);
                     if (alt < dist[neighbor]) {
+                        //Log.i(TAG, "-----------------theta fail-----------------");
                         dist[neighbor] = alt;
                         pred[neighbor] = currentVertex;
                         open.add(new Pair<>(dist[neighbor] + heuristic.get(graph, new Vertex(neighbor), target), neighbor));
+                        //System.out.println("actually fail");
+                    }else{
+                        //Log.i(TAG, "-----------------fail nothing---------------");
                     }
                 }
             }

@@ -8,6 +8,8 @@ import gov.nasa.arc.astrobee.types.Point;
 
 import java.util.*;
 
+import android.util.Log;
+
 import java.lang.Math;
 import jp.jaxa.iss.kibo.rpc.sampleapk.graph.*;
 import jp.jaxa.iss.kibo.rpc.sampleapk.algorithm.*;
@@ -36,6 +38,7 @@ public class PathfindingMain {
     }
 
     public static class PathFindingAPI {
+        private static final String TAG = "PathFindingAPI";
 
         public static List<Point> findPath(Point start, Point end) {
             List<Obstacle> obstacles = new ArrayList<>();
@@ -173,17 +176,70 @@ public class PathfindingMain {
 
             List<Point> result = new ArrayList<>();
 
+            Log.i(TAG, "-------------------------------------------result-------------------------------------------");
+
             while (!path.isEmpty()) {
                 //System.out.println("path not empty");
                 Vertex vertex = path.pop();
                 Block block = graph.getVertexProperty(vertex.getId()).getValue();
                 result.add(new Point(block.getX(), block.getY(), block.getZ()));
-                //Log.i(TAG, ("id: " + vertex.getId() + " x: " + block.getX() + " y: " + block.getY() + " z: " + block.getZ()));
+                Log.i(TAG, ("id: " + vertex.getId() + " x: " + block.getX() + " y: " + block.getY() + " z: " + block.getZ()));
             }
 
-            return result;
-        }
+            Log.i(TAG, "-------------------------------------------result-------------------------------------------");
 
+            //偵測到如果多點在同一直線上就簡化成兩個點
+            //如果重複，就用一個列表紀錄要被刪除的點
+            //創建一個跟result一樣大的陣列
+            //如果有重複，就把要被刪除的點的位置設為true
+
+            boolean[] delete = new boolean[result.size()];
+            for (int i = 0; i < result.size() - 2; i++) {
+                Point p1 = result.get(i);
+                Point p2 = result.get(i + 1);
+                Point p3 = result.get(i + 2);
+
+                double x1 = p1.getX();
+                double y1 = p1.getY();
+                double z1 = p1.getZ();
+                double x2 = p2.getX();
+                double y2 = p2.getY();
+                double z2 = p2.getZ();
+                double x3 = p3.getX();
+                double y3 = p3.getY();
+                double z3 = p3.getZ();
+
+                if(x1 == x3 && y1 == y3)
+                {
+                    delete[i + 1] = true;
+                }
+                else if(y1 == y3 && z1 == z3)
+                {
+                    delete[i + 1] = true;
+                }
+                else if(x1 == x3 && z1 == z3)
+                {
+                    delete[i + 1] = true;
+                }
+            }
+
+            List<Point> result2 = new ArrayList<>();
+            for (int i = 0; i < result.size(); i++) {
+                if (!delete[i]) {
+                    result2.add(result.get(i));
+                }
+            }
+
+            Log.i(TAG, "-------------------------------------------result2-------------------------------------------");
+            //print result2
+            for (int i = 0; i < result2.size(); i++) {
+                Point p = result2.get(i);
+                Log.i(TAG, ("x: " + p.getX() + " y: " + p.getY() + " z: " + p.getZ()));
+            }
+            Log.i(TAG, "-------------------------------------------result2-------------------------------------------");
+
+            return result2;
+        }
     }
 }
 
