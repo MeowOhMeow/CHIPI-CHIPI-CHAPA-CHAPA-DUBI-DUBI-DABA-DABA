@@ -23,6 +23,7 @@ public class ThetaStar {
     }
 
     public static boolean lineOfSight(Vertex source, Vertex target, Graph<Block, Double> graph, List<Obstacle> obstacles) {
+        final String TAG = "lineOfSight";
         double x0 = graph.getVertexProperty(source).getValue().getX();
         double y0 = graph.getVertexProperty(source).getValue().getY();
         double z0 = graph.getVertexProperty(source).getValue().getZ();
@@ -39,6 +40,7 @@ public class ThetaStar {
                 double y = y0 + dy * step;
                 double z = z0 + dz * step;
                 if (x > obstacle.minX - 0.2 && x < obstacle.maxX + 0.2 && y > obstacle.minY - 0.2 && y < obstacle.maxY + 0.2 && z > obstacle.minZ - 0.2 && z < obstacle.maxZ + 0.2) {
+                    Log.i(TAG, "--------------------collision location: " + x + ", " + y + ", " + z + "---------------------");
                     return false;
                 }
             }
@@ -94,6 +96,7 @@ public class ThetaStar {
                     //Log.i(TAG, "alt: " + alt);
                     //Log.i(TAG, "dist[neighbor]: " + dist[neighbor]);
                     
+                    //Log.i(TAG, "--------------line of sight success-----------------");
                     if (alt < dist[neighbor]) {
                         //Log.i(TAG, "-----------------theta success--------------");
                         dist[neighbor] = alt;
@@ -106,7 +109,12 @@ public class ThetaStar {
                 } else { 
                     double edgeWeight = graph.getEdgeWeight(currentVertex, neighbor);
                     double alt = dist[currentVertex] + edgeWeight;
-
+                    if(pp == -1)
+                    {
+                        //Log.i(TAG, "pp is -1");
+                    }else{
+                        //Log.i(TAG, "Line of sight fail");
+                    }
                     //Log.i(TAG, "alt: " + alt);
                     //Log.i(TAG, "dist[neighbor]: " + dist[neighbor]);
                     if (alt < dist[neighbor]) {

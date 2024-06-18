@@ -16,6 +16,34 @@ import jp.jaxa.iss.kibo.rpc.sampleapk.algorithm.*;
 
 public class PathfindingMain {
 
+    public static boolean lineOfSight(double x0, double y0, double z0, double x1, double y1, double z1, Graph<Block, Double> graph, List<Obstacle> obstacles) {
+        final String TAG = "lineOfSight in pathFindingMain";
+        double dx = x1 - x0;
+        double dy = y1 - y0;
+        double dz = z1 - z0;
+
+        for (Obstacle obstacle : obstacles) {
+            for (double step = 0; step <= 1; step += 0.001) { // Adjust step size if necessary
+                double x = x0 + dx * step;
+                double y = y0 + dy * step;
+                double z = z0 + dz * step;
+                if (x > obstacle.minX - 0.2 && x < obstacle.maxX + 0.2 && y > obstacle.minY - 0.2 && y < obstacle.maxY + 0.2 && z > obstacle.minZ - 0.2 && z < obstacle.maxZ + 0.2) {
+                    Log.i(TAG, "--------------------collision location: " + x + ", " + y + ", " + z + "---------------------");
+                    Log.i(TAG, "--------------------reason: " + x + " > " + (obstacle.minX - 0.2) + "---------------------");
+                    Log.i(TAG, "--------------------reason: " + x + " < " + (obstacle.maxX + 0.2) + "---------------------");
+                    Log.i(TAG, "--------------------reason: " + y + " > " + (obstacle.minY - 0.2) + "---------------------");
+                    Log.i(TAG, "--------------------reason: " + y + " < " + (obstacle.maxY + 0.2) + "---------------------");
+                    Log.i(TAG, "--------------------reason: " + z + " > " + (obstacle.minZ - 0.2) + "---------------------");
+                    Log.i(TAG, "--------------------reason: " + z + " < " + (obstacle.maxZ + 0.2) + "---------------------");
+                    return false;
+                }
+            }
+        }
+        //System.out.println("x " + x0 + " y " + y0 + " z " + z0);
+        //System.out.println("theta success");
+        return true;
+    }
+
     public static double calculateDistance(List<Vertex> path, Graph<Block, Double> graph) {
         double distance = 0;
         for (int i = 0; i < path.size() - 1; i++) {
@@ -237,8 +265,43 @@ public class PathfindingMain {
                 Log.i(TAG, ("x: " + p.getX() + " y: " + p.getY() + " z: " + p.getZ()));
             }
             Log.i(TAG, "-------------------------------------------result2-------------------------------------------");
+            
+            //幫我用line of sight刪掉不必要的點
+            //創建一個跟result一樣大的陣列
+            //將刪除後的結果輸出到result3
+            boolean[] delete1 = new boolean[result2.size()];
+            List<Point> result3 = new ArrayList<>();
 
-            return result2;
+            for (int i = 0; i < result2.size() - 2; i++) {
+                Point p1 = result2.get(i);
+                Point p2 = result2.get(i + 1);
+                Point p3 = result2.get(i + 2);
+
+                if (lineOfSight(p1.getX(), p1.getY(), p1.getZ(), p3.getX(), p3.getY(), p3.getZ(), graph, obstacles)) {
+                    delete1[i + 1] = true; // 标记 p2 为可删除
+                }
+            }
+
+            for (int i = 0; i < result2.size(); i++) { 
+                if (!delete1[i]) {
+                    result3.add(result2.get(i));
+                }
+            }
+
+            //刪除起始點，因為astrobee已經在起點上了
+            result3.remove(0);
+
+            Log.i(TAG, "-------------------------------------------result3-------------------------------------------");
+            //print result2
+            for (int i = 0; i < result3.size(); i++) {
+                Point p = result3.get(i);
+                Log.i(TAG, ("x: " + p.getX() + " y: " + p.getY() + " z: " + p.getZ()));
+            }
+            Log.i(TAG, "-------------------------------------------result3-------------------------------------------");
+            
+            
+
+            return result3;
         }
     }
 }

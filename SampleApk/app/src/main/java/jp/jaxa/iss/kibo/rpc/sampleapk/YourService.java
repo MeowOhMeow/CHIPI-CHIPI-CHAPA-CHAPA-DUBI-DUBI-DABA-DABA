@@ -217,29 +217,6 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "No image returned from ARTagProcess");
         }
 
-        /*
-        Kinematics kinematics = api.getRobotKinematics();
-        Point start = new Point(kinematics.getPosition().getX(), kinematics.getPosition().getY(), kinematics.getPosition().getZ());
-        Point end = new Point(point.getX(), point.getY(), point.getZ());
-        List<Point> path = PathFindingAPI.findPath(start, end);
-        // show each point in the path and the number of points in the path
-        Log.i(TAG, "------------------- Path -------------------");
-        Log.i(TAG, "Number of points in the path: " + path.size());
-
-        for (int i = 0; i < path.size() - 2; i++) {
-            Point current = path.get(i);
-            Point next = path.get((i + 1));
-            Log.i(TAG, current.getX() + "," + current.getY() + "," + current.getZ() + "," + next.getX() + "," + next.getY() + "," + next.getZ());
-        }
-
-        Log.i(TAG, "--------------------------------------------");
-
-        for (Point p : path) {
-            api.moveTo(new Point(p.getX(), p.getY(), p.getZ()), quaternion, false);
-            Log.i(TAG, "point" + p + "x: " + p.getX() + " y: " + p.getY() + " z " + p.getZ());
-        }
-         */
-
         // Let's notify the astronaut when you recognize it.
         api.notifyRecognitionItem();
 
@@ -247,17 +224,12 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
 
             Integer areaIdx = areaInfo.get(areaItem.getItem());
+            Log.i(TAG, "----------------------------------------");
+            Log.i(TAG, "areaIdx: " + areaIdx);
             if (areaIdx != null) {
-                // for (Point point : routes.get(areaIdx)) {
-                //     api.moveTo(point, new Quaternion(), false);
-                // }
-                // api.moveTo(snapPoints[areaIdx], areaOrientations[areaIdx], false);
-                Point point = areaPoints[areaIdx];
                 Kinematics kinematics1 = api.getRobotKinematics();
-                Point start = new Point(kinematics1.getPosition().getX(), kinematics1.getPosition().getY(), kinematics1.getPosition().getZ());
-                Point end = new Point(point.getX(), point.getY(), point.getZ());
                 
-                List<Point> path = PathFindingAPI.findPath(start, end);
+                List<Point> path = PathFindingAPI.findPath(kinematics1.getPosition(), snapPoints[areaIdx]);
                 // show each point in the path and the number of points in the path
                 Log.i(TAG, "------------------- Path -------------------");
                 Log.i(TAG, "Number of points in the path: " + path.size());
@@ -282,6 +254,16 @@ public class YourService extends KiboRpcService {
 
                 // Get a camera image.
                 image = takeAndSaveSnapshot("TargetItem.jpg", 500);
+                detection = ARTagProcess.process(snapPoints[areaIdx], areaOrientations[areaIdx], image);
+                if (detection != null) {
+                    Log.i(TAG, "Item location: " + detection.getSnapWorld());
+                    api.saveMatImage(detection.getResultImage(), "TargetItem_result.jpg");
+                } else {
+                    Log.i(TAG, "No image returned from ARTagProcess");
+                }
+
+                //second adjustment
+                api.moveTo(detection.getSnapWorld(), areaOrientations[areaIdx], false);
             } else {
                 Log.i(TAG, "Item not found in the areaInfo map");
             }
