@@ -96,7 +96,7 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "------------------- Path -------------------");
         Log.i(TAG, "Number of points in the path: " + path.size());
 
-        for (int i = 0; i < path.size() - 2; i++) {
+        for (int i = 0; i < path.size() - 1; i++) {
             Point current = path.get(i);
             Point next = path.get((i + 1));
             Log.i(TAG, current.getX() + "," + current.getY() + "," + current.getZ() + "," + next.getX() + "," + next.getY() + "," + next.getZ());

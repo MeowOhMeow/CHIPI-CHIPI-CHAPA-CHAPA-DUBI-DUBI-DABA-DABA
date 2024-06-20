@@ -28,13 +28,13 @@ public class PathfindingMain {
                 double y = y0 + dy * step;
                 double z = z0 + dz * step;
                 if (x > obstacle.minX - 0.2 && x < obstacle.maxX + 0.2 && y > obstacle.minY - 0.2 && y < obstacle.maxY + 0.2 && z > obstacle.minZ - 0.2 && z < obstacle.maxZ + 0.2) {
-                    Log.i(TAG, "--------------------collision location: " + x + ", " + y + ", " + z + "---------------------");
-                    Log.i(TAG, "--------------------reason: " + x + " > " + (obstacle.minX - 0.2) + "---------------------");
-                    Log.i(TAG, "--------------------reason: " + x + " < " + (obstacle.maxX + 0.2) + "---------------------");
-                    Log.i(TAG, "--------------------reason: " + y + " > " + (obstacle.minY - 0.2) + "---------------------");
-                    Log.i(TAG, "--------------------reason: " + y + " < " + (obstacle.maxY + 0.2) + "---------------------");
-                    Log.i(TAG, "--------------------reason: " + z + " > " + (obstacle.minZ - 0.2) + "---------------------");
-                    Log.i(TAG, "--------------------reason: " + z + " < " + (obstacle.maxZ + 0.2) + "---------------------");
+                    //Log.i(TAG, "--------------------collision location: " + x + ", " + y + ", " + z + "---------------------");
+                    //Log.i(TAG, "--------------------reason: " + x + " > " + (obstacle.minX - 0.2) + "---------------------");
+                    //Log.i(TAG, "--------------------reason: " + x + " < " + (obstacle.maxX + 0.2) + "---------------------");
+                    //Log.i(TAG, "--------------------reason: " + y + " > " + (obstacle.minY - 0.2) + "---------------------");
+                    //Log.i(TAG, "--------------------reason: " + y + " < " + (obstacle.maxY + 0.2) + "---------------------");
+                    //Log.i(TAG, "--------------------reason: " + z + " > " + (obstacle.minZ - 0.2) + "---------------------");
+                    //Log.i(TAG, "--------------------reason: " + z + " < " + (obstacle.maxZ + 0.2) + "---------------------");
                     return false;
                 }
             }

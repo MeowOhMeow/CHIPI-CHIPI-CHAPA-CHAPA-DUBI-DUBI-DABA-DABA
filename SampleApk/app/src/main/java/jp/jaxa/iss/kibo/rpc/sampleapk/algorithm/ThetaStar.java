@@ -40,7 +40,7 @@ public class ThetaStar {
                 double y = y0 + dy * step;
                 double z = z0 + dz * step;
                 if (x > obstacle.minX - 0.2 && x < obstacle.maxX + 0.2 && y > obstacle.minY - 0.2 && y < obstacle.maxY + 0.2 && z > obstacle.minZ - 0.2 && z < obstacle.maxZ + 0.2) {
-                    Log.i(TAG, "--------------------collision location: " + x + ", " + y + ", " + z + "---------------------");
+                    //Log.i(TAG, "--------------------collision location: " + x + ", " + y + ", " + z + "---------------------");
                     return false;
                 }
             }
@@ -115,8 +115,6 @@ public class ThetaStar {
                     }else{
                         //Log.i(TAG, "Line of sight fail");
                     }
-                    //Log.i(TAG, "alt: " + alt);
-                    //Log.i(TAG, "dist[neighbor]: " + dist[neighbor]);
                     if (alt < dist[neighbor]) {
                         //Log.i(TAG, "-----------------theta fail-----------------");
                         dist[neighbor] = alt;
