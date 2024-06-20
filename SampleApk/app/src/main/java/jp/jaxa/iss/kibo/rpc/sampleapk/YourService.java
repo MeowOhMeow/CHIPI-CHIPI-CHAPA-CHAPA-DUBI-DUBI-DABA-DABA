@@ -218,12 +218,8 @@ public class YourService extends KiboRpcService {
         Point pointAtAstronaut = new Point(11.1852d, -6.7607d, 4.8828d);
         Quaternion quaternionAtAstronaut = new Quaternion(0.707f, 0.707f, 0f, 0f);
         
-        if(null == api.moveTo(pointAtAstronaut, quaternionAtAstronaut, false)){
-            Log.i(TAG, "Move to point Astronaut failed");
-        }
-        else{
-            Log.i(TAG, "point" + pointAtAstronaut + "x: " + pointAtAstronaut.getX() + " y: " + pointAtAstronaut.getY() + " z " + pointAtAstronaut.getZ());
-        }
+        api.moveTo(pointAtAstronaut, quaternionAtAstronaut, false);
+        Log.i(TAG, "point" + pointAtAstronaut + "x: " + pointAtAstronaut.getX() + " y: " + pointAtAstronaut.getY() + " z " + pointAtAstronaut.getZ());
 
         api.reportRoundingCompletion();
 
@@ -280,12 +276,8 @@ public class YourService extends KiboRpcService {
 
                 // move to each point in the path
                 for (Point p : path) {
-                    if(null == api.moveTo(new Point(p.getX(), p.getY(), p.getZ()), areaOrientations[areaIdx], false)){
-                        Log.i(TAG, "Move to point failed");
-                    }
-                    else{
-                        Log.i(TAG, "point" + p + "x: " + p.getX() + " y: " + p.getY() + " z " + p.getZ());
-                    }
+                    api.moveTo(new Point(p.getX(), p.getY(), p.getZ()), areaOrientations[areaIdx], false);
+                    Log.i(TAG, "point" + p + "x: " + p.getX() + " y: " + p.getY() + " z " + p.getZ());
                 }
 
                 // Move to the target item.
