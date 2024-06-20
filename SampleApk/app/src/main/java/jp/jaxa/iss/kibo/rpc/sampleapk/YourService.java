@@ -89,6 +89,7 @@ public class YourService extends KiboRpcService {
         Quaternion quaternion = areaOrientations[areaIdx];
         //api.moveTo(point, quaternion, false);
         Kinematics kinematics = api.getRobotKinematics();
+        Log.i(TAG, "getRobotKinematics Confidence: " + kinematics.getConfidence());
         Point start = new Point(kinematics.getPosition().getX(), kinematics.getPosition().getY(), kinematics.getPosition().getZ());
         Point end = new Point(point.getX(), point.getY(), point.getZ());
         List<Point> path = PathFindingAPI.findPath(start, end);
@@ -152,7 +153,7 @@ public class YourService extends KiboRpcService {
 
         Kinematics kinematics = api.getRobotKinematics();
         Log.i(TAG, "Starting point: " + kinematics.getPosition() + "" + kinematics.getOrientation());
-        
+        Log.i(TAG, "getRobotKinematics Confidence: " + kinematics.getConfidence());
 
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 0");
@@ -228,6 +229,7 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "areaIdx: " + areaIdx);
             if (areaIdx != null) {
                 Kinematics kinematics1 = api.getRobotKinematics();
+                Log.i(TAG, "getRobotKinematics Confidence: " + kinematics1.getConfidence());
                 
                 List<Point> path = PathFindingAPI.findPath(kinematics1.getPosition(), snapPoints[areaIdx]);
                 // show each point in the path and the number of points in the path
