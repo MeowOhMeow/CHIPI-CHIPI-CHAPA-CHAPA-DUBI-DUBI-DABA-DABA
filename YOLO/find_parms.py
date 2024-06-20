@@ -60,6 +60,9 @@ if os.path.exists("YOLO/config.json") == False:
 with open("YOLO/config.json") as f:
     config = json.load(f)
 
+if not os.path.exists(config["model_path"]):
+    print("Model file not found")
+    exit()
 model = YOLO(config["model_path"])
 
 if not os.path.exists(config["images_dir"]) or not os.path.exists(config["labels_dir"]):

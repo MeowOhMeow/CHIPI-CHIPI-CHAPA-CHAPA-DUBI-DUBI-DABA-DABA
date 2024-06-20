@@ -117,6 +117,30 @@ public class YourService extends KiboRpcService {
     }
 
     /**
+     * Calculate the distance between two points.
+     * 
+     * @param point1: the first point
+     * @param point2: the second point
+     * @return the distance between the two points
+     */
+    private double distance(Point point1, Point point2) {
+        return Math.sqrt(Math.pow(point1.getX() - point2.getX(), 2) + Math.pow(point1.getY() - point2.getY(), 2)
+                + Math.pow(point1.getZ() - point2.getZ(), 2));
+    }
+
+    /**
+     * Judge whether 2 points are close enough.
+     * 
+     * @param point1: the first point
+     * @param point2: the second point
+     * @param delta:  the threshold
+     * @return true if the distance between the two points is less than delta, false
+     */
+    private boolean isCloseEnough(Point point1, Point point2, double delta) {
+        return distance(point1, point2) < delta;
+    }
+
+    /**
      * Main loop of the service.
      */
     @Override
@@ -137,7 +161,7 @@ public class YourService extends KiboRpcService {
         api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), false);
         goToTakeAPic(1);
         // koz 2
-        api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), false);
+        // api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), false);
         goToTakeAPic(2);
         // koz 3
         api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), false);
@@ -149,7 +173,6 @@ public class YourService extends KiboRpcService {
         api.moveTo(pointAtAstronaut, quaternionAtAstronaut, false);
 
         api.reportRoundingCompletion();
-
 
         Mat image = takeAndSaveSnapshot("Astronaut.jpg", 2000);
 
@@ -195,7 +218,10 @@ public class YourService extends KiboRpcService {
                     Log.i(TAG, "No image returned from ARTagProcess");
                 }
                 // second adjustment
-                api.moveTo(detection.getSnapWorld(), areaOrientations[areaIdx], false);
+                Point second = detection.getSnapWorld();
+                if (!isCloseEnough(second, snapPoints[areaIdx], 0.1)) {
+                    api.moveTo(second, areaOrientations[areaIdx], false);
+                }
             } else {
                 Log.i(TAG, "Item not found in the areaInfo map");
             }
