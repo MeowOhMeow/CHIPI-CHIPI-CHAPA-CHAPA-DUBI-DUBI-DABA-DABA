@@ -106,8 +106,13 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "--------------------------------------------");
 
         for (Point p : path) {
-            api.moveTo(new Point(p.getX(), p.getY(), p.getZ()), quaternion, false);
-            Log.i(TAG, "point" + p + "x: " + p.getX() + " y: " + p.getY() + " z " + p.getZ());
+            // Exception handling
+            if(null == api.moveTo(new Point(p.getX(), p.getY(), p.getZ()), quaternion, false)){
+                Log.i(TAG, "Move to point failed");
+            }
+            else{
+                Log.i(TAG, "point" + p + "x: " + p.getX() + " y: " + p.getY() + " z " + p.getZ());
+            }
         }
 
         Mat image = takeAndSaveSnapshot("Area" + areaIdx + ".jpg", 0);
@@ -154,7 +159,11 @@ public class YourService extends KiboRpcService {
         Kinematics kinematics = api.getRobotKinematics();
         Log.i(TAG, "Starting point: " + kinematics.getPosition() + "" + kinematics.getOrientation());
         Log.i(TAG, "getRobotKinematics Confidence: " + kinematics.getConfidence());
-
+        
+        // area 0
+        /*
+         * api.moveTo(new Point(10.900000000000007,-10.049999999999999,5.119999999999998), new Quaternion(areaOrientations[0], false);
+         */
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 0");
         Log.i(TAG, "--------------------------------------------");
@@ -162,8 +171,12 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "Area 0 done");
         Log.i(TAG, "--------------------------------------------");
-        // koz 1
-        //api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), false);
+        // area 1
+        /*
+         * api.moveTo(new Point(10.700000000000005,-9.699999999999994,4.819999999999999), new Quaternion(areaOrientations[1], false);
+         * api.moveTo(new Point(10.700000000000005,-9.249999999999988,4.819999999999999), new Quaternion(areaOrientations[1], false);
+         * api.moveTo(new Point(10.900000000000007,-8.799999999999981,4.470000000000001), new Quaternion(areaOrientations[1], false);
+         */
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 1");
         Log.i(TAG, "--------------------------------------------");
@@ -171,8 +184,10 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "Area 1 done");
         Log.i(TAG, "--------------------------------------------");
-        // koz 2
-        //api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), false);
+        // area 2
+        /*
+         * api.moveTo(new Point(10.900000000000007,-7.849999999999971,4.470000000000001), new Quaternion(areaOrientations[2], false);
+         */
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 2");
         Log.i(TAG, "--------------------------------------------");
@@ -180,8 +195,12 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "Area 2 done");
         Log.i(TAG, "--------------------------------------------");
-        // koz 3
-        //api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), false);
+        // area 3
+        /*
+         * api.moveTo(new Point(10.650000000000004,-7.599999999999972,4.62), new Quaternion(areaOrientations[3], false);
+         * api.moveTo(new Point(10.600000000000003,-7.149999999999974,4.77), new Quaternion(areaOrientations[3], false);
+         * api.moveTo(new Point(10.550000000000002,-6.749999999999975,4.969999999999999), new Quaternion(areaOrientations[3], false);
+         */
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 3");
         Log.i(TAG, "--------------------------------------------");
@@ -237,7 +256,7 @@ public class YourService extends KiboRpcService {
                 Log.i(TAG, "Number of points in the path: " + path.size());
 
                 // show each point in the path and the number of points in the path
-                for (int i = 0; i < path.size() - 2; i++) {
+                for (int i = 0; i < path.size() - 1; i++) {
                     Point current = path.get(i);
                     Point next = path.get((i + 1));
                     Log.i(TAG, current.getX() + "," + current.getY() + "," + current.getZ() + "," + next.getX() + "," + next.getY() + "," + next.getZ());
