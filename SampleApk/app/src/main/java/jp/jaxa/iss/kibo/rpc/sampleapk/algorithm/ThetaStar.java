@@ -22,7 +22,7 @@ public class ThetaStar {
         return path;
     }
 
-    public static boolean lineOfSight(Vertex source, Vertex target, Graph<Block, Double> graph, List<Obstacle> obstacles) {
+    public static boolean lineOfSight(Vertex source, Vertex target, Graph<Block, Double> graph, List<Obstacle> obstacles, double koz) {
         final String TAG = "lineOfSight";
         double x0 = graph.getVertexProperty(source).getValue().getX();
         double y0 = graph.getVertexProperty(source).getValue().getY();
@@ -39,7 +39,7 @@ public class ThetaStar {
                 double x = x0 + dx * step;
                 double y = y0 + dy * step;
                 double z = z0 + dz * step;
-                if (x > obstacle.minX - 0.2 && x < obstacle.maxX + 0.2 && y > obstacle.minY - 0.2 && y < obstacle.maxY + 0.2 && z > obstacle.minZ - 0.2 && z < obstacle.maxZ + 0.2) {
+                if (x > obstacle.minX - koz && x < obstacle.maxX + koz && y > obstacle.minY - koz && y < obstacle.maxY + koz && z > obstacle.minZ - koz && z < obstacle.maxZ + koz) {
                     //Log.i(TAG, "--------------------collision location: " + x + ", " + y + ", " + z + "---------------------");
                     return false;
                 }
@@ -52,7 +52,7 @@ public class ThetaStar {
 
 
     public static Stack<Vertex> run(Vertex source, Vertex target, Graph<Block, Double> graph,
-                                    HeuristicInterface heuristic, List<Obstacle> obstacles) {
+                                    HeuristicInterface heuristic, List<Obstacle> obstacles, double koz) {
         //System.out.println("theta");
         final String TAG = "ThetaStar";
         int numVertices = graph.size();
@@ -87,7 +87,7 @@ public class ThetaStar {
                 if (closedSet.contains(neighbor)) continue;
                 int pp = pred[currentVertex];
 
-                if (pp != -1 && lineOfSight(new Vertex(pp), new Vertex(neighbor), graph, obstacles)) {
+                if (pp != -1 && lineOfSight(new Vertex(pp), new Vertex(neighbor), graph, obstacles, koz)) {
                     double dx = graph.getVertexProperty(neighbor).getValue().getX() - graph.getVertexProperty(new Vertex(pp)).getValue().getX();
                     double dy = graph.getVertexProperty(neighbor).getValue().getY() - graph.getVertexProperty(new Vertex(pp)).getValue().getY();
                     double dz = graph.getVertexProperty(neighbor).getValue().getZ() - graph.getVertexProperty(new Vertex(pp)).getValue().getZ();

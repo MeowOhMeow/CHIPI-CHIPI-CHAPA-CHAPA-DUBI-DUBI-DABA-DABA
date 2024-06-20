@@ -260,8 +260,10 @@ public class YourService extends KiboRpcService {
             if (areaIdx != null) {
                 Kinematics kinematics1 = api.getRobotKinematics();
                 Log.i(TAG, "getRobotKinematics Confidence: " + kinematics1.getConfidence());
+
+                double koz = 0.2;
                 
-                List<Point> path = PathFindingAPI.findPath(kinematics1.getPosition(), snapPoints[areaIdx]);
+                List<Point> path = PathFindingAPI.findPath(kinematics1.getPosition(), snapPoints[areaIdx], koz);
                 // show each point in the path and the number of points in the path
                 Log.i(TAG, "------------------- Path -------------------");
                 Log.i(TAG, "Number of points in the path: " + path.size());

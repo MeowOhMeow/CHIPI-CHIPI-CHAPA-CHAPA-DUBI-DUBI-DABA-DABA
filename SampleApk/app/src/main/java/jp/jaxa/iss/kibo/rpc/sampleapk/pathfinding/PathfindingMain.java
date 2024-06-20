@@ -16,7 +16,7 @@ import jp.jaxa.iss.kibo.rpc.sampleapk.algorithm.*;
 
 public class PathfindingMain {
 
-    public static boolean lineOfSight(double x0, double y0, double z0, double x1, double y1, double z1, Graph<Block, Double> graph, List<Obstacle> obstacles) {
+    public static boolean lineOfSight(double x0, double y0, double z0, double x1, double y1, double z1, Graph<Block, Double> graph, List<Obstacle> obstacles, double koz) {
         final String TAG = "lineOfSight in pathFindingMain";
         double dx = x1 - x0;
         double dy = y1 - y0;
@@ -27,7 +27,7 @@ public class PathfindingMain {
                 double x = x0 + dx * step;
                 double y = y0 + dy * step;
                 double z = z0 + dz * step;
-                if (x > obstacle.minX - 0.2 && x < obstacle.maxX + 0.2 && y > obstacle.minY - 0.2 && y < obstacle.maxY + 0.2 && z > obstacle.minZ - 0.2 && z < obstacle.maxZ + 0.2) {
+                if (x > obstacle.minX - koz && x < obstacle.maxX + koz && y > obstacle.minY - koz && y < obstacle.maxY + koz && z > obstacle.minZ - koz && z < obstacle.maxZ + koz) {
                     //Log.i(TAG, "--------------------collision location: " + x + ", " + y + ", " + z + "---------------------");
                     //Log.i(TAG, "--------------------reason: " + x + " > " + (obstacle.minX - 0.2) + "---------------------");
                     //Log.i(TAG, "--------------------reason: " + x + " < " + (obstacle.maxX + 0.2) + "---------------------");
@@ -68,7 +68,7 @@ public class PathfindingMain {
     public static class PathFindingAPI {
         private static final String TAG = "PathFindingAPI";
 
-        public static List<Point> findPath(Point start, Point end) {
+        public static List<Point> findPath(Point start, Point end, double koz) {
             List<Obstacle> obstacles = new ArrayList<>();
             obstacles.add(new Obstacle(10.87, -9.5, 4.27, 11.6, -9.45, 4.97));
             obstacles.add(new Obstacle(10.25, -9.5, 4.97, 10.87, -9.45, 5.62));
@@ -77,7 +77,7 @@ public class PathfindingMain {
             obstacles.add(new Obstacle(10.87, -7.40, 4.27, 11.6, -7.35, 4.97));
             obstacles.add(new Obstacle(10.25, -7.40, 4.97, 10.87, -7.35, 5.62));
 
-            double minX1 = 10.3 + 0.15, minY1 = -10.2 + 0.15, minZ1 = 4.32 + 0.15, maxX1 = 11.55 - 0.15, maxY1 = -6.0 - 0.15, maxZ1 = 5.57 - 0.15;
+            double minX1 = 10.3 + koz, minY1 = -10.2 + koz, minZ1 = 4.32 + koz, maxX1 = 11.55 - koz, maxY1 = -6.0 - koz, maxZ1 = 5.57 - koz;
 
             int num = 0;
 
@@ -113,7 +113,7 @@ public class PathfindingMain {
                 boolean inObstacleFlag = false;
 
                 for (Obstacle obstacle : obstacles) {
-                    if (x > obstacle.minX - 0.15 && x < obstacle.maxX + 0.15 && y > obstacle.minY - 0.15 && y < obstacle.maxY + 0.15 && z > obstacle.minZ - 0.15 && z < obstacle.maxZ + 0.15) {
+                    if (x > obstacle.minX - (koz-0.05) && x < obstacle.maxX + (koz-0.05) && y > obstacle.minY - (koz-0.05) && y < obstacle.maxY + (koz-0.05) && z > obstacle.minZ - (koz-0.05) && z < obstacle.maxZ + (koz-0.05)) {
                         inObstacleFlag = true;
                         break;
                     }
@@ -194,7 +194,7 @@ public class PathfindingMain {
 
             //System.out.println("Before run");
 
-            Stack<Vertex> path = ThetaStar.run(source, target, graph, heuristic, obstacles);
+            Stack<Vertex> path = ThetaStar.run(source, target, graph, heuristic, obstacles, koz);
 
             // for (Vertex i : path) {
             //     System.out.println("id: " + i.getId());
@@ -277,7 +277,7 @@ public class PathfindingMain {
                 Point p2 = result2.get(i + 1);
                 Point p3 = result2.get(i + 2);
 
-                if (lineOfSight(p1.getX(), p1.getY(), p1.getZ(), p3.getX(), p3.getY(), p3.getZ(), graph, obstacles)) {
+                if (lineOfSight(p1.getX(), p1.getY(), p1.getZ(), p3.getX(), p3.getY(), p3.getZ(), graph, obstacles, koz)) {
                     delete1[i + 1] = true; // 标记 p2 为可删除
                 }
             }
