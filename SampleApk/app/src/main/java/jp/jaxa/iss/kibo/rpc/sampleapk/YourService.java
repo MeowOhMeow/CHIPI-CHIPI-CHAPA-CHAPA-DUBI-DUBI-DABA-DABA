@@ -12,6 +12,7 @@ import gov.nasa.arc.astrobee.Kinematics;
 import gov.nasa.arc.astrobee.types.Point;
 import gov.nasa.arc.astrobee.types.Quaternion;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
+import jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding.PathfindingMain.PathFindingAPI;
 
 /**
  * Class meant to handle commands from the Ground Data System and execute them
@@ -83,10 +84,41 @@ public class YourService extends KiboRpcService {
      * @param areaIdx: index of the area
      */
     private void goToTakeAPic(int areaIdx) {
-        // Move to a point.
         Point point = areaPoints[areaIdx];
         Quaternion quaternion = areaOrientations[areaIdx];
-        api.moveTo(point, quaternion, false);
+        /*
+         * 
+         * // Move to a point.
+        Point point = areaPoints[areaIdx];
+        Quaternion quaternion = areaOrientations[areaIdx];
+        //api.moveTo(point, quaternion, false);
+        Kinematics kinematics = api.getRobotKinematics();
+        Log.i(TAG, "getRobotKinematics Confidence: " + kinematics.getConfidence());
+        Point start = new Point(kinematics.getPosition().getX(), kinematics.getPosition().getY(), kinematics.getPosition().getZ());
+        Point end = new Point(point.getX(), point.getY(), point.getZ());
+        List<Point> path = PathFindingAPI.findPath(start, end);
+        // show each point in the path and the number of points in the path
+        Log.i(TAG, "------------------- Path -------------------");
+        Log.i(TAG, "Number of points in the path: " + path.size());
+
+        for (int i = 0; i < path.size() - 1; i++) {
+            Point current = path.get(i);
+            Point next = path.get((i + 1));
+            Log.i(TAG, current.getX() + "," + current.getY() + "," + current.getZ() + "," + next.getX() + "," + next.getY() + "," + next.getZ());
+        }
+
+        Log.i(TAG, "--------------------------------------------");
+
+        for (Point p : path) {
+            // Exception handling
+            if(null == api.moveTo(new Point(p.getX(), p.getY(), p.getZ()), quaternion, false)){
+                Log.i(TAG, "Move to point failed");
+            }
+            else{
+                Log.i(TAG, "point" + p + "x: " + p.getX() + " y: " + p.getY() + " z " + p.getZ());
+            }
+        }
+         */
 
         Mat image = takeAndSaveSnapshot("Area" + areaIdx + ".jpg", 2000);
 
@@ -131,22 +163,67 @@ public class YourService extends KiboRpcService {
 
         Kinematics kinematics = api.getRobotKinematics();
         Log.i(TAG, "Starting point: " + kinematics.getPosition() + "" + kinematics.getOrientation());
-
+        Log.i(TAG, "getRobotKinematics Confidence: " + kinematics.getConfidence());
+        
+        // area 0
+        
+        api.moveTo(new Point(10.9078d, -10.0293d, 5.1124d), new Quaternion(0.707f, -0.707f, 0f, 0f), false);
+        
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "go to area 0");
+        Log.i(TAG, "--------------------------------------------");
         goToTakeAPic(0);
-        // koz 1
-        api.moveTo(new Point(10.56d, -9.5d, 4.62d), new Quaternion(), false);
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "Area 0 done");
+        Log.i(TAG, "--------------------------------------------");
+        // area 1
+    
+        api.moveTo(new Point(10.700000000000005,-9.699999999999994,4.819999999999999), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
+        api.moveTo(new Point(10.700000000000005,-9.249999999999988,4.819999999999999), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
+        api.moveTo(new Point(10.8828d, -8.7924d, 4.3904d), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
+        
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "go to area 1");
+        Log.i(TAG, "--------------------------------------------");
         goToTakeAPic(1);
-        // koz 2
-        api.moveTo(new Point(11.15d, -8.5d, 4.62d), new Quaternion(), false);
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "Area 1 done");
+        Log.i(TAG, "--------------------------------------------");
+        // area 2
+        
+        api.moveTo(new Point(10.8828d, -7.8424d, 4.4091d), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
+        
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "go to area 2");
+        Log.i(TAG, "--------------------------------------------");
         goToTakeAPic(2);
-        // koz 3
-        api.moveTo(new Point(10.56d, -7.4d, 4.62d), new Quaternion(), false);
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "Area 2 done");
+        Log.i(TAG, "--------------------------------------------");
+        // area 3
+        
+        api.moveTo(new Point(10.650000000000004,-7.599999999999972,4.62), new Quaternion(0f, 0.707f, 0.707f, 0f), false);
+        api.moveTo(new Point(10.600000000000003,-7.149999999999974,4.77), new Quaternion(0f, 0.707f, 0.707f, 0f), false);
+        api.moveTo(new Point(10.5280d, -6.7699d, 4.9872d), new Quaternion(0f, 0.707f, 0.707f, 0f), false);
+        
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "go to area 3");
+        Log.i(TAG, "--------------------------------------------");
         goToTakeAPic(3);
+        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "Area 3 done");
+        Log.i(TAG, "--------------------------------------------");
 
         // move to astronaut
         Point pointAtAstronaut = new Point(11.1852d, -6.7607d, 4.8828d);
         Quaternion quaternionAtAstronaut = new Quaternion(0.707f, 0.707f, 0f, 0f);
-        api.moveTo(pointAtAstronaut, quaternionAtAstronaut, false);
+        
+        if(null == api.moveTo(pointAtAstronaut, quaternionAtAstronaut, false)){
+            Log.i(TAG, "Move to point Astronaut failed");
+        }
+        else{
+            Log.i(TAG, "point" + pointAtAstronaut + "x: " + pointAtAstronaut.getX() + " y: " + pointAtAstronaut.getY() + " z " + pointAtAstronaut.getZ());
+        }
 
         api.reportRoundingCompletion();
 
@@ -179,11 +256,40 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
 
             Integer areaIdx = areaInfo.get(areaItem.getItem());
+            Log.i(TAG, "----------------------------------------");
+            Log.i(TAG, "areaIdx: " + areaIdx);
             if (areaIdx != null) {
-                for (Point point : routes.get(areaIdx)) {
-                    api.moveTo(point, new Quaternion(), false);
+                Kinematics kinematics1 = api.getRobotKinematics();
+                Log.i(TAG, "getRobotKinematics Confidence: " + kinematics1.getConfidence());
+
+                double koz = 0.2;
+                
+                List<Point> path = PathFindingAPI.findPath(kinematics1.getPosition(), snapPoints[areaIdx], koz);
+                // show each point in the path and the number of points in the path
+                Log.i(TAG, "------------------- Path -------------------");
+                Log.i(TAG, "Number of points in the path: " + path.size());
+
+                // show each point in the path and the number of points in the path
+                for (int i = 0; i < path.size() - 1; i++) {
+                    Point current = path.get(i);
+                    Point next = path.get((i + 1));
+                    Log.i(TAG, current.getX() + "," + current.getY() + "," + current.getZ() + "," + next.getX() + "," + next.getY() + "," + next.getZ());
                 }
-                api.moveTo(snapPoints[areaIdx], areaOrientations[areaIdx], false);
+
+                Log.i(TAG, "--------------------------------------------");
+
+                // move to each point in the path
+                for (Point p : path) {
+                    if(null == api.moveTo(new Point(p.getX(), p.getY(), p.getZ()), areaOrientations[areaIdx], false)){
+                        Log.i(TAG, "Move to point failed");
+                    }
+                    else{
+                        Log.i(TAG, "point" + p + "x: " + p.getX() + " y: " + p.getY() + " z " + p.getZ());
+                    }
+                }
+
+                // Move to the target item.
+                Log.i(TAG, "arrived the target item");
 
                 // Get a camera image.
                 image = takeAndSaveSnapshot("TargetItem.jpg", 2000);
@@ -194,7 +300,8 @@ public class YourService extends KiboRpcService {
                 } else {
                     Log.i(TAG, "No image returned from ARTagProcess");
                 }
-                // second adjustment
+
+                //second adjustment
                 api.moveTo(detection.getSnapWorld(), areaOrientations[areaIdx], false);
             } else {
                 Log.i(TAG, "Item not found in the areaInfo map");
@@ -205,6 +312,9 @@ public class YourService extends KiboRpcService {
 
         // Take a snapshot of the target item.
         api.takeTargetItemSnapshot();
+
+        // The mission ends.
+        Log.i(TAG, "--- Mission complete ---");
 
     }
 
