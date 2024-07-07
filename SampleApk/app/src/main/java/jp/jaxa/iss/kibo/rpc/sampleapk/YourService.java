@@ -214,7 +214,7 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "Area 3 done");
         Log.i(TAG, "--------------------------------------------");
 
-        // move to astronaut
+        // move to astronaut v4000
         Point pointAtAstronaut = new Point(11.1852d, -6.7607d, 4.8828d);
         Quaternion quaternionAtAstronaut = new Quaternion(0.707f, 0.707f, 0f, 0f);
         
