@@ -204,7 +204,7 @@ public class YourService extends KiboRpcService {
         
         //api.moveTo(new Point(10.650000000000004,-7.2,4.62), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
         //api.moveTo(new Point(10.600000000000003,-7.149999999999974,4.77), new Quaternion(0f, 0.707f, 0.707f, 0f), false);
-        api.moveTo(new Point(11.1852d, -6.7607d, 4.8828d), new Quaternion(0f, 0.707f, 0.707f, 0f), false);
+        api.moveTo(new Point(10.5280d, -6.7699d, 4.9872d), new Quaternion(0f, 0.707f, 0.707f, 0f), false);
         
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 3");
