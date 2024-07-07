@@ -149,7 +149,7 @@ public class PathfindingMain {
 
             //System.out.println("build edge");
 
-            HeuristicA heuristic = new HeuristicA();
+            Heuristic heuristic = new Heuristic();
 
             double sx = start.getX();
             double sy = start.getY();

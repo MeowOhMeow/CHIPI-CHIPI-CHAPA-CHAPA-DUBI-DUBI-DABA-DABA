@@ -7,7 +7,16 @@ import java.util.stream.Collectors;
 import jp.jaxa.iss.kibo.rpc.sampleapk.graph.*;
 import jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding.*;
 
+
+
 public class ThetaStar {
+    private static class VertexComparator implements Comparator<Pair<Double, Integer>> {
+        @Override
+        public int compare(Pair<Double, Integer> left, Pair<Double, Integer> right) {
+            return left.getFirst().compareTo(right.getFirst());
+        }
+    }
+
     public static double totalLength = 0;
     public static int turningCount = 0;
 
