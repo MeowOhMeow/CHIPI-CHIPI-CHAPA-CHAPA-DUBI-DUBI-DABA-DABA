@@ -167,7 +167,8 @@ public class YourService extends KiboRpcService {
         
         // area 0
         
-        api.moveTo(new Point(10.9078d, -10.0293d, 5.1124d), new Quaternion(0.707f, -0.707f, 0f, 0f), false);
+        //api.moveTo(new Point(10.9078d, -10.0293d, 5.1124d), new Quaternion(0.707f, -0.707f, 0f, 0f), false);
+        api.moveTo(new Point(11.07d, -9.5d, 5.17d), new Quaternion(0.707f, -0.707f, 0f, 0f), false); //太遠有機率看不到
         
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 0");
@@ -178,8 +179,8 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "--------------------------------------------");
         // area 1
     
-        api.moveTo(new Point(10.700000000000005,-9.699999999999994,4.819999999999999), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
-        api.moveTo(new Point(10.700000000000005,-9.249999999999988,4.819999999999999), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
+        //api.moveTo(new Point(10.700000000000005,-9.699999999999994,4.819999999999999), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
+        //api.moveTo(new Point(10.700000000000005,-9.249999999999988,4.819999999999999), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
         api.moveTo(new Point(10.8828d, -8.2674d, 4.615d), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
         
         Log.i(TAG, "--------------------------------------------");
