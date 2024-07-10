@@ -61,6 +61,10 @@ public class Graph<T, U> {
         return getNeighbors(vertex.getId());
     }
 
+    public int getNumVertices() {
+        return adjacencyList.size();
+    }
+
     public VertexProperty<T> getVertexProperty(int vertex) {
         return vertexPropertiesMap.get(vertex);
     }
