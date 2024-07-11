@@ -23,7 +23,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Class to handle the inference of the YOLO model
+ * Class to handle the inference of YOLO model
  */
 public class YOLOInference {
     private static final String TAG = "YOLOInference";
@@ -42,27 +42,26 @@ public class YOLOInference {
      * @param resources: resources of the application
      */
     public static void init(Resources resources) {
-        // 創建了一個ONNX執行環境，用於管理和執行ONNX模型的相關操作
+        // Initialize an ONNX model execution environment and session
         env = OrtEnvironment.getEnvironment();
         session = null;
-        // 獲取了一個AssetManager對象，用於讀取應用程序的資源文件
+        // Obtain an asset manager object to read the application's resource file
         AssetManager assetManager = resources.getAssets();
         try {
-            // 創建了一個會話選項對象，用於配置會話的相關選項。
+            // Creates a session options object to configure session-related options
             OrtSession.SessionOptions options = new OrtSession.SessionOptions();
-            // 從assets文件夾中讀取了ONNX模型文件，並將其讀取到一個byte數組中。
+            // Opens the ONNX model from the assets folder and reads it into a byte array.
             InputStream stream = assetManager.open("best.onnx");
             ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-
             byte[] buffer = new byte[4096];
             int bytesRead;
             while ((bytesRead = stream.read(buffer)) != -1) {
                 byteStream.write(buffer, 0, bytesRead);
             }
-
-            byteStream.flush(); // 在將資料寫入到ByteArrayOutputStream（byteStream）後，調用flush方法來確保所有的暫存資料都被刷新到內存中。這一步確保所有的資料都被處理並準備好被讀取。
-            byte[] bytes = byteStream.toByteArray(); // 調用toByteArray方法將ByteArrayOutputStream中的資料轉換為一個byte陣列
-            session = env.createSession(bytes, options); // 使用ONNX執行環境（OrtEnvironment）中的createSession方法來創建一個ONNX會話。
+            byteStream.flush(); 
+            byte[] bytes = byteStream.toByteArray(); 
+            //create an ONNX session
+            session = env.createSession(bytes, options); 
         } catch (IOException | OrtException e) {
             Log.i(TAG, "Error: fail to create Ortsession with exception: " + e.getMessage());
             throw new RuntimeException(e);
@@ -166,11 +165,10 @@ public class YOLOInference {
         resizedImage.copyTo(backgroundImage.submat(minY, maxY, minX, maxX));
 
         OnnxTensor tensor = transfer2Tensor(backgroundImage);
-        OrtSession.Result modelOutput; // "images"是輸入名稱
+        OrtSession.Result modelOutput;
         try {
             modelOutput = session.run(Collections.singletonMap("images", tensor));
         } catch (OrtException e) {
-            // TODO: log and handle error
             Log.i(TAG, "Error: fail to run session with exception: " + e.getMessage());
             return null;
         }
@@ -185,7 +183,6 @@ public class YOLOInference {
         try {
             resultInFloat = (float[][][]) detectionResult.getValue();
         } catch (OrtException e) {
-            // TODO: log and handle error
             Log.i(TAG, "Error: fail to get value with exception: " + e.getMessage());
             return null;
         }
@@ -195,8 +192,6 @@ public class YOLOInference {
         List<Integer> classIds = new ArrayList<>();
         List<Float> scores = new ArrayList<>();
         List<Rect2d> boxList = new ArrayList<>();
-        // List<double[]> boxes_double = new ArrayList<>();
-        // List<Integer> index_list = new ArrayList<>();
 
         // (14, 86400) -> (86400, 14)
         float[][] outputTransposed = new float[output0[0].length][output0.length];
@@ -207,7 +202,6 @@ public class YOLOInference {
         }
 
         for (float[] boxResult : outputTransposed) {
-            // float max_score = output_trans[i][4];
             float[] classScores = new float[boxResult.length - 4];
             if (boxResult.length - 4 >= 0)
                 System.arraycopy(boxResult, 4, classScores, 0, boxResult.length - 4);
@@ -240,12 +234,11 @@ public class YOLOInference {
                 classIds.add(classId);
                 scores.add(maxScore);
                 boxList.add(new Rect2d(left, top, width, height));
-                // boxes_double.add(new double[] { left, top, width, height });
-                // index_list.add(i);
             }
         }
 
-        // Non-maximum suppression(置信度非極大值的box刪掉)
+        // Apply Non-maximum suppression(remove boxes with high overlap)
+        // Select the highest confidence box first, then calculate IOU and delete the high overlapped boxes. Repeat the above 2 steps until all boxes are processed
         MatOfInt candidates = new MatOfInt();
         MatOfRect2d boxes = new MatOfRect2d(boxList.toArray(new Rect2d[0]));
         float[] confArray = new float[scores.size()];
@@ -254,9 +247,7 @@ public class YOLOInference {
         }
 
         MatOfFloat confs = new MatOfFloat(confArray);
-        Dnn.NMSBoxes(boxes, confs, confThreshold, nmsThreshold, candidates); // condidence高的物品選出來，再用IOU(intersection
-                                                                             // overlap
-        // union)把此物品過於重疊的眶刪掉
+        Dnn.NMSBoxes(boxes, confs, confThreshold, nmsThreshold, candidates); 
         if (candidates.empty()) {
             Log.i(TAG, "indices is empty");
             return null;
