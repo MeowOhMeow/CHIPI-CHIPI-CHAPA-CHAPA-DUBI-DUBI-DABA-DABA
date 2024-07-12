@@ -4,6 +4,9 @@ import algorithm.*;
 import graph.*;
 
 public class Heuristic implements HeuristicInterface<Block, Double> {
+    /**
+     * Returns the Euclidean distance between two vertices.
+     */
     @Override
     public double get(Graph<Block, Double> graph, Vertex source, Vertex target) {
         double dx = graph.getVertexProperty(target).getValue().getX() - graph.getVertexProperty(source).getValue().getX();
