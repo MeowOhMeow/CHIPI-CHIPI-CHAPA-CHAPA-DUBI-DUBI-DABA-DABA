@@ -255,7 +255,7 @@ public class YourService extends KiboRpcService {
                     Log.i(TAG, "No image returned from ARTagProcess");
                 }
 
-                //second adjustment
+                 //second adjustment
                 api.moveTo(detection.getSnapWorld(), areaOrientations[areaIdx], false);
             } else {
                 Log.i(TAG, "Item not found in the areaInfo map");
