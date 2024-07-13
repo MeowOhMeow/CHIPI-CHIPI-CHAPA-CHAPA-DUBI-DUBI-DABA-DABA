@@ -2,7 +2,9 @@ package jp.jaxa.iss.kibo.rpc.sampleapk;
 
 import android.util.Log;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -82,36 +84,42 @@ public class YourService extends KiboRpcService {
     }
 
     /**
-     * Go to an area and take a picture.
+     * process the area information
      * 
-     * @param areaIdx1: first index of the area
-     * @param areaIdx2: second index of the area
+     * @param areaIdxs: indexes of the areas to process
      */
-    private void goToTakeAPic(int areaIdx1, int areaIdx2) {
-        Point[] point = {areaPoints[areaIdx1], areaPoints[areaIdx2]};
-        Quaternion[] quaternion = {areaOrientations[areaIdx1], areaOrientations[areaIdx2]};
+    private void processingAreaInfo(int[] areaIdxs) {
+        Point[] points = new Point[areaIdxs.length];
+        Quaternion[] quaternions = new Quaternion[areaIdxs.length];
+        for (int i = 0; i < areaIdxs.length; i++) {
+            points[i] = areaPoints[areaIdxs[i]];
+            quaternions[i] = areaOrientations[areaIdxs[i]];
+        }
 
-        Mat image = takeAndSaveSnapshot("Area" + areaIdx1 + ".jpg", 2000);
+        Mat image = takeAndSaveSnapshot("Area" + Arrays.toString(areaIdxs) + ".jpg", 2000);
+
         Log.i(TAG, "begin of ArtagProcess.process");
-        ARTagOutput[] detection = ARTagProcess.process(point, quaternion, image);
+        ARTagOutput[] detections = ARTagProcess.process(points, quaternions, image);
+        if (detections == null) {
+            return;
+        }
 
-        
-        for(int areaIdx=areaIdx1 ; areaIdx <= areaIdx2 ; areaIdx++){
-
-            // Exception handling
+        for (int i = 0; i < areaIdxs.length; i++) {
+            int areaIdx = areaIdxs[i];
+            ARTagOutput detection = detections[i];
             if (detection == null) {
                 Log.i(TAG, "No image returned from ArtagProcess");
                 snapPoints[areaIdx] = areaPoints[areaIdx]; // TBD whether -1 or areaPoints
                 continue;
             }
-            int ARTagIdx = areaIdx - areaIdx1;
-            Log.i(TAG, "Item location: " + detection[ARTagIdx].getSnapWorld());
-            api.saveMatImage(detection[ARTagIdx].getResultImage(), "Area" + areaIdx + "_result.jpg");
 
-            snapPoints[areaIdx] = detection[ARTagIdx].getSnapWorld();
+            Log.i(TAG, "Item location: " + detection.getSnapWorld());
+            api.saveMatImage(detection.getResultImage(), "Area" + areaIdx + "_result.jpg");
+
+            snapPoints[areaIdx] = detection.getSnapWorld();
 
             Log.i(TAG, "begin of inference");
-            AreaItem areaItem = YOLOInference.getPredictions(detection[ARTagIdx].getResultImage());
+            AreaItem areaItem = YOLOInference.getPredictions(detection.getResultImage());
             if (areaItem == null) {
                 Log.i(TAG, "No item detected");
                 continue;
@@ -120,38 +128,6 @@ public class YourService extends KiboRpcService {
             api.setAreaInfo(areaIdx + 1, areaItem.getItem(), areaItem.getCount());
             areaInfo.put(areaItem.getItem(), areaIdx);
         }
-
-    }
-    private void goToTakeAPic(int areaIdx) {
-        Point point = areaPoints[areaIdx];
-        Quaternion quaternion = areaOrientations[areaIdx];
-
-        Mat image = takeAndSaveSnapshot("Area" + areaIdx + ".jpg", 2000);
-
-        Log.i(TAG, "begin of ArtagProcess.process");
-        ARTagOutput detection = ARTagProcess.process(point, quaternion, image);
-
-        // Exception handling
-        if (detection == null) {
-            Log.i(TAG, "No image returned from ArtagProcess");
-            snapPoints[areaIdx] = areaPoints[areaIdx]; // TBD whether -1 or areaPoints
-            return;
-        }
-
-        Log.i(TAG, "Item location: " + detection.getSnapWorld());
-        api.saveMatImage(detection.getResultImage(), "Area" + areaIdx + "_result.jpg");
-
-        snapPoints[areaIdx] = detection.getSnapWorld();
-
-        Log.i(TAG, "begin of inference");
-        AreaItem areaItem = YOLOInference.getPredictions(detection.getResultImage());
-        if (areaItem == null) {
-            Log.i(TAG, "No item detected");
-            return;
-        }
-        Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
-        api.setAreaInfo(areaIdx + 1, areaItem.getItem(), areaItem.getCount());
-        areaInfo.put(areaItem.getItem(), areaIdx);
     }
 
     /**
@@ -170,41 +146,41 @@ public class YourService extends KiboRpcService {
         Kinematics kinematics = api.getRobotKinematics();
         Log.i(TAG, "Starting point: " + kinematics.getPosition() + "" + kinematics.getOrientation());
         Log.i(TAG, "getRobotKinematics Confidence: " + kinematics.getConfidence());
-        
+
         // area 0
-        
+
         api.moveTo(new Point(10.9078d, -9.967877763897507d, 5.1124d), new Quaternion(0.707f, -0.707f, 0f, 0f), false);
-        
+
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 0");
         Log.i(TAG, "--------------------------------------------");
-        goToTakeAPic(0);
+        processingAreaInfo(new int[] { 0 });
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "Area 0 done");
         Log.i(TAG, "--------------------------------------------");
         // area 1
-    
+
         api.moveTo(new Point(11.07, -9.5, 5.17d), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
         api.moveTo(new Point(10.8828, -8.2674, 4.719), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
-        
+
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 1");
         Log.i(TAG, "--------------------------------------------");
-        goToTakeAPic(1,2);
+        processingAreaInfo(new int[] { 1, 2 });
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "Area 1 done");
         Log.i(TAG, "--------------------------------------------");
         // area 2
 
         // area 3
-        
-        api.moveTo(new Point(10.605058889481256d, -6.7699d, 4.9872000000000005d), new Quaternion(0f, 0.707f, 0.707f, 0f), false);
 
-        
+        api.moveTo(new Point(10.605058889481256d, -6.7699d, 4.9872000000000005d),
+                new Quaternion(0f, 0.707f, 0.707f, 0f), false);
+
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 3");
         Log.i(TAG, "--------------------------------------------");
-        goToTakeAPic(3);
+        processingAreaInfo(new int[] { 3 });
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "Area 3 done");
         Log.i(TAG, "--------------------------------------------");
@@ -212,30 +188,32 @@ public class YourService extends KiboRpcService {
         // move to astronaut
         Point pointAtAstronaut = new Point(11.1852d, -6.7607d, 4.8828d);
         Quaternion quaternionAtAstronaut = new Quaternion(0.707f, 0.707f, 0f, 0f);
-        
+
         api.moveTo(pointAtAstronaut, quaternionAtAstronaut, false);
-        Log.i(TAG, "point" + pointAtAstronaut + "x: " + pointAtAstronaut.getX() + " y: " + pointAtAstronaut.getY() + " z " + pointAtAstronaut.getZ());
+        Log.i(TAG, "point" + pointAtAstronaut + "x: " + pointAtAstronaut.getX() + " y: " + pointAtAstronaut.getY()
+                + " z " + pointAtAstronaut.getZ());
 
         api.reportRoundingCompletion();
-
 
         Mat image = takeAndSaveSnapshot("Astronaut.jpg", 2000);
 
         Log.i(TAG, "begin of ArtagProcess.process");
-        ARTagOutput detection = ARTagProcess.process(pointAtAstronaut, quaternionAtAstronaut, image);
+        ARTagOutput[] detections = ARTagProcess.process(new Point[] { pointAtAstronaut },
+                new Quaternion[] { quaternionAtAstronaut }, image);
         AreaItem areaItem = null;
 
         int loopCounter = 0;
-        while (loopCounter < LOOP_LIMIT && detection == null) {
+        while (loopCounter < LOOP_LIMIT && detections == null) {
             loopCounter++;
-            Log.i(TAG, "Loop counter: " + loopCounter);
             image = takeAndSaveSnapshot("Astronaut.jpg", 200);
-            detection = ARTagProcess.process(pointAtAstronaut, quaternionAtAstronaut, image);
+            detections = ARTagProcess.process(new Point[] { pointAtAstronaut },
+                    new Quaternion[] { quaternionAtAstronaut },
+                    image);
         }
-        if (detection != null) {
-            Log.i(TAG, "Astronaut location: " + detection.getSnapWorld());
-            api.saveMatImage(detection.getResultImage(), "Astronaut_result.jpg");
-            areaItem = YOLOInference.getPredictions(detection.getResultImage());
+        if (detections != null) {
+            Log.i(TAG, "Astronaut location: " + detections[0].getSnapWorld());
+            api.saveMatImage(detections[0].getResultImage(), "Astronaut_result.jpg");
+            areaItem = YOLOInference.getPredictions(detections[0].getResultImage());
         } else {
             Log.i(TAG, "No image returned from ARTagProcess");
         }
@@ -264,7 +242,8 @@ public class YourService extends KiboRpcService {
                 for (int i = 0; i < path.size() - 1; i++) {
                     Point current = path.get(i);
                     Point next = path.get((i + 1));
-                    Log.i(TAG, current.getX() + "," + current.getY() + "," + current.getZ() + "," + next.getX() + "," + next.getY() + "," + next.getZ());
+                    Log.i(TAG, current.getX() + "," + current.getY() + "," + current.getZ() + "," + next.getX() + ","
+                            + next.getY() + "," + next.getZ());
                 }
 
                 Log.i(TAG, "--------------------------------------------");
@@ -292,16 +271,14 @@ public class YourService extends KiboRpcService {
 
                 // Get a camera image.
                 image = takeAndSaveSnapshot("TargetItem.jpg", 2000);
-                detection = ARTagProcess.process(snapPoints[areaIdx], areaOrientations[areaIdx], image);
-                if (detection != null) {
-                    Log.i(TAG, "Item location: " + detection.getSnapWorld());
-                    api.saveMatImage(detection.getResultImage(), "TargetItem_result.jpg");
+                detections = ARTagProcess.process(new Point[] { snapPoints[areaIdx] },
+                        new Quaternion[] { areaOrientations[areaIdx] }, image);
+                if (detections != null) {
+                    Log.i(TAG, "Item location: " + detections[0].getSnapWorld());
+                    api.saveMatImage(detections[0].getResultImage(), "TargetItem_result.jpg");
                 } else {
                     Log.i(TAG, "No image returned from ARTagProcess");
                 }
-
-                //second adjustment
-                //api.moveTo(detection.getSnapWorld(), areaOrientations[areaIdx], false);
             } else {
                 Log.i(TAG, "Item not found in the areaInfo map");
             }
@@ -314,6 +291,5 @@ public class YourService extends KiboRpcService {
 
         // The mission ends.
         Log.i(TAG, "--- Mission complete ---");
-
     }
 }
