@@ -29,12 +29,40 @@ public class ARTagProcess {
     private static final String TAG = "ARTagProcess";
 
     private static double snapDistance = 0.6d;
-    private static Mat rvec = new Mat();
-    private static Mat tvec = new Mat();
     private static Mat distortCoefficient = new Mat();
     private static Mat cameraMatrix = new Mat();
     private static Mat newCameraMatrix = new Mat();
-    private static int valid = -1;
+    private static Dictionary ArUcoDict = Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
+    private static DetectorParameters parameters = DetectorParameters.create();
+
+    private static class DetectionResult {
+        private Mat resultImage;
+        private Boolean valid;
+        private Mat rvec, tvec;
+
+        public DetectionResult(Mat resultImage, Boolean valid, Mat rvec, Mat tvec) {
+            this.resultImage = resultImage;
+            this.valid = valid;
+            this.rvec = rvec;
+            this.tvec = tvec;
+        }
+
+        public Mat getResultImage() {
+            return resultImage;
+        }
+
+        public Boolean getValid() {
+            return valid;
+        }
+
+        public Mat getRvec() {
+            return rvec;
+        }
+
+        public Mat getTvec() {
+            return tvec;
+        }
+    }
 
     /**
      * Set the distortion coefficient
@@ -75,83 +103,72 @@ public class ARTagProcess {
     }
 
     /**
-     * Process the image and return the snap point
+     * Swap two mat in the list
      * 
-     * @param center:      center of the astrobee
-     * @param orientation: orientation of the astrobee
-     * @param img:         image from astrobee camera
-     * @return ARTagOutput
+     * @param corners: list of mat
+     * @param idx1:    index 1
+     * @param idx2:    index 2
+     * @return void
      */
-    public static ARTagOutput process(Point center, Quaternion orientation, Mat img){
-
-        Log.i(TAG, "Start process");
-        // img processing
-        Mat undistortedImage = undistortImage(img);
-        Log.i(TAG, "Image undistorted");
-        List<Mat> corners = findArUco(undistortedImage);
-
-        // Exception handling
-        if (corners.size() == 0) {
-            Log.i(TAG, "no aruco tag detected");
-            return null;
-        }
-
-        valid = -1;
-        Mat resultImage = findArUcoAndCut(undistortedImage,corners);
-        
-        Point snapWorld = getWorldPoint(center, orientation);
-        Log.i(TAG, "Snap point in world: " + snapWorld);
-
-        ARTagOutput output = new ARTagOutput(snapWorld, resultImage,valid);
-        return output;
+    private static void swapMat(List<Mat> corners, int idx1, int idx2) {
+        Mat temp = corners.get(idx1);
+        corners.set(idx1, corners.get(idx2));
+        corners.set(idx2, temp);
     }
-    
-    public static ARTagOutput[] process(Point[] center, Quaternion[] orientation, Mat img) {
 
+    /**
+     * Sort the corners
+     * 
+     * @param corners
+     * @return void
+     */
+    private static void sort(List<Mat> corners) {
+        for (int i = 0; i < corners.size(); i++) {
+            for (int j = i + 1; j < corners.size(); j++) {
+                double x1 = corners.get(i).get(0, 0)[0];
+                double y1 = corners.get(i).get(0, 0)[1];
+                double x2 = corners.get(j).get(0, 0)[0];
+                double y2 = corners.get(j).get(0, 0)[1];
+                if (y1 > y2 || (y1 == y2 && x1 > x2)) {
+                    swapMat(corners, i, j);
+                }
+            }
+        }
+    }
+
+    public static ARTagOutput[] process(Point[] center, Quaternion[] orientation, Mat img) {
         Log.i(TAG, "Start process");
         // img processing
         Mat undistortedImage = undistortImage(img);
         Log.i(TAG, "Image undistorted");
-        List<Mat> corners = findArUco(undistortedImage);
-        int ARTagNum = corners.size();
-        ARTagOutput[] output=new ARTagOutput[center.length];
+        List<Mat> corners = new ArrayList<Mat>();
+        Aruco.detectMarkers(undistortedImage, ArUcoDict, corners, new Mat(), parameters);
+        ARTagOutput[] output = new ARTagOutput[center.length];
 
         Log.i(TAG, "corners size:" + corners.size());
 
-        // Exception handling
         if (corners.size() == 0) {
             Log.i(TAG, "no aruco tag detected");
             return null;
         }
-        //sorting 
-        for(int turn=ARTagNum ; turn>0 ; turn--) {
 
-            for(int sortIdx=0 ; sortIdx<turn-1 ; sortIdx++) {
-                if((corners.get(sortIdx)).get(0,0)[1] > (corners.get(sortIdx+1)).get(0,0)[1]){
-                    swapMat(corners, sortIdx, sortIdx+1);
-                }
-            }
+        sort(corners);
 
-        }
-        //single process
-        for(int ARTagidx = 0; ARTagidx < ARTagNum; ARTagidx++) {
-            
-            valid = -1;
+        for (int ARTagidx = 0; ARTagidx < corners.size(); ARTagidx++) {
             List<Mat> singleCorner = new ArrayList<Mat>();
             singleCorner.add(corners.get(ARTagidx));
-            Mat resultImage = findArUcoAndCut(undistortedImage,singleCorner);
-            
-            // Exception handling
-            if (resultImage == null) {
+            DetectionResult result = cutImageByCorner(undistortedImage, singleCorner);
+
+            if (result == null) {
                 output[ARTagidx] = null;
                 continue;
             }
 
-            Point snapWorld = getWorldPoint(center[ARTagidx], orientation[ARTagidx]);
+            Point snapWorld = getWorldPoint(center[ARTagidx], orientation[ARTagidx], result.getRvec(),
+                    result.getTvec());
             Log.i(TAG, "Snap point in world: " + snapWorld);
 
-            output[ARTagidx] = new ARTagOutput(snapWorld, resultImage,valid);
-
+            output[ARTagidx] = new ARTagOutput(snapWorld, result.getResultImage(), result.getValid());
         }
 
         return output;
@@ -162,9 +179,11 @@ public class ARTagProcess {
      * 
      * @param center:      astrobee center point
      * @param orientation: astrobee orientation
+     * @param rvec:        rvec from aruco
+     * @param tvec:        tvec from aruco
      * @return Point: world point
      */
-    private static Point getWorldPoint(Point center, Quaternion orientation) {
+    private static Point getWorldPoint(Point center, Quaternion orientation, Mat rvec, Mat tvec) {
         // get tvec and rotation matrix
         double[] arTagInCamera = { tvec.get(0, 0)[0], tvec.get(0, 0)[1], tvec.get(0, 0)[2] };
         Mat rotationMatrix = new Mat();
@@ -313,54 +332,33 @@ public class ARTagProcess {
         }
         return Math.sqrt(sum);
     }
+
     /**
-     * Swap two mat in the list
+     * Cut the image by the given corner
      * 
-     * @param a: Mat a
-     * @param b: Mat b
-     * @return void
+     * @param img:     image from astrobee camera
+     * @param corners: list of corners
+     * @return DetectionResult
      */
-    private static void swapMat(List<Mat>corners, int idx1, int idx2) {
-        Mat temp = corners.get(idx1);
-        corners.set(idx1, corners.get(idx2));
-        corners.set(idx2, temp);
-    }
-    /**
-     * Find the Aruco tag and cut the image
-     * 
-     * @param img: image from astrobee camera
-     * @return Mat: result image
-     */
-    private static Mat findArUcoAndCut(Mat img, List<Mat> corners) {
+    private static DetectionResult cutImageByCorner(Mat img, List<Mat> corners) {
 
         Mat rvecs = new Mat();
         Mat tvecs = new Mat();
 
         Aruco.estimatePoseSingleMarkers(corners, 0.05f, newCameraMatrix, distortCoefficient, rvecs, tvecs); // unit=cm
 
-
-        int closestIndex = 0; 
-        double closestDistance = getEuclideanDistance(tvecs.get(0, 0));
-        for (int index = 1; index < tvecs.rows(); index++) {
-            double distance = getEuclideanDistance(tvecs.get(index, 0));
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                closestIndex = index;
-            }
-        }
-        rvec = rvecs.row(closestIndex);
-        tvec = tvecs.row(closestIndex);
+        int idx = 0;
 
         Log.i(TAG, "corners cols:" + (corners.get(
-                closestIndex)).cols() + "     corners rows:" + (corners.get(closestIndex)).rows());
+                idx)).cols() + "     corners rows:" + (corners.get(idx)).rows());
         double[] vertical = { 0, 0 };
         double[] horizontal = { 0, 0 };
 
-        horizontal[0] = (corners.get(closestIndex)).get(0, 0)[0] - (corners.get(closestIndex)).get(0, 1)[0];
-        horizontal[1] = (corners.get(closestIndex)).get(0, 0)[1] - (corners.get(closestIndex)).get(0, 1)[1];
+        horizontal[0] = (corners.get(idx)).get(0, 0)[0] - (corners.get(idx)).get(0, 1)[0];
+        horizontal[1] = (corners.get(idx)).get(0, 0)[1] - (corners.get(idx)).get(0, 1)[1];
 
-        vertical[0] = (corners.get(closestIndex)).get(0, 0)[0] - (corners.get(closestIndex)).get(0, 3)[0];
-        vertical[1] = (corners.get(closestIndex)).get(0, 0)[1] - (corners.get(closestIndex)).get(0, 3)[1];
+        vertical[0] = (corners.get(idx)).get(0, 0)[0] - (corners.get(idx)).get(0, 3)[0];
+        vertical[1] = (corners.get(idx)).get(0, 0)[1] - (corners.get(idx)).get(0, 3)[1];
 
         double[] leftTopCorner = { 0, 0 };
         double[] rightTopCorner = { 0, 0 };
@@ -369,24 +367,24 @@ public class ARTagProcess {
 
         float scalingFactor = 0.2f;
 
-        leftTopCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + ((20.75f / 5f) * horizontal[0]
+        leftTopCorner[0] = (corners.get(idx)).get(0, 0)[0] + ((20.75f / 5f) * horizontal[0]
                 + (1.25 / 5f) * vertical[0]) * (1 + scalingFactor);
-        leftTopCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + ((20.75f / 5f) * horizontal[1]
+        leftTopCorner[1] = (corners.get(idx)).get(0, 0)[1] + ((20.75f / 5f) * horizontal[1]
                 + (1.25 / 5f) * vertical[1]) * (1 + scalingFactor);
 
-        rightTopCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + ((0.75 / 5f) * horizontal[0]
+        rightTopCorner[0] = (corners.get(idx)).get(0, 0)[0] + ((0.75 / 5f) * horizontal[0]
                 + (1.25 / 5f) * vertical[0]) * (1 + scalingFactor);
-        rightTopCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + ((0.75 / 5f) * horizontal[1]
+        rightTopCorner[1] = (corners.get(idx)).get(0, 0)[1] + ((0.75 / 5f) * horizontal[1]
                 + (1.25 / 5f) * vertical[1]) * (1 + scalingFactor);
 
-        leftBottomCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + ((20.75f / 5f) * horizontal[0]
+        leftBottomCorner[0] = (corners.get(idx)).get(0, 0)[0] + ((20.75f / 5f) * horizontal[0]
                 + (-13.75 / 5f) * vertical[0]) * (1 + scalingFactor);
-        leftBottomCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + ((20.75f / 5f) * horizontal[1]
+        leftBottomCorner[1] = (corners.get(idx)).get(0, 0)[1] + ((20.75f / 5f) * horizontal[1]
                 + (-13.75 / 5f) * vertical[1]) * (1 + scalingFactor);
 
-        rightBottomCorner[0] = (corners.get(closestIndex)).get(0, 0)[0] + ((0.75 / 5f) * horizontal[0]
+        rightBottomCorner[0] = (corners.get(idx)).get(0, 0)[0] + ((0.75 / 5f) * horizontal[0]
                 + (-13.75 / 5f) * vertical[0]) * (1 + scalingFactor);
-        rightBottomCorner[1] = (corners.get(closestIndex)).get(0, 0)[1] + ((0.75 / 5f) * horizontal[1]
+        rightBottomCorner[1] = (corners.get(idx)).get(0, 0)[1] + ((0.75 / 5f) * horizontal[1]
                 + (-13.75 / 5f) * vertical[1]) * (1 + scalingFactor);
 
         double width = calDist(leftTopCorner, rightTopCorner);
@@ -397,9 +395,6 @@ public class ARTagProcess {
         double[] leftBottomDst = { 0, height };
 
         Log.i(TAG, "calculation complete");
-
-        
-        
 
         Mat srcPoint = new Mat(4, 1, CvType.CV_32FC2);
         Mat dstPoint = new Mat(4, 1, CvType.CV_32FC2);
@@ -414,16 +409,16 @@ public class ARTagProcess {
         dstPoint.put(2, 0, leftBottomDst);
         dstPoint.put(3, 0, rightBottomDst);
 
-        //check whether it's outside or not
-        valid = 1;
-        for(int srcIdx = 0; srcIdx < 4; srcIdx++) {
-            double[] checkPoint = srcPoint.get(srcIdx,0);
-            if(checkPoint[0]>img.width() || checkPoint[0]<0 || checkPoint[1]>img.height() || checkPoint[1]<0){
-                valid = 0;
+        // check whether it's outside or not
+        Boolean valid = true;
+        for (int srcIdx = 0; srcIdx < 4; srcIdx++) {
+            double[] checkPoint = srcPoint.get(srcIdx, 0);
+            if (checkPoint[0] > img.width() || checkPoint[0] < 0 || checkPoint[1] > img.height() || checkPoint[1] < 0) {
+                valid = false;
                 break;
             }
         }
-        Log.i(TAG,"Validation : " + valid);
+        Log.i(TAG, "Validation : " + valid);
 
         Mat M = Imgproc.getPerspectiveTransform(srcPoint, dstPoint);
         Mat resultImage = new Mat();
@@ -433,21 +428,6 @@ public class ARTagProcess {
         dsize.height = calDist(rightTopCorner, rightBottomCorner);
         Imgproc.warpPerspective(img, resultImage, M, dsize);
 
-        return resultImage;
-    }
-
-
-    private static List<Mat> findArUco(Mat img){
-        Dictionary ArUcoDict = Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
-        DetectorParameters parameters = DetectorParameters.create();
-        List<Mat> corners = new ArrayList<>();
-        Mat ids = new Mat();
-
-        // ArucoDetector detector= new ArucoDetector(dictionary,parameters);
-        Aruco.detectMarkers(img, ArUcoDict, corners, ids, parameters);
-        Log.i(TAG, "corners size:" + corners.size());
-        Log.i(TAG, "detect complete");
-        return corners;
-
+        return new DetectionResult(resultImage, valid, rvecs.row(idx), tvecs.row(idx));
     }
 }
