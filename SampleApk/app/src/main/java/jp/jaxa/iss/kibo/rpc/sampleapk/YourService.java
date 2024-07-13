@@ -9,6 +9,7 @@ import java.util.Map;
 import org.opencv.core.Mat;
 
 import gov.nasa.arc.astrobee.Kinematics;
+import gov.nasa.arc.astrobee.Result;
 import gov.nasa.arc.astrobee.types.Point;
 import gov.nasa.arc.astrobee.types.Quaternion;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
@@ -119,8 +120,6 @@ public class YourService extends KiboRpcService {
             api.setAreaInfo(areaIdx + 1, areaItem.getItem(), areaItem.getCount());
             areaInfo.put(areaItem.getItem(), areaIdx);
         }
-
-
 
     }
     private void goToTakeAPic(int areaIdx) {
@@ -253,10 +252,10 @@ public class YourService extends KiboRpcService {
             if (areaIdx != null) {
                 Kinematics kinematics1 = api.getRobotKinematics();
                 Log.i(TAG, "getRobotKinematics Confidence: " + kinematics1.getConfidence());
-
-                double koz = 0.2;
                 
-                List<Point> path = PathFindingAPI.findPath(kinematics1.getPosition(), snapPoints[areaIdx], koz);
+                double expansionVal = 0.08;
+                
+                List<Point> path = PathFindingAPI.findPath(kinematics1.getPosition(), snapPoints[areaIdx], expansionVal);
                 // show each point in the path and the number of points in the path
                 Log.i(TAG, "------------------- Path -------------------");
                 Log.i(TAG, "Number of points in the path: " + path.size());
@@ -270,10 +269,22 @@ public class YourService extends KiboRpcService {
 
                 Log.i(TAG, "--------------------------------------------");
 
-                // move to each point in the path
-                for (Point p : path) {
-                    api.moveTo(new Point(p.getX(), p.getY(), p.getZ()), areaOrientations[areaIdx], false);
-                    Log.i(TAG, "point" + p + "x: " + p.getX() + " y: " + p.getY() + " z " + p.getZ());
+                Result result = null;
+                boolean pathSuccess = false;
+
+                while (!pathSuccess && expansionVal < 0.3) {
+                    // move to each point in the path
+                    for (Point p : path) {
+                        result = api.moveTo(new Point(p.getX(), p.getY(), p.getZ()), areaOrientations[areaIdx], false);
+                        if (!result.hasSucceeded()) {
+                            expansionVal += 0.02;
+                            Log.i(TAG, "----------Path corrupt, increasing expansionVal to: " + expansionVal + "----------");
+                            path = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(), snapPoints[areaIdx], expansionVal);
+                            break;
+                        }
+                        Log.i(TAG, "point" + p + "x: " + p.getX() + " y: " + p.getY() + " z " + p.getZ());
+                    }
+                    pathSuccess = result != null && result.hasSucceeded();
                 }
 
                 // Move to the target item.
@@ -290,7 +301,7 @@ public class YourService extends KiboRpcService {
                 }
 
                 //second adjustment
-                api.moveTo(detection.getSnapWorld(), areaOrientations[areaIdx], false);
+                //api.moveTo(detection.getSnapWorld(), areaOrientations[areaIdx], false);
             } else {
                 Log.i(TAG, "Item not found in the areaInfo map");
             }
@@ -305,5 +316,4 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "--- Mission complete ---");
 
     }
-
 }

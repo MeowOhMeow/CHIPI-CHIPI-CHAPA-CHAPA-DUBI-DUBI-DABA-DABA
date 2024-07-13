@@ -84,8 +84,8 @@ public class PathfindingMain {
         }
 
         private static Graph<Block, Double> buildGraph(double expansionVal, List<Obstacle> obstacles) {
-            double minX = 10.3 + (expansionVal - 0.05), minY = -10.2 + (expansionVal - 0.05), minZ = 4.32 + (expansionVal - 0.05);
-            double maxX = 11.55 - (expansionVal - 0.05), maxY = -6.0 - (expansionVal - 0.05), maxZ = 5.57 - (expansionVal - 0.05);
+            double minX = 10.3 + (expansionVal), minY = -10.2 + (expansionVal), minZ = 4.32 + (expansionVal);
+            double maxX = 11.55 - (expansionVal), maxY = -6.0 - (expansionVal), maxZ = 5.57 - (expansionVal);
             int numVertices = calculateNumVertices(minX, minY, minZ, maxX, maxY, maxZ);
 
             Graph<Block, Double> graph = new Graph<>(numVertices);

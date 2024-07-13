@@ -8,7 +8,7 @@ import jp.jaxa.iss.kibo.rpc.sampleapk.graph.*;
 import jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding.*;
 
 public class ThetaStar {
-    private static final double PANALTY = 0.5;
+    private static final double PENALTY = 4.15;
 
     private static class VertexComparator implements Comparator<Pair<Double, Integer>> {
         @Override
@@ -65,7 +65,7 @@ public class ThetaStar {
         Arrays.fill(gScore, Double.MAX_VALUE);
         Arrays.fill(fScore, Double.MAX_VALUE);
         Arrays.fill(pred, -1);
-        gScore[source.getId()] = PANALTY;
+        gScore[source.getId()] = PENALTY;
         fScore[source.getId()] = heuristic.get(graph, source, target);
 
         PriorityQueue<Pair<Double, Integer>> openSet = new PriorityQueue<>(new VertexComparator());
@@ -87,7 +87,7 @@ public class ThetaStar {
             		continue;
             	}
             	
-                double tentative_gScore = PANALTY;
+                double tentative_gScore = PENALTY;
 
                 if (predVertex != -1
                         && lineOfSight(new Vertex(predVertex), new Vertex(neighbor), graph, obstacles, expansionVal)) {

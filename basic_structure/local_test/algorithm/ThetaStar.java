@@ -5,7 +5,7 @@ import graph.*;
 import pathfinding.*;
 
 public class ThetaStar {
-    private static final double PANALTY = 0.1;
+    private static final double PENALTY = 0.1;
 
     private static class VertexComparator implements Comparator<Pair<Double, Integer>> {
         @Override
@@ -62,7 +62,7 @@ public class ThetaStar {
         Arrays.fill(gScore, Double.MAX_VALUE);
         Arrays.fill(fScore, Double.MAX_VALUE);
         Arrays.fill(pred, -1);
-        gScore[source.getId()] = PANALTY;
+        gScore[source.getId()] = PENALTY;
         fScore[source.getId()] = heuristic.get(graph, source, target);
 
         PriorityQueue<Pair<Double, Integer>> openSet = new PriorityQueue<>(new VertexComparator());
@@ -77,7 +77,7 @@ public class ThetaStar {
             }
 
             for (int neighbor : graph.getNeighbors(currentVertex)) {
-                double tentative_gScore = PANALTY;
+                double tentative_gScore = PENALTY;
 
                 if (predVertex != -1
                         && lineOfSight(new Vertex(predVertex), new Vertex(neighbor), graph, obstacles, expansionVal)) {
