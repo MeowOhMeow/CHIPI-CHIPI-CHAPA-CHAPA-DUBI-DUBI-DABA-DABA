@@ -8,6 +8,7 @@ import jp.jaxa.iss.kibo.rpc.sampleapk.graph.*;
 import jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding.*;
 
 public class ThetaStar {
+    private static final double PANALTY = 0.5;
 
     private static class VertexComparator implements Comparator<Pair<Double, Integer>> {
         @Override
@@ -16,18 +17,19 @@ public class ThetaStar {
         }
     }
 
-    public static Stack<Vertex> reconstructPath(Vertex source, Vertex target, List<Integer> pred) {
+    public static Stack<Vertex> reconstructPath(Vertex source, Vertex target, int[] pred) {
         Stack<Vertex> path = new Stack<>();
         int current = target.getId();
         while (current != -1 && current != source.getId()) {
             path.push(new Vertex(current));
-            current = pred.get(current);
+            current = pred[current];
         }
         path.push(new Vertex(source.getId()));
         return path;
     }
 
-    public static boolean lineOfSight(Vertex source, Vertex target, Graph<Block, Double> graph, List<Obstacle> obstacles, double koz) {
+    public static boolean lineOfSight(Vertex source, Vertex target, Graph<Block, Double> graph,
+            List<Obstacle> obstacles, double expansionVal) {
         double x0 = graph.getVertexProperty(source).getValue().getX();
         double y0 = graph.getVertexProperty(source).getValue().getY();
         double z0 = graph.getVertexProperty(source).getValue().getZ();
@@ -43,7 +45,10 @@ public class ThetaStar {
                 double x = x0 + dx * step;
                 double y = y0 + dy * step;
                 double z = z0 + dz * step;
-                if (x > obstacle.minX - koz && x < obstacle.maxX + koz && y > obstacle.minY - koz && y < obstacle.maxY + koz && z > obstacle.minZ - koz && z < obstacle.maxZ + koz) {
+                if (x > obstacle.minX - expansionVal && x < obstacle.maxX + expansionVal
+                        && y > obstacle.minY - expansionVal
+                        && y < obstacle.maxY + expansionVal && z > obstacle.minZ - expansionVal
+                        && z < obstacle.maxZ + expansionVal) {
                     return false;
                 }
             }
@@ -52,53 +57,60 @@ public class ThetaStar {
     }
 
     public static Stack<Vertex> run(Vertex source, Vertex target, Graph<Block, Double> graph,
-                                    HeuristicInterface heuristic, List<Obstacle> obstacles, double koz) {
+            HeuristicInterface<Block, Double> heuristic, List<Obstacle> obstacles, double expansionVal) {
         int numVertices = graph.size();
-        double[] dist = new double[numVertices];
+        double[] gScore = new double[numVertices];
+        double[] fScore = new double[numVertices];
         int[] pred = new int[numVertices];
-        Set<Integer> closedSet = new HashSet<>();
-        Arrays.fill(dist, Double.MAX_VALUE);
+        Arrays.fill(gScore, Double.MAX_VALUE);
+        Arrays.fill(fScore, Double.MAX_VALUE);
         Arrays.fill(pred, -1);
-        dist[source.getId()] = 0;
+        gScore[source.getId()] = PANALTY;
+        fScore[source.getId()] = heuristic.get(graph, source, target);
 
-        PriorityQueue<Pair<Double, Integer>> open = new PriorityQueue<>(new VertexComparator());
-        open.add(new Pair<>(heuristic.get(graph, source, target), source.getId()));
+        PriorityQueue<Pair<Double, Integer>> openSet = new PriorityQueue<>(new VertexComparator());
+        Set<Integer> closedSet = new HashSet<>();
+        openSet.add(new Pair<>(fScore[source.getId()], source.getId()));
 
-        while (!open.isEmpty()) {
-            int currentVertex = open.poll().getSecond();
-
-            // Convert int[] pred to List<Integer> using a for loop
-            List<Integer> predList = new ArrayList<>();
-            for (int value : pred) {
-                predList.add(value);
-            }
+        while (!openSet.isEmpty()) {
+            int currentVertex = openSet.poll().getSecond();
+            closedSet.add(currentVertex);
+            int predVertex = pred[currentVertex];
 
             if (currentVertex == target.getId()) {
-                return reconstructPath(source, target, predList);
+                return reconstructPath(source, target, pred);
             }
 
-            closedSet.add(currentVertex);
-
             for (int neighbor : graph.getNeighbors(currentVertex)) {
-                if (closedSet.contains(neighbor)) continue;
+            	if(closedSet.contains(neighbor))
+            	{
+            		continue;
+            	}
+            	
+                double tentative_gScore = PANALTY;
 
-                int predecessor = pred[currentVertex];
-                double alt;
-                if (predecessor != -1 && lineOfSight(new Vertex(predecessor), new Vertex(neighbor), graph, obstacles, koz)) {
-                    alt = dist[predecessor] + distance(graph.getVertexProperty(neighbor).getValue(), graph.getVertexProperty(new Vertex(predecessor)).getValue());
-                    if (alt < dist[neighbor]) {
-                        dist[neighbor] = alt;
-                        pred[neighbor] = predecessor;
-                        open.add(new Pair<>(dist[neighbor] + heuristic.get(graph, new Vertex(neighbor), target), neighbor));
+                if (predVertex != -1
+                        && lineOfSight(new Vertex(predVertex), new Vertex(neighbor), graph, obstacles, expansionVal)) {
+                    tentative_gScore += gScore[predVertex] + distance(graph.getVertexProperty(neighbor).getValue(),
+                            graph.getVertexProperty(new Vertex(predVertex)).getValue());
+
+                    if (tentative_gScore < gScore[neighbor]) {
+                        pred[neighbor] = predVertex;
+                        gScore[neighbor] = tentative_gScore;
+                        fScore[neighbor] = gScore[neighbor] + heuristic.get(graph, new Vertex(neighbor), target);
+                        openSet.add(new Pair<>(fScore[neighbor], neighbor));
                     }
                 } else {
-                    alt = dist[currentVertex] + graph.getEdgeWeight(currentVertex, neighbor);
-                    if (alt < dist[neighbor]) {
-                        dist[neighbor] = alt;
+                    tentative_gScore += gScore[currentVertex] + graph.getEdgeWeight(currentVertex, neighbor);
+
+                    if (tentative_gScore < gScore[neighbor]) {
                         pred[neighbor] = currentVertex;
-                        open.add(new Pair<>(dist[neighbor] + heuristic.get(graph, new Vertex(neighbor), target), neighbor));
+                        gScore[neighbor] = tentative_gScore;
+                        fScore[neighbor] = gScore[neighbor] + heuristic.get(graph, new Vertex(neighbor), target);
+                        openSet.add(new Pair<>(fScore[neighbor], neighbor));
                     }
                 }
+
             }
         }
         return new Stack<>();
@@ -111,4 +123,5 @@ public class ThetaStar {
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 }
+
 

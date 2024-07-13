@@ -67,15 +67,9 @@ public class PathfindingMain {
             Stack<Vertex> path = ThetaStar.run(source, target, graph, new Heuristic(), obstacles, koz);
             List<Point> result = extractPath(path, graph);
             logPoints(result, "result");
-
-            List<Point> result2 = simplifyCollinearPoints(result);
-            logPoints(result2, "result2");
-
-            List<Point> result3 = removeUnnecessaryPoints(result2, graph, obstacles, koz);
-            result3.remove(0);
-            logPoints(result3, "result3");
-
-            return result3;
+            result.remove(0);
+            logPoints(result, "result");
+            return result;
         }
 
         private static List<Obstacle> createObstacles() {
@@ -90,8 +84,8 @@ public class PathfindingMain {
         }
 
         private static Graph<Block, Double> buildGraph(double koz, List<Obstacle> obstacles) {
-            double minX = 10.3 + koz, minY = -10.2 + koz, minZ = 4.32 + koz;
-            double maxX = 11.55 - koz, maxY = -6.0 - koz, maxZ = 5.57 - koz;
+            double minX = 10.3 + (koz - 0.05), minY = -10.2 + (koz - 0.05), minZ = 4.32 + (koz - 0.05);
+            double maxX = 11.55 - (koz - 0.05), maxY = -6.0 - (koz - 0.05), maxZ = 5.57 - (koz - 0.05);
             int numVertices = calculateNumVertices(minX, minY, minZ, maxX, maxY, maxZ);
 
             Graph<Block, Double> graph = new Graph<>(numVertices);
@@ -130,7 +124,7 @@ public class PathfindingMain {
                 Block block = graph.getVertexProperty(i).getValue();
                 double x = block.getX(), y = block.getY(), z = block.getZ();
 
-                if (isInObstacle(x, y, z, obstacles, koz - 0.05)) continue;
+                if (isInObstacle(x, y, z, obstacles, koz)) continue;
 
                 addEdges(graph, vertexLocation, x, y, z, i);
             }
@@ -189,44 +183,6 @@ public class PathfindingMain {
                 Block block = graph.getVertexProperty(vertex.getId()).getValue();
                 result.add(new Point(block.getX(), block.getY(), block.getZ()));
             }
-            return result;
-        }
-
-        private static List<Point> simplifyCollinearPoints(List<Point> points) {
-            boolean[] toDelete = new boolean[points.size()];
-            for (int i = 0; i < points.size() - 2; i++) {
-                Point p1 = points.get(i), p2 = points.get(i + 1), p3 = points.get(i + 2);
-                if ((p1.getX() == p3.getX() && p1.getY() == p3.getY()) || (p1.getY() == p3.getY() && p1.getZ() == p3.getZ()) || (p1.getX() == p3.getX() && p1.getZ() == p3.getZ())) {
-                    toDelete[i + 1] = true;
-                }
-            }
-
-            List<Point> simplified = new ArrayList<>();
-            for (int i = 0; i < points.size(); i++) {
-                if (!toDelete[i]) {
-                    simplified.add(points.get(i));
-                }
-            }
-            return simplified;
-        }
-
-        private static List<Point> removeUnnecessaryPoints(List<Point> points, Graph<Block, Double> graph, List<Obstacle> obstacles, double koz) {
-            boolean[] toDelete = new boolean[points.size()];
-            List<Point> result = new ArrayList<>();
-
-            for (int i = 0; i < points.size() - 2; i++) {
-                Point p1 = points.get(i), p3 = points.get(i + 2);
-                if (lineOfSight(p1.getX(), p1.getY(), p1.getZ(), p3.getX(), p3.getY(), p3.getZ(), graph, obstacles, koz)) {
-                    toDelete[i + 1] = true;
-                }
-            }
-
-            for (int i = 0; i < points.size(); i++) {
-                if (!toDelete[i]) {
-                    result.add(points.get(i));
-                }
-            }
-
             return result;
         }
 

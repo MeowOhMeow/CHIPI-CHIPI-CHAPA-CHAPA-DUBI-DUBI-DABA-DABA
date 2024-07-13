@@ -86,39 +86,6 @@ public class YourService extends KiboRpcService {
     private void goToTakeAPic(int areaIdx) {
         Point point = areaPoints[areaIdx];
         Quaternion quaternion = areaOrientations[areaIdx];
-        /*
-         * 
-         * // Move to a point.
-        Point point = areaPoints[areaIdx];
-        Quaternion quaternion = areaOrientations[areaIdx];
-        //api.moveTo(point, quaternion, false);
-        Kinematics kinematics = api.getRobotKinematics();
-        Log.i(TAG, "getRobotKinematics Confidence: " + kinematics.getConfidence());
-        Point start = new Point(kinematics.getPosition().getX(), kinematics.getPosition().getY(), kinematics.getPosition().getZ());
-        Point end = new Point(point.getX(), point.getY(), point.getZ());
-        List<Point> path = PathFindingAPI.findPath(start, end);
-        // show each point in the path and the number of points in the path
-        Log.i(TAG, "------------------- Path -------------------");
-        Log.i(TAG, "Number of points in the path: " + path.size());
-
-        for (int i = 0; i < path.size() - 1; i++) {
-            Point current = path.get(i);
-            Point next = path.get((i + 1));
-            Log.i(TAG, current.getX() + "," + current.getY() + "," + current.getZ() + "," + next.getX() + "," + next.getY() + "," + next.getZ());
-        }
-
-        Log.i(TAG, "--------------------------------------------");
-
-        for (Point p : path) {
-            // Exception handling
-            if(null == api.moveTo(new Point(p.getX(), p.getY(), p.getZ()), quaternion, false)){
-                Log.i(TAG, "Move to point failed");
-            }
-            else{
-                Log.i(TAG, "point" + p + "x: " + p.getX() + " y: " + p.getY() + " z " + p.getZ());
-            }
-        }
-         */
 
         Mat image = takeAndSaveSnapshot("Area" + areaIdx + ".jpg", 2000);
 
@@ -167,7 +134,7 @@ public class YourService extends KiboRpcService {
         
         // area 0
         
-        api.moveTo(new Point(10.9078d, -10.0293d, 5.1124d), new Quaternion(0.707f, -0.707f, 0f, 0f), false);
+        api.moveTo(new Point(10.9078, -9.967877763897507, 5.1124), new Quaternion(0.707f, -0.707f, 0f, 0f), false);
         
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 0");
@@ -178,9 +145,8 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "--------------------------------------------");
         // area 1
     
-        api.moveTo(new Point(10.700000000000005,-9.699999999999994,4.819999999999999), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
-        api.moveTo(new Point(10.700000000000005,-9.249999999999988,4.819999999999999), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
-        api.moveTo(new Point(10.8828d, -8.7924d, 4.3904d), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
+        api.moveTo(new Point(11.07, -9.5, 5.17), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
+        api.moveTo(new Point(10.8828, -8.2674, 4.719), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
         
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 1");
@@ -191,8 +157,6 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "--------------------------------------------");
         // area 2
         
-        api.moveTo(new Point(10.8828d, -7.8424d, 4.4091d), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
-        
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 2");
         Log.i(TAG, "--------------------------------------------");
@@ -202,9 +166,7 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "--------------------------------------------");
         // area 3
         
-        api.moveTo(new Point(10.650000000000004,-7.599999999999972,4.62), new Quaternion(0f, 0.707f, 0.707f, 0f), false);
-        api.moveTo(new Point(10.600000000000003,-7.149999999999974,4.77), new Quaternion(0f, 0.707f, 0.707f, 0f), false);
-        api.moveTo(new Point(10.5280d, -6.7699d, 4.9872d), new Quaternion(0f, 0.707f, 0.707f, 0f), false);
+        api.moveTo(new Point(10.605058889481256, -6.7699, 4.9872000000000005), new Quaternion(0f, 0.707f, 0.707f, 0f), false);
         
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 3");
