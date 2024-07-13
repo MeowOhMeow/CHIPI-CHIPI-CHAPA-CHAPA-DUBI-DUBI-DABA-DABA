@@ -33,14 +33,16 @@ public class YourService extends KiboRpcService {
      * orientations, and routes.
      */
     public YourService() {
-        areaPoints[0] = new Point(10.9078d, -10.0293d, 5.1124d);
-        areaPoints[1] = new Point(10.8828d, -8.7924d, 4.3904d);
-        areaPoints[2] = new Point(10.8828d, -7.8424d, 4.4091d);
-        areaPoints[3] = new Point(10.5280d, -6.7699d, 4.9872d);
+        areaPoints[0] = new Point(10.9078d, -9.967877763897507d, 5.1124d);
+        areaPoints[1] = new Point(10.8828d, -8.2674d, 4.719d);
+        areaPoints[2] = new Point(10.8828d, -8.2674d, 4.719d);
+        areaPoints[3] = new Point(10.605058889481256d, -6.7699d, 4.9872000000000005d);
+
         areaOrientations[0] = new Quaternion(0.707f, -0.707f, 0f, 0f);
         areaOrientations[1] = new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f);
         areaOrientations[2] = new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f);
         areaOrientations[3] = new Quaternion(0f, 0.707f, 0.707f, 0f);
+
         // Define the route to the area.
         routes = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
@@ -81,8 +83,46 @@ public class YourService extends KiboRpcService {
     /**
      * Go to an area and take a picture.
      * 
-     * @param areaIdx: index of the area
+     * @param areaIdx1: first index of the area
+     * @param areaIdx2: second index of the area
      */
+    private void goToTakeAPic(int areaIdx1, int areaIdx2) {
+        Point[] point = {areaPoints[areaIdx1], areaPoints[areaIdx2]};
+        Quaternion[] quaternion = {areaOrientations[areaIdx1], areaOrientations[areaIdx2]};
+
+        Mat image = takeAndSaveSnapshot("Area" + areaIdx1 + ".jpg", 2000);
+        Log.i(TAG, "begin of ArtagProcess.process");
+        ARTagOutput[] detection = ARTagProcess.process(point, quaternion, image);
+
+        
+        for(int areaIdx=areaIdx1 ; areaIdx <= areaIdx2 ; areaIdx++){
+
+            // Exception handling
+            if (detection == null) {
+                Log.i(TAG, "No image returned from ArtagProcess");
+                snapPoints[areaIdx] = areaPoints[areaIdx]; // TBD whether -1 or areaPoints
+                continue;
+            }
+            int ARTagIdx = areaIdx - areaIdx1;
+            Log.i(TAG, "Item location: " + detection[ARTagIdx].getSnapWorld());
+            api.saveMatImage(detection[ARTagIdx].getResultImage(), "Area" + areaIdx + "_result.jpg");
+
+            snapPoints[areaIdx] = detection[ARTagIdx].getSnapWorld();
+
+            Log.i(TAG, "begin of inference");
+            AreaItem areaItem = YOLOInference.getPredictions(detection[ARTagIdx].getResultImage());
+            if (areaItem == null) {
+                Log.i(TAG, "No item detected");
+                continue;
+            }
+            Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
+            api.setAreaInfo(areaIdx + 1, areaItem.getItem(), areaItem.getCount());
+            areaInfo.put(areaItem.getItem(), areaIdx);
+        }
+
+
+
+    }
     private void goToTakeAPic(int areaIdx) {
         Point point = areaPoints[areaIdx];
         Quaternion quaternion = areaOrientations[areaIdx];
@@ -134,7 +174,7 @@ public class YourService extends KiboRpcService {
         
         // area 0
         
-        api.moveTo(new Point(10.9078, -9.967877763897507, 5.1124), new Quaternion(0.707f, -0.707f, 0f, 0f), false);
+        api.moveTo(new Point(10.9078d, -9.967877763897507d, 5.1124d), new Quaternion(0.707f, -0.707f, 0f, 0f), false);
         
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 0");
@@ -145,28 +185,22 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "--------------------------------------------");
         // area 1
     
-        api.moveTo(new Point(11.07, -9.5, 5.17), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
+        api.moveTo(new Point(11.07, -9.5, 5.17d), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
         api.moveTo(new Point(10.8828, -8.2674, 4.719), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), false);
         
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 1");
         Log.i(TAG, "--------------------------------------------");
-        goToTakeAPic(1);
+        goToTakeAPic(1,2);
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "Area 1 done");
         Log.i(TAG, "--------------------------------------------");
         // area 2
-        
-        Log.i(TAG, "--------------------------------------------");
-        Log.i(TAG, "go to area 2");
-        Log.i(TAG, "--------------------------------------------");
-        goToTakeAPic(2);
-        Log.i(TAG, "--------------------------------------------");
-        Log.i(TAG, "Area 2 done");
-        Log.i(TAG, "--------------------------------------------");
+
         // area 3
         
-        api.moveTo(new Point(10.605058889481256, -6.7699, 4.9872000000000005), new Quaternion(0f, 0.707f, 0.707f, 0f), false);
+        api.moveTo(new Point(10.605058889481256d, -6.7699d, 4.9872000000000005d), new Quaternion(0f, 0.707f, 0.707f, 0f), false);
+
         
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 3");
