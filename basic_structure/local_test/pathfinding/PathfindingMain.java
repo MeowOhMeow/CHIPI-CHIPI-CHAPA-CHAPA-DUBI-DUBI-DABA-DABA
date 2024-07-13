@@ -21,10 +21,10 @@ public class PathfindingMain {
      * @param z1 End point z-coordinate
      * @param graph The graph used for line of sight calculation
      * @param obstacles The obstacles to consider during line of sight calculation
-     * @param koz The safety distance to keep from obstacles
+     * @param expansionVal The safety distance to keep from obstacles
      * @return True if line of sight exists, false otherwise
      */
-    public static boolean lineOfSight(double x0, double y0, double z0, double x1, double y1, double z1, Graph<Block, Double> graph, List<Obstacle> obstacles, double koz) {
+    public static boolean lineOfSight(double x0, double y0, double z0, double x1, double y1, double z1, Graph<Block, Double> graph, List<Obstacle> obstacles, double expansionVal) {
         double dx = x1 - x0;
         double dy = y1 - y0;
         double dz = z1 - z0;
@@ -34,7 +34,7 @@ public class PathfindingMain {
                 double x = x0 + dx * step;
                 double y = y0 + dy * step;
                 double z = z0 + dz * step;
-                if (x > obstacle.minX - koz && x < obstacle.maxX + koz && y > obstacle.minY - koz && y < obstacle.maxY + koz && z > obstacle.minZ - koz && z < obstacle.maxZ + koz) {
+                if (x > obstacle.minX - expansionVal && x < obstacle.maxX + expansionVal && y > obstacle.minY - expansionVal && y < obstacle.maxY + expansionVal && z > obstacle.minZ - expansionVal && z < obstacle.maxZ + expansionVal) {
                     return false;
                 }
             }
@@ -49,12 +49,12 @@ public class PathfindingMain {
          *
          * @param start The starting point
          * @param end The ending point
-         * @param koz The safety distance to keep from obstacles
+         * @param expansionVal The safety distance to keep from obstacles
          * @return A list of points representing the path
          */
-        public static List<Point> findPath(Point start, Point end, double koz) {
+        public static List<Point> findPath(Point start, Point end, double expansionVal) {
             List<Obstacle> obstacles = createObstacles();
-            Graph<Block, Double> graph = buildGraph(koz, obstacles);
+            Graph<Block, Double> graph = buildGraph(expansionVal, obstacles);
 
             Vertex source = findNearestVertex(start, graph);
             Vertex target = findNearestVertex(end, graph);
@@ -63,14 +63,14 @@ public class PathfindingMain {
                 return Collections.emptyList();
             }
 
-            Stack<Vertex> path = ThetaStar.run(source, target, graph, new Heuristic(), obstacles, koz);
+            Stack<Vertex> path = ThetaStar.run(source, target, graph, new Heuristic(), obstacles, expansionVal);
             List<Point> result = extractPath(path, graph);
             logPoints(result, "result");
 
             List<Point> result2 = simplifyCollinearPoints(result);
             logPoints(result2, "result2");
 
-            List<Point> result3 = removeUnnecessaryPoints(result2, graph, obstacles, koz);
+            List<Point> result3 = removeUnnecessaryPoints(result2, graph, obstacles, expansionVal);
             result3.remove(0);
             logPoints(result3, "result3");
 
@@ -88,9 +88,9 @@ public class PathfindingMain {
             return obstacles;
         }
 
-        private static Graph<Block, Double> buildGraph(double koz, List<Obstacle> obstacles) {
-            double minX = 10.3 + koz, minY = -10.2 + koz, minZ = 4.32 + koz;
-            double maxX = 11.55 - koz, maxY = -6.0 - koz, maxZ = 5.57 - koz;
+        private static Graph<Block, Double> buildGraph(double expansionVal, List<Obstacle> obstacles) {
+            double minX = 10.3 + expansionVal, minY = -10.2 + expansionVal, minZ = 4.32 + expansionVal;
+            double maxX = 11.55 - expansionVal, maxY = -6.0 - expansionVal, maxZ = 5.57 - expansionVal;
             int numVertices = calculateNumVertices(minX, minY, minZ, maxX, maxY, maxZ);
 
             Graph<Block, Double> graph = new Graph<>(numVertices);
@@ -107,7 +107,7 @@ public class PathfindingMain {
                 }
             }
 
-            buildEdges(graph, vertexLocation, obstacles, koz, numVertices);
+            buildEdges(graph, vertexLocation, obstacles, expansionVal, numVertices);
 
             return graph;
         }
@@ -124,12 +124,12 @@ public class PathfindingMain {
             return num;
         }
 
-        private static void buildEdges(Graph<Block, Double> graph, Map<List<Double>, Integer> vertexLocation, List<Obstacle> obstacles, double koz, int numVertices) {
+        private static void buildEdges(Graph<Block, Double> graph, Map<List<Double>, Integer> vertexLocation, List<Obstacle> obstacles, double expansionVal, int numVertices) {
             for (int i = 0; i < numVertices; i++) {
                 Block block = graph.getVertexProperty(i).getValue();
                 double x = block.getX(), y = block.getY(), z = block.getZ();
 
-                if (isInObstacle(x, y, z, obstacles, koz - 0.05)) continue;
+                if (isInObstacle(x, y, z, obstacles, expansionVal)) continue;
 
                 addEdges(graph, vertexLocation, x, y, z, i);
             }
@@ -209,13 +209,13 @@ public class PathfindingMain {
             return simplified;
         }
 
-        private static List<Point> removeUnnecessaryPoints(List<Point> points, Graph<Block, Double> graph, List<Obstacle> obstacles, double koz) {
+        private static List<Point> removeUnnecessaryPoints(List<Point> points, Graph<Block, Double> graph, List<Obstacle> obstacles, double expansionVal) {
             boolean[] toDelete = new boolean[points.size()];
             List<Point> result = new ArrayList<>();
 
             for (int i = 0; i < points.size() - 2; i++) {
                 Point p1 = points.get(i), p3 = points.get(i + 2);
-                if (lineOfSight(p1.getX(), p1.getY(), p1.getZ(), p3.getX(), p3.getY(), p3.getZ(), graph, obstacles, koz)) {
+                if (lineOfSight(p1.getX(), p1.getY(), p1.getZ(), p3.getX(), p3.getY(), p3.getZ(), graph, obstacles, expansionVal)) {
                     toDelete[i + 1] = true;
                 }
             }

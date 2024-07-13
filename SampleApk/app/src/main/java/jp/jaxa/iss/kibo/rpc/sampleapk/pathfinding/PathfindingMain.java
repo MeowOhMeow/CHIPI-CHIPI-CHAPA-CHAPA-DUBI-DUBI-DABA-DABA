@@ -22,10 +22,10 @@ public class PathfindingMain {
      * @param z1 End point z-coordinate
      * @param graph The graph used for line of sight calculation
      * @param obstacles The obstacles to consider during line of sight calculation
-     * @param koz The safety distance to keep from obstacles
+     * @param expansionVal The safety distance to keep from obstacles
      * @return True if line of sight exists, false otherwise
      */
-    public static boolean lineOfSight(double x0, double y0, double z0, double x1, double y1, double z1, Graph<Block, Double> graph, List<Obstacle> obstacles, double koz) {
+    public static boolean lineOfSight(double x0, double y0, double z0, double x1, double y1, double z1, Graph<Block, Double> graph, List<Obstacle> obstacles, double expansionVal) {
         double dx = x1 - x0;
         double dy = y1 - y0;
         double dz = z1 - z0;
@@ -35,7 +35,7 @@ public class PathfindingMain {
                 double x = x0 + dx * step;
                 double y = y0 + dy * step;
                 double z = z0 + dz * step;
-                if (x > obstacle.minX - koz && x < obstacle.maxX + koz && y > obstacle.minY - koz && y < obstacle.maxY + koz && z > obstacle.minZ - koz && z < obstacle.maxZ + koz) {
+                if (x > obstacle.minX - expansionVal && x < obstacle.maxX + expansionVal && y > obstacle.minY - expansionVal && y < obstacle.maxY + expansionVal && z > obstacle.minZ - expansionVal && z < obstacle.maxZ + expansionVal) {
                     return false;
                 }
             }
@@ -50,12 +50,12 @@ public class PathfindingMain {
          *
          * @param start The starting point
          * @param end The ending point
-         * @param koz The safety distance to keep from obstacles
+         * @param expansionVal The safety distance to keep from obstacles
          * @return A list of points representing the path
          */
-        public static List<Point> findPath(Point start, Point end, double koz) {
+        public static List<Point> findPath(Point start, Point end, double expansionVal) {
             List<Obstacle> obstacles = createObstacles();
-            Graph<Block, Double> graph = buildGraph(koz, obstacles);
+            Graph<Block, Double> graph = buildGraph(expansionVal, obstacles);
 
             Vertex source = findNearestVertex(start, graph);
             Vertex target = findNearestVertex(end, graph);
@@ -64,7 +64,7 @@ public class PathfindingMain {
                 return Collections.emptyList();
             }
 
-            Stack<Vertex> path = ThetaStar.run(source, target, graph, new Heuristic(), obstacles, koz);
+            Stack<Vertex> path = ThetaStar.run(source, target, graph, new Heuristic(), obstacles, expansionVal);
             List<Point> result = extractPath(path, graph);
             logPoints(result, "result");
             result.remove(0);
@@ -83,9 +83,9 @@ public class PathfindingMain {
             return obstacles;
         }
 
-        private static Graph<Block, Double> buildGraph(double koz, List<Obstacle> obstacles) {
-            double minX = 10.3 + (koz - 0.05), minY = -10.2 + (koz - 0.05), minZ = 4.32 + (koz - 0.05);
-            double maxX = 11.55 - (koz - 0.05), maxY = -6.0 - (koz - 0.05), maxZ = 5.57 - (koz - 0.05);
+        private static Graph<Block, Double> buildGraph(double expansionVal, List<Obstacle> obstacles) {
+            double minX = 10.3 + (expansionVal - 0.05), minY = -10.2 + (expansionVal - 0.05), minZ = 4.32 + (expansionVal - 0.05);
+            double maxX = 11.55 - (expansionVal - 0.05), maxY = -6.0 - (expansionVal - 0.05), maxZ = 5.57 - (expansionVal - 0.05);
             int numVertices = calculateNumVertices(minX, minY, minZ, maxX, maxY, maxZ);
 
             Graph<Block, Double> graph = new Graph<>(numVertices);
@@ -102,7 +102,7 @@ public class PathfindingMain {
                 }
             }
 
-            buildEdges(graph, vertexLocation, obstacles, koz, numVertices);
+            buildEdges(graph, vertexLocation, obstacles, expansionVal, numVertices);
 
             return graph;
         }
@@ -119,12 +119,12 @@ public class PathfindingMain {
             return num;
         }
 
-        private static void buildEdges(Graph<Block, Double> graph, Map<List<Double>, Integer> vertexLocation, List<Obstacle> obstacles, double koz, int numVertices) {
+        private static void buildEdges(Graph<Block, Double> graph, Map<List<Double>, Integer> vertexLocation, List<Obstacle> obstacles, double expansionVal, int numVertices) {
             for (int i = 0; i < numVertices; i++) {
                 Block block = graph.getVertexProperty(i).getValue();
                 double x = block.getX(), y = block.getY(), z = block.getZ();
 
-                if (isInObstacle(x, y, z, obstacles, koz)) continue;
+                if (isInObstacle(x, y, z, obstacles, expansionVal)) continue;
 
                 addEdges(graph, vertexLocation, x, y, z, i);
             }
