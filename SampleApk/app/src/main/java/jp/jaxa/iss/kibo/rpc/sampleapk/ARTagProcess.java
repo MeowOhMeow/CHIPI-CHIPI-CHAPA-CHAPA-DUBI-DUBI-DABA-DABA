@@ -136,17 +136,16 @@ public class ARTagProcess {
         }
     }
 
-    public static ARTagOutput[] process(Point[] center, Quaternion[] orientation, Mat img) {
+    public static ARTagOutput[] process(Point center, Quaternion orientation, Mat img) {
         Log.i(TAG, "Start process");
         // img processing
         Mat undistortedImage = undistortImage(img);
         Log.i(TAG, "Image undistorted");
         List<Mat> corners = new ArrayList<Mat>();
         Aruco.detectMarkers(undistortedImage, ArUcoDict, corners, new Mat(), parameters);
-        ARTagOutput[] output = new ARTagOutput[center.length];
+        ARTagOutput[] output = new ARTagOutput[corners.size()];
 
         Log.i(TAG, "corners size:" + corners.size());
-
         if (corners.size() == 0) {
             Log.i(TAG, "no aruco tag detected");
             return null;
@@ -154,22 +153,18 @@ public class ARTagProcess {
 
         sort(corners);
 
-        for (int ARTagidx = 0; ARTagidx < corners.size(); ARTagidx++) {
+        for (int ARTagIdx = 0; ARTagIdx < corners.size(); ARTagIdx++) {
             List<Mat> singleCorner = new ArrayList<Mat>();
-            singleCorner.add(corners.get(ARTagidx));
+            singleCorner.add(corners.get(ARTagIdx));
             DetectionResult result = cutImageByCorner(undistortedImage, singleCorner);
 
-            if (result == null) {
-                output[ARTagidx] = null;
-                continue;
-            }
-
-            Point snapWorld = getWorldPoint(center[ARTagidx], orientation[ARTagidx], result.getRvec(),
+            Point snapWorld = getWorldPoint(center, orientation, result.getRvec(),
                     result.getTvec());
-            Log.i(TAG, "Snap point in world: " + snapWorld);
 
-            output[ARTagidx] = new ARTagOutput(snapWorld, result.getResultImage(), result.getValid());
+            output[ARTagIdx] = new ARTagOutput(snapWorld, result.getResultImage(), result.getValid());
         }
+
+        Log.i(TAG, "End process");
 
         return output;
     }
@@ -349,8 +344,6 @@ public class ARTagProcess {
 
         int idx = 0;
 
-        Log.i(TAG, "corners cols:" + (corners.get(
-                idx)).cols() + "     corners rows:" + (corners.get(idx)).rows());
         double[] vertical = { 0, 0 };
         double[] horizontal = { 0, 0 };
 
