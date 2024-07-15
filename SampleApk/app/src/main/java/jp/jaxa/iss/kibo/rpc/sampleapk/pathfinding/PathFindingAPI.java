@@ -23,7 +23,7 @@ public class PathFindingAPI {
      * @param expansionVal The safety distance to keep from obstacles
      * @return A list of points representing the path
      */
-    public static List<Point> findPath(Point start, Point end, double expansionVal) {
+    public synchronized static List<Point> findPath(Point start, Point end, double expansionVal) {
         // lazy initialization of the graph
         if (expansionVal != lastExpansionVal || graph == null) {
             Log.i(TAG, "Building graph with expansion value: " + expansionVal);
