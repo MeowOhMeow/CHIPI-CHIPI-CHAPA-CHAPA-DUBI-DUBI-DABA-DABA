@@ -11,7 +11,7 @@ import gov.nasa.arc.astrobee.Result;
 import gov.nasa.arc.astrobee.types.Point;
 import gov.nasa.arc.astrobee.types.Quaternion;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
-import jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding.PathfindingMain.PathFindingAPI;
+import jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding.PathFindingAPI;
 
 /**
  * Class meant to handle commands from the Ground Data System and execute them
@@ -20,7 +20,7 @@ import jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding.PathfindingMain.PathFindingAPI
 public class YourService extends KiboRpcService {
     private static final String TAG = "YourService";
     private static final int LOOP_LIMIT = 10;
-    private static final int SNAPSHOTWAITTIME = 2000;
+    private static final int SNAP_SHOT_WAIT_TIME = 2000;
 
     private Point[] areaPoints = new Point[4];
     private Quaternion[] areaOrientations = new Quaternion[4];
@@ -75,7 +75,7 @@ public class YourService extends KiboRpcService {
      * TODO: use multiple threads to process the areas
      */
     private void processingAreaInfo(int[] areaIdxs) {
-        Mat image = takeAndSaveSnapshot("Area" + Arrays.toString(areaIdxs) + ".jpg", SNAPSHOTWAITTIME);
+        Mat image = takeAndSaveSnapshot("Area" + Arrays.toString(areaIdxs) + ".jpg", SNAP_SHOT_WAIT_TIME);
 
         Kinematics kinematics = api.getRobotKinematics();
         ARTagOutput[] detections = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image);
@@ -241,7 +241,7 @@ public class YourService extends KiboRpcService {
 
         AreaItem areaItem = null;
         {
-            Mat image = takeAndSaveSnapshot("Astronaut.jpg", SNAPSHOTWAITTIME);
+            Mat image = takeAndSaveSnapshot("Astronaut.jpg", SNAP_SHOT_WAIT_TIME);
             ARTagOutput[] detections = ARTagProcess.process(pointAtAstronaut,
                     quaternionAtAstronaut, image);
 
@@ -274,7 +274,7 @@ public class YourService extends KiboRpcService {
                 moveToTarget(snapPoints[areaIdx], areaOrientations[areaIdx]);
 
                 // Get a camera image.
-                Mat image = takeAndSaveSnapshot("TargetItem.jpg", SNAPSHOTWAITTIME);
+                Mat image = takeAndSaveSnapshot("TargetItem.jpg", SNAP_SHOT_WAIT_TIME);
                 ARTagOutput[] detections = ARTagProcess.process(snapPoints[areaIdx],
                         areaOrientations[areaIdx], image);
                 if (detections != null) {

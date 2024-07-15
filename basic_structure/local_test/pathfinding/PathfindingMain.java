@@ -44,115 +44,163 @@ public class PathfindingMain {
 
     public static class PathFindingAPI {
 
+        private static final String TAG = "PathFindingAPI";
+        private static final double GRID_SIZE = 0.05;
+
+        private static List<Obstacle> obstacles = createObstacles();
+        private static Graph<Block, Double> graph = null;
+        private static double lastExpansionVal = -1;
+
         /**
          * Finds a path from start to end point avoiding obstacles.
          *
-         * @param start The starting point
-         * @param end The ending point
+         * @param start        The starting point
+         * @param end          The ending point
          * @param expansionVal The safety distance to keep from obstacles
          * @return A list of points representing the path
          */
         public static List<Point> findPath(Point start, Point end, double expansionVal) {
-            List<Obstacle> obstacles = createObstacles();
-            Graph<Block, Double> graph = buildGraph(expansionVal, obstacles);
+            // lazy initialization of the graph
+            if (expansionVal != lastExpansionVal || graph == null) {
+                Log.i(TAG, "Building graph with expansion value: " + expansionVal);
+                buildGraph(expansionVal);
+                lastExpansionVal = expansionVal;
+                Log.i(TAG, "Graph built");
+            }
 
             Vertex source = findNearestVertex(start, graph);
             Vertex target = findNearestVertex(end, graph);
 
             if (isInObstacle(source, obstacles, graph) || isInObstacle(target, obstacles, graph)) {
+                Log.i(TAG, "Source or target is in an obstacle");
+                // TODO: handle this case
                 return Collections.emptyList();
             }
 
             Stack<Vertex> path = ThetaStar.run(source, target, graph, new Heuristic(), obstacles, expansionVal);
             List<Point> result = extractPath(path, graph);
+            // remove the first point since it is the starting point
+            result.remove(0);
             logPoints(result, "result");
-
-            List<Point> result2 = simplifyCollinearPoints(result);
-            logPoints(result2, "result2");
-
-            List<Point> result3 = removeUnnecessaryPoints(result2, graph, obstacles, expansionVal);
-            result3.remove(0);
-            logPoints(result3, "result3");
-
-            return result3;
+            return result;
         }
 
+        /**
+         * Creates a list of obstacles.
+         * 
+         * @return A list of obstacles
+         */
         private static List<Obstacle> createObstacles() {
-            List<Obstacle> obstacles = new ArrayList<>();
-            obstacles.add(new Obstacle(10.87, -9.5, 4.27, 11.6, -9.45, 4.97));
-            obstacles.add(new Obstacle(10.25, -9.5, 4.97, 10.87, -9.45, 5.62));
-            obstacles.add(new Obstacle(10.87, -8.5, 4.97, 11.6, -8.45, 5.62));
-            obstacles.add(new Obstacle(10.25, -8.5, 4.27, 10.7, -8.45, 4.97));
-            obstacles.add(new Obstacle(10.87, -7.40, 4.27, 11.6, -7.35, 4.97));
-            obstacles.add(new Obstacle(10.25, -7.40, 4.97, 10.87, -7.35, 5.62));
-            return obstacles;
+            List<Obstacle> result = new ArrayList<>();
+            // TODO: read obstacles from assets
+            result.add(new Obstacle(10.87, -9.5, 4.27, 11.6, -9.45, 4.97));
+            result.add(new Obstacle(10.25, -9.5, 4.97, 10.87, -9.45, 5.62));
+            result.add(new Obstacle(10.87, -8.5, 4.97, 11.6, -8.45, 5.62));
+            result.add(new Obstacle(10.25, -8.5, 4.27, 10.7, -8.45, 4.97));
+            result.add(new Obstacle(10.87, -7.40, 4.27, 11.6, -7.35, 4.97));
+            result.add(new Obstacle(10.25, -7.40, 4.97, 10.87, -7.35, 5.62));
+            return result;
         }
 
-        private static Graph<Block, Double> buildGraph(double expansionVal, List<Obstacle> obstacles) {
+        /**
+         * Builds a graph with vertices representing points in the environment and edges
+         * 
+         * @param expansionVal: The safety distance to keep from obstacles
+         */
+        private static void buildGraph(double expansionVal) {
+            // TODO: read boundaries from assets
             double minX = 10.3 + expansionVal, minY = -10.2 + expansionVal, minZ = 4.32 + expansionVal;
             double maxX = 11.55 - expansionVal, maxY = -6.0 - expansionVal, maxZ = 5.57 - expansionVal;
-            int numVertices = calculateNumVertices(minX, minY, minZ, maxX, maxY, maxZ);
 
-            Graph<Block, Double> graph = new Graph<>(numVertices);
-            Map<List<Double>, Integer> vertexLocation = new HashMap<>();
-            int vertexCount = 0;
+            int xSize = (int) Math.ceil((maxX - minX) / GRID_SIZE);
+            int ySize = (int) Math.ceil((maxY - minY) / GRID_SIZE);
+            int zSize = (int) Math.ceil((maxZ - minZ) / GRID_SIZE);
 
-            for (double z = minZ; z <= maxZ; z += 0.05) {
-                for (double y = minY; y <= maxY; y += 0.05) {
-                    for (double x = minX; x <= maxX; x += 0.05) {
-                        Block block = new Block(vertexCount, x, y, z);
-                        graph.setVertexProperty(new Vertex(vertexCount), new VertexProperty<>(block));
-                        vertexLocation.put(Arrays.asList(x, y, z), vertexCount++);
+            int[][][] vertexLocation = new int[xSize][ySize][zSize];
+            for (int[][] plane : vertexLocation) {
+                for (int[] row : plane) {
+                    Arrays.fill(row, -1);
+                }
+            }
+
+            graph = new Graph<>(xSize * ySize * zSize);
+            int vertexId = 0;
+            for (int z = 0; z < zSize; z++) {
+                for (int y = 0; y < ySize; y++) {
+                    for (int x = 0; x < xSize; x++) {
+                        double actualX = minX + x * GRID_SIZE;
+                        double actualY = minY + y * GRID_SIZE;
+                        double actualZ = minZ + z * GRID_SIZE;
+
+                        Block block = new Block(vertexId, actualX, actualY, actualZ);
+                        graph.setVertexProperty(new Vertex(vertexId), new VertexProperty<>(block));
+                        vertexLocation[x][y][z] = vertexId++;
                     }
                 }
             }
 
-            buildEdges(graph, vertexLocation, obstacles, expansionVal, numVertices);
+            System.out.println("numVertices: " + (xSize * ySize * zSize));
+            System.out.println("vertexCount: " + vertexId);
 
-            return graph;
+            buildEdges(vertexLocation);
         }
 
-        private static int calculateNumVertices(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
-            int num = 0;
-            for (double x = minX; x <= maxX; x += 0.05) {
-                for (double y = minY; y <= maxY; y += 0.05) {
-                    for (double z = minZ; z <= maxZ; z += 0.05) {
-                        num++;
+        /**
+         * Builds edges between vertices in the graph
+         * 
+         * @param vertexLocation: A 3D array representing the location of each vertex
+         */
+        private static void buildEdges(int[][][] vertexLocation) {
+            for (int x = 0; x < vertexLocation.length; x++) {
+                for (int y = 0; y < vertexLocation[0].length; y++) {
+                    for (int z = 0; z < vertexLocation[0][0].length; z++) {
+                        if (vertexLocation[x][y][z] != -1) {
+                            addEdges(vertexLocation, x, y, z, vertexLocation[x][y][z]);
+                        }
                     }
                 }
             }
-            return num;
         }
 
-        private static void buildEdges(Graph<Block, Double> graph, Map<List<Double>, Integer> vertexLocation, List<Obstacle> obstacles, double expansionVal, int numVertices) {
-            for (int i = 0; i < numVertices; i++) {
-                Block block = graph.getVertexProperty(i).getValue();
-                double x = block.getX(), y = block.getY(), z = block.getZ();
-
-                if (isInObstacle(x, y, z, obstacles, expansionVal)) continue;
-
-                addEdges(graph, vertexLocation, x, y, z, i);
-            }
+        /**
+         * Checks if the given indices are valid
+         * 
+         * @param xIndex:         The x index
+         * @param yIndex:         The y index
+         * @param zIndex:         The z index
+         * @param vertexLocation: A 3D array representing the location of each vertex
+         * @return True if the indices are valid, false otherwise
+         */
+        private static boolean isValidIndex(int xIndex, int yIndex, int zIndex, int[][][] vertexLocation) {
+            return xIndex >= 0 && xIndex < vertexLocation.length &&
+                    yIndex >= 0 && yIndex < vertexLocation[0].length &&
+                    zIndex >= 0 && zIndex < vertexLocation[0][0].length;
         }
 
-        private static void addEdges(Graph<Block, Double> graph, Map<List<Double>, Integer> vertexLocation, double x, double y, double z, int vertexIndex) {
-            List<double[]> directions = Arrays.asList(
-                new double[]{0.05, 0, 0}, new double[]{-0.05, 0, 0},
-                new double[]{0, 0.05, 0}, new double[]{0, -0.05, 0},
-                new double[]{0, 0, 0.05}, new double[]{0, 0, -0.05}
-            );
+        private static void addEdges(int[][][] vertexLocation, int xIndex, int yIndex,
+                int zIndex, int vertexIndex) {
+            int[][] directions = {
+                    { 1, 0, 0 }, { -1, 0, 0 },
+                    { 0, 1, 0 }, { 0, -1, 0 },
+                    { 0, 0, 1 }, { 0, 0, -1 }
+            };
 
-            for (double[] dir : directions) {
-                double newX = x + dir[0], newY = y + dir[1], newZ = z + dir[2];
-                if (vertexLocation.containsKey(Arrays.asList(newX, newY, newZ))) {
-                    graph.addDirectedEdge(vertexIndex, vertexLocation.get(Arrays.asList(newX, newY, newZ)), 0.05);
+            for (int[] dir : directions) {
+                int newXIndex = xIndex + dir[0];
+                int newYIndex = yIndex + dir[1];
+                int newZIndex = zIndex + dir[2];
+
+                if (isValidIndex(newXIndex, newYIndex, newZIndex, vertexLocation)
+                        && vertexLocation[newXIndex][newYIndex][newZIndex] != -1) {
+                    graph.addDirectedEdge(vertexIndex, vertexLocation[newXIndex][newYIndex][newZIndex], GRID_SIZE);
                 }
             }
         }
 
         private static boolean isInObstacle(double x, double y, double z, List<Obstacle> obstacles, double margin) {
             for (Obstacle obstacle : obstacles) {
-                if (x > obstacle.minX - margin && x < obstacle.maxX + margin && y > obstacle.minY - margin && y < obstacle.maxY + margin && z > obstacle.minZ - margin && z < obstacle.maxZ + margin) {
+                if (x > obstacle.minX - margin && x < obstacle.maxX + margin && y > obstacle.minY - margin
+                        && y < obstacle.maxY + margin && z > obstacle.minZ - margin && z < obstacle.maxZ + margin) {
                     return true;
                 }
             }
@@ -160,13 +208,15 @@ public class PathfindingMain {
         }
 
         private static Vertex findNearestVertex(Point point, Graph<Block, Double> graph) {
+            // TODO: optimize this
             double px = point.getX(), py = point.getY(), pz = point.getZ();
             double minDistance = Double.MAX_VALUE;
             int nearestVertexId = 0;
 
             for (int i = 0; i < graph.getNumVertices(); i++) {
                 Block block = graph.getVertexProperty(i).getValue();
-                double distance = Math.sqrt(Math.pow(px - block.getX(), 2) + Math.pow(py - block.getY(), 2) + Math.pow(pz - block.getZ(), 2));
+                double distance = Math.sqrt(Math.pow(px - block.getX(), 2) + Math.pow(py - block.getY(), 2)
+                        + Math.pow(pz - block.getZ(), 2));
                 if (distance < minDistance) {
                     minDistance = distance;
                     nearestVertexId = i;
@@ -191,46 +241,9 @@ public class PathfindingMain {
             return result;
         }
 
-        private static List<Point> simplifyCollinearPoints(List<Point> points) {
-            boolean[] toDelete = new boolean[points.size()];
-            for (int i = 0; i < points.size() - 2; i++) {
-                Point p1 = points.get(i), p2 = points.get(i + 1), p3 = points.get(i + 2);
-                if ((p1.getX() == p3.getX() && p1.getY() == p3.getY()) || (p1.getY() == p3.getY() && p1.getZ() == p3.getZ()) || (p1.getX() == p3.getX() && p1.getZ() == p3.getZ())) {
-                    toDelete[i + 1] = true;
-                }
-            }
-
-            List<Point> simplified = new ArrayList<>();
-            for (int i = 0; i < points.size(); i++) {
-                if (!toDelete[i]) {
-                    simplified.add(points.get(i));
-                }
-            }
-            return simplified;
-        }
-
-        private static List<Point> removeUnnecessaryPoints(List<Point> points, Graph<Block, Double> graph, List<Obstacle> obstacles, double expansionVal) {
-            boolean[] toDelete = new boolean[points.size()];
-            List<Point> result = new ArrayList<>();
-
-            for (int i = 0; i < points.size() - 2; i++) {
-                Point p1 = points.get(i), p3 = points.get(i + 2);
-                if (lineOfSight(p1.getX(), p1.getY(), p1.getZ(), p3.getX(), p3.getY(), p3.getZ(), graph, obstacles, expansionVal)) {
-                    toDelete[i + 1] = true;
-                }
-            }
-
-            for (int i = 0; i < points.size(); i++) {
-                if (!toDelete[i]) {
-                    result.add(points.get(i));
-                }
-            }
-
-            return result;
-        }
-
         private static void logPoints(List<Point> points, String label) {
-            Log.i(TAG, "-------------------------------------------" + label + "-------------------------------------------");
+            Log.i(TAG, "-------------------------------------------" + label
+                    + "-------------------------------------------");
             for (Point p : points) {
                 Log.i(TAG, "x: " + p.getX() + " y: " + p.getY() + " z: " + p.getZ());
             }
