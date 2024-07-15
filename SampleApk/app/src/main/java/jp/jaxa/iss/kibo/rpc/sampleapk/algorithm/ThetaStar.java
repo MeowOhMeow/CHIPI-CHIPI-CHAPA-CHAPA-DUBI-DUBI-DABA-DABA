@@ -30,6 +30,7 @@ public class ThetaStar {
 
     public static boolean lineOfSight(Vertex source, Vertex target, Graph<Block, Double> graph,
             List<Obstacle> obstacles, double expansionVal) {
+        // * WARNING: This method is the bottleneck of the algorithm
         double x0 = graph.getVertexProperty(source).getValue().getX();
         double y0 = graph.getVertexProperty(source).getValue().getY();
         double z0 = graph.getVertexProperty(source).getValue().getZ();

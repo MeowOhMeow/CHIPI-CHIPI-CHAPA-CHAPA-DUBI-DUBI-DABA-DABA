@@ -103,9 +103,6 @@ public class PathFindingAPI {
             }
         }
 
-        System.out.println("numVertices: " + (xSize * ySize * zSize));
-        System.out.println("vertexCount: " + vertexId);
-
         buildEdges(vertexLocation);
     }
 
