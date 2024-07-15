@@ -1,4 +1,4 @@
-package jp.jaxa.iss.kibo.rpc.sampleapk.graph;
+package graph;
 
 import java.util.*;
 
@@ -9,7 +9,8 @@ public class Graph<T, U> {
     private VertexProperty<T> emptyVertexProperty;
     private List<VertexProperty<T>> vertexPropertiesMap;
 
-    public Graph() {}
+    public Graph() {
+    }
 
     public Graph(int numNodes) {
         adjacencyList = new ArrayList<>(numNodes);

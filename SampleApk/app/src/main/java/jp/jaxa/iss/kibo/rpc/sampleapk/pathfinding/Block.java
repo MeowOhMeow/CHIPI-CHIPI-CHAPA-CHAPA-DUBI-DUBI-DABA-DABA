@@ -1,4 +1,4 @@
-package jp.jaxa.iss.kibo.rpc.sampleapk.graph;
+package jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding;
 
 public class Block {
     private int id;

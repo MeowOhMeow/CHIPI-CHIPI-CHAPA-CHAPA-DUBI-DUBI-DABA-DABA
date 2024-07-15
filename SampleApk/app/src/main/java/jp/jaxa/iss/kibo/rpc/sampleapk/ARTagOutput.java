@@ -10,19 +10,24 @@ import gov.nasa.arc.astrobee.types.Point;
 public class ARTagOutput {
     private Point snapWorld;
     private Mat resultImage;
+    private Boolean valid;
 
     /**
      * Constructor for the ArtagOutput class
-     * @param snapWorld: snap world point
+     * 
+     * @param snapWorld:   snap world point
      * @param resultImage: result image
+     * @param valid:       if the AR tag is valid or not
      */
-    public ARTagOutput(Point snapWorld, Mat resultImage) {
+    public ARTagOutput(Point snapWorld, Mat resultImage, Boolean valid) {
         this.snapWorld = snapWorld;
         this.resultImage = resultImage;
+        this.valid = valid;
     }
 
     /**
      * Get the snap world point
+     * 
      * @return snap world point
      */
     public Point getSnapWorld() {
@@ -31,9 +36,19 @@ public class ARTagOutput {
 
     /**
      * Get the result image
+     * 
      * @return result image
      */
     public Mat getResultImage() {
         return resultImage;
+    }
+
+    /**
+     * Get if the AR tag is valid or not
+     * 
+     * @return if the AR tag is valid or not
+     */
+    public Boolean getValid() {
+        return valid;
     }
 }

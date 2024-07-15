@@ -1,11 +1,10 @@
-package jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding;
+package pathfinding;
 
 import java.util.*;
 
-import gov.nasa.arc.astrobee.types.Point;
-import android.util.Log;
-import jp.jaxa.iss.kibo.rpc.sampleapk.graph.*;
-import jp.jaxa.iss.kibo.rpc.sampleapk.algorithm.*;
+import graph.*;
+import main.Log;
+import algorithm.*;
 
 public class PathfindingMain {
 
@@ -67,9 +66,15 @@ public class PathfindingMain {
             Stack<Vertex> path = ThetaStar.run(source, target, graph, new Heuristic(), obstacles, expansionVal);
             List<Point> result = extractPath(path, graph);
             logPoints(result, "result");
-            result.remove(0);
-            logPoints(result, "result");
-            return result;
+
+            List<Point> result2 = simplifyCollinearPoints(result);
+            logPoints(result2, "result2");
+
+            List<Point> result3 = removeUnnecessaryPoints(result2, graph, obstacles, expansionVal);
+            result3.remove(0);
+            logPoints(result3, "result3");
+
+            return result3;
         }
 
         private static List<Obstacle> createObstacles() {
@@ -84,8 +89,8 @@ public class PathfindingMain {
         }
 
         private static Graph<Block, Double> buildGraph(double expansionVal, List<Obstacle> obstacles) {
-            double minX = 10.3 + (expansionVal), minY = -10.2 + (expansionVal), minZ = 4.32 + (expansionVal);
-            double maxX = 11.55 - (expansionVal), maxY = -6.0 - (expansionVal), maxZ = 5.57 - (expansionVal);
+            double minX = 10.3 + expansionVal, minY = -10.2 + expansionVal, minZ = 4.32 + expansionVal;
+            double maxX = 11.55 - expansionVal, maxY = -6.0 - expansionVal, maxZ = 5.57 - expansionVal;
             int numVertices = calculateNumVertices(minX, minY, minZ, maxX, maxY, maxZ);
 
             Graph<Block, Double> graph = new Graph<>(numVertices);
@@ -183,6 +188,44 @@ public class PathfindingMain {
                 Block block = graph.getVertexProperty(vertex.getId()).getValue();
                 result.add(new Point(block.getX(), block.getY(), block.getZ()));
             }
+            return result;
+        }
+
+        private static List<Point> simplifyCollinearPoints(List<Point> points) {
+            boolean[] toDelete = new boolean[points.size()];
+            for (int i = 0; i < points.size() - 2; i++) {
+                Point p1 = points.get(i), p2 = points.get(i + 1), p3 = points.get(i + 2);
+                if ((p1.getX() == p3.getX() && p1.getY() == p3.getY()) || (p1.getY() == p3.getY() && p1.getZ() == p3.getZ()) || (p1.getX() == p3.getX() && p1.getZ() == p3.getZ())) {
+                    toDelete[i + 1] = true;
+                }
+            }
+
+            List<Point> simplified = new ArrayList<>();
+            for (int i = 0; i < points.size(); i++) {
+                if (!toDelete[i]) {
+                    simplified.add(points.get(i));
+                }
+            }
+            return simplified;
+        }
+
+        private static List<Point> removeUnnecessaryPoints(List<Point> points, Graph<Block, Double> graph, List<Obstacle> obstacles, double expansionVal) {
+            boolean[] toDelete = new boolean[points.size()];
+            List<Point> result = new ArrayList<>();
+
+            for (int i = 0; i < points.size() - 2; i++) {
+                Point p1 = points.get(i), p3 = points.get(i + 2);
+                if (lineOfSight(p1.getX(), p1.getY(), p1.getZ(), p3.getX(), p3.getY(), p3.getZ(), graph, obstacles, expansionVal)) {
+                    toDelete[i + 1] = true;
+                }
+            }
+
+            for (int i = 0; i < points.size(); i++) {
+                if (!toDelete[i]) {
+                    result.add(points.get(i));
+                }
+            }
+
             return result;
         }
 

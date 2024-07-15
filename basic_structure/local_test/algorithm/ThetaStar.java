@@ -1,14 +1,11 @@
-package jp.jaxa.iss.kibo.rpc.sampleapk.algorithm;
+package algorithm;
 
 import java.util.*;
-import java.util.stream.Collectors;
-import android.util.Log;
-
-import jp.jaxa.iss.kibo.rpc.sampleapk.graph.*;
-import jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding.*;
+import graph.*;
+import pathfinding.*;
 
 public class ThetaStar {
-    private static final double PENALTY = 4.15;
+    private static final double PENALTY = 0.1;
 
     private static class VertexComparator implements Comparator<Pair<Double, Integer>> {
         @Override
@@ -69,12 +66,10 @@ public class ThetaStar {
         fScore[source.getId()] = heuristic.get(graph, source, target);
 
         PriorityQueue<Pair<Double, Integer>> openSet = new PriorityQueue<>(new VertexComparator());
-        Set<Integer> closedSet = new HashSet<>();
         openSet.add(new Pair<>(fScore[source.getId()], source.getId()));
 
         while (!openSet.isEmpty()) {
             int currentVertex = openSet.poll().getSecond();
-            closedSet.add(currentVertex);
             int predVertex = pred[currentVertex];
 
             if (currentVertex == target.getId()) {
@@ -82,11 +77,6 @@ public class ThetaStar {
             }
 
             for (int neighbor : graph.getNeighbors(currentVertex)) {
-            	if(closedSet.contains(neighbor))
-            	{
-            		continue;
-            	}
-            	
                 double tentative_gScore = PENALTY;
 
                 if (predVertex != -1
@@ -123,5 +113,3 @@ public class ThetaStar {
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 }
-
-
