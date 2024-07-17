@@ -80,7 +80,7 @@ public class PathfindingMain {
             Stack<Vertex> path = ThetaStar.run(source, target, graph, new Heuristic(), obstacles, expansionVal);
             List<Point> result = extractPath(path, graph);
             // remove the first point since it is the starting point
-            result.remove(0);
+//            result.remove(0);
             logPoints(result, "result");
             return result;
         }

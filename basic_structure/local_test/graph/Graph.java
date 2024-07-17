@@ -5,9 +5,9 @@ import java.util.*;
 public class Graph<T, U> {
     private List<Map<Integer, Double>> adjacencyList;
     private List<Map<Integer, Double>> edgePropertiesMap;
-    private EdgeProperty<U> emptyEdgeProperty;
-    private VertexProperty<T> emptyVertexProperty;
     private List<VertexProperty<T>> vertexPropertiesMap;
+    private final VertexProperty<T> emptyVertexProperty = new VertexProperty<>(null);
+    private final EdgeProperty<U> emptyEdgeProperty = new EdgeProperty<>(null);
 
     public Graph() {
     }

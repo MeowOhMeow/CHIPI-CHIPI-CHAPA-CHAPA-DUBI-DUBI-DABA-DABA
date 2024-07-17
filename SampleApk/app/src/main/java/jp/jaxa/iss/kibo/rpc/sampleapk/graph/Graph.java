@@ -2,14 +2,24 @@ package jp.jaxa.iss.kibo.rpc.sampleapk.graph;
 
 import java.util.*;
 
-public class Graph<T, U> {
+/**
+ * The graph class.
+ * 
+ * @implNote This graph does not support adding vertices after initialization.
+ *           TODO: Add support for adding vertices after initialization.
+ * 
+ * @param <V>: The type of the vertex property.
+ * @param <E>: The type of the edge property.
+ */
+public class Graph<V, E> {
     private List<Map<Integer, Double>> adjacencyList;
     private List<Map<Integer, Double>> edgePropertiesMap;
-    private EdgeProperty<U> emptyEdgeProperty;
-    private VertexProperty<T> emptyVertexProperty;
-    private List<VertexProperty<T>> vertexPropertiesMap;
+    private List<VertexProperty<V>> vertexPropertiesMap;
+    private final VertexProperty<V> emptyVertexProperty = new VertexProperty<>(null);
+    private final EdgeProperty<E> emptyEdgeProperty = new EdgeProperty<>(null);
 
-    public Graph() {}
+    public Graph() {
+    }
 
     public Graph(int numNodes) {
         adjacencyList = new ArrayList<>(numNodes);
@@ -61,15 +71,11 @@ public class Graph<T, U> {
         return getNeighbors(vertex.getId());
     }
 
-    public int getNumVertices() {
-        return adjacencyList.size();
-    }
-
-    public VertexProperty<T> getVertexProperty(int vertex) {
+    public VertexProperty<V> getVertexProperty(int vertex) {
         return vertexPropertiesMap.get(vertex);
     }
 
-    public VertexProperty<T> getVertexProperty(Vertex vertex) {
+    public VertexProperty<V> getVertexProperty(Vertex vertex) {
         return getVertexProperty(vertex.getId());
     }
 
@@ -91,14 +97,19 @@ public class Graph<T, U> {
         setEdgeWeight(source.getId(), target.getId(), weight);
     }
 
-    public void setVertexProperty(int vertex, VertexProperty<T> property) {
+    public void setVertexProperty(int vertex, VertexProperty<V> property) {
         vertexPropertiesMap.set(vertex, property);
     }
 
-    public void setVertexProperty(Vertex vertex, VertexProperty<T> property) {
+    public void setVertexProperty(Vertex vertex, VertexProperty<V> property) {
         setVertexProperty(vertex.getId(), property);
     }
 
+    /**
+     * Get the number of vertices in the graph.
+     * 
+     * @return The number of vertices in the graph.
+     */
     public int size() {
         return adjacencyList.size();
     }

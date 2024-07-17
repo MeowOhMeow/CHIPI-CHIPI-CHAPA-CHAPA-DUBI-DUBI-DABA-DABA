@@ -3,6 +3,9 @@ package jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding;
 import jp.jaxa.iss.kibo.rpc.sampleapk.algorithm.*;
 import jp.jaxa.iss.kibo.rpc.sampleapk.graph.*;
 
+/**
+ * The heuristic class.
+ */
 public class Heuristic implements HeuristicInterface<Block, Double> {
     @Override
     public double get(Graph<Block, Double> graph, Vertex source, Vertex target) {

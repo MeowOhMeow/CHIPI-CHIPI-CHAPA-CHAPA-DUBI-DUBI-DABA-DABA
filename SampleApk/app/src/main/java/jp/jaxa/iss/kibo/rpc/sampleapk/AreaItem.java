@@ -21,8 +21,9 @@ public class AreaItem {
 
     /**
      * Constructor for the AreaItem class
+     * 
      * @param itemIdx: index of the item in the itemMap
-     * @param count: count of the item
+     * @param count:   count of the item
      */
     public AreaItem(int itemIdx, int count) {
         this.item = itemMap[itemIdx];
@@ -39,6 +40,7 @@ public class AreaItem {
 
     /**
      * Get the item name
+     * 
      * @return item name
      */
     public String getItem() {
@@ -47,6 +49,7 @@ public class AreaItem {
 
     /**
      * Get the count of the item
+     * 
      * @return count of the item
      */
     public int getCount() {

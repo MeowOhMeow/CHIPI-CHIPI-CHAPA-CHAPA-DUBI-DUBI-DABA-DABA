@@ -7,6 +7,9 @@ import android.util.Log;
 import jp.jaxa.iss.kibo.rpc.sampleapk.graph.*;
 import jp.jaxa.iss.kibo.rpc.sampleapk.algorithm.*;
 
+/**
+ * The path finding API class.
+ */
 public class PathFindingAPI {
     private static final String TAG = "PathFindingAPI";
     private static final double GRID_SIZE = 0.05;
@@ -138,6 +141,15 @@ public class PathFindingAPI {
                 zIndex >= 0 && zIndex < vertexLocation[0][0].length;
     }
 
+    /**
+     * Adds edges to the graph
+     * 
+     * @param vertexLocation: A 3D array representing the location of each vertex
+     * @param xIndex:         The x index
+     * @param yIndex:         The y index
+     * @param zIndex:         The z index
+     * @param vertexIndex:    The index of the current vertex
+     */
     private static void addEdges(int[][][] vertexLocation, int xIndex, int yIndex,
             int zIndex, int vertexIndex) {
         int[][] directions = {
@@ -158,6 +170,19 @@ public class PathFindingAPI {
         }
     }
 
+    /**
+     * Checks if the given point is in an obstacle
+     * 
+     * @param x:         The x coordinate
+     * @param y:         The y coordinate
+     * @param z:         The z coordinate
+     * @param obstacles: A list of obstacles
+     * @param margin:    The margin to keep from the obstacles
+     * @return True if the point is in an obstacle, false otherwise
+     * 
+     * @apiNote TODO: This method has logic errors. Fix them. Or, better yet, don't
+     *          use this method.
+     */
     private static boolean isInObstacle(double x, double y, double z, List<Obstacle> obstacles, double margin) {
         for (Obstacle obstacle : obstacles) {
             if (x > obstacle.minX - margin && x < obstacle.maxX + margin && y > obstacle.minY - margin
@@ -168,13 +193,25 @@ public class PathFindingAPI {
         return false;
     }
 
+    private static boolean isInObstacle(Vertex vertex, List<Obstacle> obstacles, Graph<Block, Double> graph) {
+        Block block = graph.getVertexProperty(vertex.getId()).getValue();
+        return isInObstacle(block.getX(), block.getY(), block.getZ(), obstacles, 0);
+    }
+
+    /**
+     * Finds the nearest vertex to the given point
+     * 
+     * @param point: The point
+     * @param graph: The graph
+     * @return The nearest vertex
+     */
     private static Vertex findNearestVertex(Point point, Graph<Block, Double> graph) {
         // TODO: optimize this
         double px = point.getX(), py = point.getY(), pz = point.getZ();
         double minDistance = Double.MAX_VALUE;
         int nearestVertexId = 0;
 
-        for (int i = 0; i < graph.getNumVertices(); i++) {
+        for (int i = 0; i < graph.size(); i++) {
             Block block = graph.getVertexProperty(i).getValue();
             double distance = Math.sqrt(Math.pow(px - block.getX(), 2) + Math.pow(py - block.getY(), 2)
                     + Math.pow(pz - block.getZ(), 2));
@@ -185,11 +222,6 @@ public class PathFindingAPI {
         }
 
         return new Vertex(nearestVertexId);
-    }
-
-    private static boolean isInObstacle(Vertex vertex, List<Obstacle> obstacles, Graph<Block, Double> graph) {
-        Block block = graph.getVertexProperty(vertex.getId()).getValue();
-        return isInObstacle(block.getX(), block.getY(), block.getZ(), obstacles, 0);
     }
 
     private static List<Point> extractPath(Stack<Vertex> path, Graph<Block, Double> graph) {

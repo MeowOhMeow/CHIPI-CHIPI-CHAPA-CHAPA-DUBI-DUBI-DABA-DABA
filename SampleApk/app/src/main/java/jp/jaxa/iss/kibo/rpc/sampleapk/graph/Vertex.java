@@ -1,5 +1,8 @@
 package jp.jaxa.iss.kibo.rpc.sampleapk.graph;
 
+/**
+ * The vertex class. Basically this is an alias for integer.
+ */
 public class Vertex {
     private int id;
 
@@ -13,8 +16,10 @@ public class Vertex {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
+        if (this == obj)
+            return true;
+        if (obj == null || getClass() != obj.getClass())
+            return false;
         Vertex vertex = (Vertex) obj;
         return id == vertex.id;
     }

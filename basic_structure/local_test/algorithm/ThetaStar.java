@@ -5,7 +5,7 @@ import graph.*;
 import pathfinding.*;
 
 public class ThetaStar {
-    private static final double PENALTY = 0.1;
+    private static final double PENALTY = 4.15;
 
     private static class VertexComparator implements Comparator<Pair<Double, Integer>> {
         @Override
@@ -25,29 +25,66 @@ public class ThetaStar {
         return path;
     }
 
+    private static double[] getCoordinates(Graph<Block, Double> graph, Vertex vertex) {
+        Block block = graph.getVertexProperty(vertex).getValue();
+        return new double[] { block.getX(), block.getY(), block.getZ() };
+    }
+
+    private static boolean isWithinBoundingBox(double[] boxMin, double[] boxMax, double[] point1, double[] point2) {
+        return !(boxMin[0] > Math.max(point1[0], point2[0]) || boxMax[0] < Math.min(point1[0], point2[0]) ||
+                boxMin[1] > Math.max(point1[1], point2[1]) || boxMax[1] < Math.min(point1[1], point2[1]) ||
+                boxMin[2] > Math.max(point1[2], point2[2]) || boxMax[2] < Math.min(point1[2], point2[2]));
+    }
+
+    public static boolean lineIntersectsBox(double[] linePoint, double[] lineDir, double[] boxMin, double[] boxMax) {
+        double tMin = (boxMin[0] - linePoint[0]) / lineDir[0];
+        double tMax = (boxMax[0] - linePoint[0]) / lineDir[0];
+
+        if (tMin > tMax) {
+            double temp = tMin;
+            tMin = tMax;
+            tMax = temp;
+        }
+
+        for (int i = 1; i < 3; i++) {
+            double t1 = (boxMin[i] - linePoint[i]) / lineDir[i];
+            double t2 = (boxMax[i] - linePoint[i]) / lineDir[i];
+
+            if (t1 > t2) {
+                double temp = t1;
+                t1 = t2;
+                t2 = temp;
+            }
+
+            tMin = Math.max(tMin, t1);
+            tMax = Math.min(tMax, t2);
+
+            if (tMin > tMax) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public static boolean lineOfSight(Vertex source, Vertex target, Graph<Block, Double> graph,
             List<Obstacle> obstacles, double expansionVal) {
-        double x0 = graph.getVertexProperty(source).getValue().getX();
-        double y0 = graph.getVertexProperty(source).getValue().getY();
-        double z0 = graph.getVertexProperty(source).getValue().getZ();
-        double x1 = graph.getVertexProperty(target).getValue().getX();
-        double y1 = graph.getVertexProperty(target).getValue().getY();
-        double z1 = graph.getVertexProperty(target).getValue().getZ();
-        double dx = x1 - x0;
-        double dy = y1 - y0;
-        double dz = z1 - z0;
+        double[] startPoint = getCoordinates(graph, source);
+        double[] endPoint = getCoordinates(graph, target);
+        double[] direction = { endPoint[0] - startPoint[0], endPoint[1] - startPoint[1], endPoint[2] - startPoint[2] };
 
         for (Obstacle obstacle : obstacles) {
-            for (double step = 0; step <= 1; step += 0.001) {
-                double x = x0 + dx * step;
-                double y = y0 + dy * step;
-                double z = z0 + dz * step;
-                if (x > obstacle.minX - expansionVal && x < obstacle.maxX + expansionVal
-                        && y > obstacle.minY - expansionVal
-                        && y < obstacle.maxY + expansionVal && z > obstacle.minZ - expansionVal
-                        && z < obstacle.maxZ + expansionVal) {
-                    return false;
-                }
+            double[] boxMin = { obstacle.minX - expansionVal, obstacle.minY - expansionVal,
+                    obstacle.minZ - expansionVal };
+            double[] boxMax = { obstacle.maxX + expansionVal, obstacle.maxY + expansionVal,
+                    obstacle.maxZ + expansionVal };
+
+            if (!isWithinBoundingBox(boxMin, boxMax, startPoint, endPoint)) {
+                continue;
+            }
+
+            if (lineIntersectsBox(startPoint, direction, boxMin, boxMax)) {
+                return false;
             }
         }
         return true;

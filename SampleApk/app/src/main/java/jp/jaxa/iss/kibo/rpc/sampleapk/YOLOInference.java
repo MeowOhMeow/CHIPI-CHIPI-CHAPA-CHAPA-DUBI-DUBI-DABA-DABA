@@ -30,11 +30,8 @@ public class YOLOInference {
 
     private static OrtEnvironment env;
     private static OrtSession session;
-    private static long count;
-    private static long netHeight;
-    private static long netWidth;
-    private static float confThreshold = 0.55f;
-    private static float nmsThreshold = 0.55f;
+    private static final float CONF_THRESHOLD = 0.55f;
+    private static final float NMS_THRESHOLD = 0.55f;
 
     /**
      * Initialize the YOLO model
@@ -58,10 +55,10 @@ public class YOLOInference {
             while ((bytesRead = stream.read(buffer)) != -1) {
                 byteStream.write(buffer, 0, bytesRead);
             }
-            byteStream.flush(); 
-            byte[] bytes = byteStream.toByteArray(); 
-            //create an ONNX session
-            session = env.createSession(bytes, options); 
+            byteStream.flush();
+            byte[] bytes = byteStream.toByteArray();
+            // Create an ONNX session
+            session = env.createSession(bytes, options);
         } catch (IOException | OrtException e) {
             Log.i(TAG, "Error: fail to create Ortsession with exception: " + e.getMessage());
             throw new RuntimeException(e);
@@ -74,14 +71,14 @@ public class YOLOInference {
      * @param src: image to be transferred
      * @return tensor of the image
      */
-    public static OnnxTensor transfer2Tensor(Mat src) {
+    private static OnnxTensor transfer2Tensor(Mat src) {
         Imgproc.cvtColor(src, src, Imgproc.COLOR_BGR2RGB);
         src.convertTo(src, CvType.CV_32FC1, 1. / 255);
         int channels = src.channels();
 
-        count = 1;
-        netWidth = 640;
-        netHeight = 640;
+        long count = 1;
+        long netWidth = 640;
+        long netHeight = 640;
 
         float[] whc = new float[Long.valueOf(channels).intValue() * Long.valueOf(netWidth).intValue()
                 * Long.valueOf(netHeight).intValue()];
@@ -92,7 +89,7 @@ public class YOLOInference {
         env = OrtEnvironment.getEnvironment();
         try {
             tensor = OnnxTensor.createTensor(env, FloatBuffer.wrap(chw),
-                    new long[] { count, channels, netWidth, netHeight });
+                    new long[] {count, channels, netWidth, netHeight});
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(0);
@@ -107,7 +104,7 @@ public class YOLOInference {
      * @param src the source image in WHC format to be converted
      * @return the converted image in CWH format
      */
-    public static float[] whc2cwh(float[] src) {
+    private static float[] whc2cwh(float[] src) {
         if (src == null || src.length % 3 != 0) {
             throw new IllegalArgumentException("Source image must not be null and its length must be a multiple of 3.");
         }
@@ -212,7 +209,7 @@ public class YOLOInference {
                 }
             }
 
-            if (maxScore >= confThreshold) {
+            if (maxScore >= CONF_THRESHOLD) {
                 int classId = 0;
                 float maxClassScore = 0;
                 for (int index = 4; index < outputTransposed[0].length; index++) {
@@ -238,7 +235,8 @@ public class YOLOInference {
         }
 
         // Apply Non-maximum suppression(remove boxes with high overlap)
-        // Select the highest confidence box first, then calculate IOU and delete the high overlapped boxes. Repeat the above 2 steps until all boxes are processed
+        // Select the highest confidence box first, then calculate IOU and delete the
+        // high overlapped boxes. Repeat the above 2 steps until all boxes are processed
         MatOfInt candidates = new MatOfInt();
         MatOfRect2d boxes = new MatOfRect2d(boxList.toArray(new Rect2d[0]));
         float[] confArray = new float[scores.size()];
@@ -247,7 +245,7 @@ public class YOLOInference {
         }
 
         MatOfFloat confs = new MatOfFloat(confArray);
-        Dnn.NMSBoxes(boxes, confs, confThreshold, nmsThreshold, candidates); 
+        Dnn.NMSBoxes(boxes, confs, CONF_THRESHOLD, NMS_THRESHOLD, candidates);
         if (candidates.empty()) {
             Log.i(TAG, "indices is empty");
             return null;

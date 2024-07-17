@@ -1,5 +1,8 @@
 package jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding;
 
+/**
+ * The block class.
+ */
 public class Block {
     private int id;
     private double x, y, z;

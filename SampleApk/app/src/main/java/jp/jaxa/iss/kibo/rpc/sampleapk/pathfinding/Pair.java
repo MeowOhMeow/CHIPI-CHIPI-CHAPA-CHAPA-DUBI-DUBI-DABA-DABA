@@ -1,5 +1,8 @@
 package jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding;
 
+/**
+ * A pair of two values.
+ */
 public class Pair<F, S> {
     private F first;
     private S second;
