@@ -96,7 +96,8 @@ def upload_to_slot(driver: webdriver.Edge, slot_id: int, file_path: str):
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.XPATH, confirm_button_xpath))
     )
-    driver.find_element(By.XPATH, confirm_button_xpath).click()
+    confirm_button = driver.find_element(By.XPATH, confirm_button_xpath)
+    driver.execute_script("arguments[0].click();", confirm_button)
 
     # Wait until the modal is closed
     WebDriverWait(driver, 600).until(
@@ -128,11 +129,13 @@ def remove_simulation(driver: webdriver.Edge):
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.XPATH, remove_button_xpath))
     )
-    driver.find_element(By.XPATH, remove_button_xpath).click()
+    remove_button = driver.find_element(By.XPATH, remove_button_xpath)
+    driver.execute_script("arguments[0].click();", remove_button)
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.XPATH, confirm_button_xpath))
     )
-    driver.find_element(By.XPATH, confirm_button_xpath).click()
+    confirm_button = driver.find_element(By.XPATH, confirm_button_xpath)
+    driver.execute_script("arguments[0].click();", confirm_button)
     time.sleep(0.5)
 
     WebDriverWait(driver, 10).until(
@@ -143,6 +146,15 @@ def remove_simulation(driver: webdriver.Edge):
 
 
 def download_files(driver: webdriver.Edge):
+    status_value_xpath = "/html/body/div/div/main/div/div/div[2]/div/div[1]/span[2]"
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.XPATH, status_value_xpath))
+    )
+    status_value = driver.find_element(By.XPATH, status_value_xpath).text
+    if status_value != "Finished":
+        print("Simulation failed")
+        return False
+
     log_file_xpath = "/html/body/div/div/main/div/div/div[2]/div/div[4]/div/button[2]"
     image_file_xpath = "/html/body/div/div/main/div/div/div[2]/div/div[4]/div/button[4]"
 
@@ -169,6 +181,8 @@ def download_files(driver: webdriver.Edge):
         status = image_button.get_attribute("class")
     time.sleep(0.5)
 
+    return True
+
 
 def view_result_and_reupload(driver: webdriver.Edge, config: list):
     while True:
@@ -190,8 +204,9 @@ def view_result_and_reupload(driver: webdriver.Edge, config: list):
                 view_button = driver.find_element(By.XPATH, view_button_xpath)
                 driver.execute_script("arguments[0].click();", view_button)
 
-                download_files(driver)
-                remove_simulation(driver)
+                has_successed = download_files(driver)
+                if has_successed:
+                    remove_simulation(driver)
 
                 driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
                 upload_to_slot(driver, index, config[2])
