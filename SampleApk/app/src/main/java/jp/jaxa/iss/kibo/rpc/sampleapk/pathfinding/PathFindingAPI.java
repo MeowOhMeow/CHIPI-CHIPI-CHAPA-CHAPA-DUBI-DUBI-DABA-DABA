@@ -38,12 +38,6 @@ public class PathFindingAPI {
         Vertex source = findNearestVertex(start, graph);
         Vertex target = findNearestVertex(end, graph);
 
-        if (isInObstacle(source, obstacles, graph) || isInObstacle(target, obstacles, graph)) {
-            Log.i(TAG, "Source or target is in an obstacle");
-            // TODO: handle this case
-            return Collections.emptyList();
-        }
-
         Stack<Vertex> path = ThetaStar.run(source, target, graph, new Heuristic(), obstacles, expansionVal);
         List<Point> result = extractPath(path, graph);
         // remove the first point since it is the starting point
@@ -168,34 +162,6 @@ public class PathFindingAPI {
                 graph.addDirectedEdge(vertexIndex, vertexLocation[newXIndex][newYIndex][newZIndex], GRID_SIZE);
             }
         }
-    }
-
-    /**
-     * Checks if the given point is in an obstacle
-     * 
-     * @param x:         The x coordinate
-     * @param y:         The y coordinate
-     * @param z:         The z coordinate
-     * @param obstacles: A list of obstacles
-     * @param margin:    The margin to keep from the obstacles
-     * @return True if the point is in an obstacle, false otherwise
-     * 
-     * @apiNote TODO: This method has logic errors. Fix them. Or, better yet, don't
-     *          use this method.
-     */
-    private static boolean isInObstacle(double x, double y, double z, List<Obstacle> obstacles, double margin) {
-        for (Obstacle obstacle : obstacles) {
-            if (x > obstacle.minX - margin && x < obstacle.maxX + margin && y > obstacle.minY - margin
-                    && y < obstacle.maxY + margin && z > obstacle.minZ - margin && z < obstacle.maxZ + margin) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean isInObstacle(Vertex vertex, List<Obstacle> obstacles, Graph<Block, Double> graph) {
-        Block block = graph.getVertexProperty(vertex.getId()).getValue();
-        return isInObstacle(block.getX(), block.getY(), block.getZ(), obstacles, 0);
     }
 
     /**
