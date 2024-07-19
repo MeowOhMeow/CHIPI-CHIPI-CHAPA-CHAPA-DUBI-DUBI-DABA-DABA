@@ -171,12 +171,14 @@ def download_files(driver: webdriver.Edge):
     while "disabled" in status:
         time.sleep(0.5)
         status = image_button.get_attribute("class")
+    time.sleep(0.5)
     image_button.click()
     time.sleep(0.5)
     status = image_button.get_attribute("class")
     while "disabled" in status:
         time.sleep(0.5)
         status = image_button.get_attribute("class")
+    time.sleep(0.5)
 
 
 def view_result_and_reupload(driver: webdriver.Edge, config: list):
@@ -233,6 +235,7 @@ if __name__ == "__main__":
         # )
         # driver.find_element(By.XPATH, view_button_xpath).click()
         # download_files(driver)
+        # remove_simulation(driver)
         # time.sleep(5)
     finally:
         driver.quit()
