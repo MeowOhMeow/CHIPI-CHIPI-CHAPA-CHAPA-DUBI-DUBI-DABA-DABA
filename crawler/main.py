@@ -2,6 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import Select
 import os
 import time
 
@@ -12,10 +13,12 @@ def load_config(filename):
         raise FileNotFoundError(f"Config file not found: {filename}")
     with open(filename, "r") as file:
         config = [line.strip() for line in file.readlines()]
-    if len(config) != 3:
-        raise ValueError("Config file must contain 3 lines")
+    if len(config) != 5:
+        raise ValueError("Config file must contain 4 lines: account ID, password, apk file path, memo, difficulty")
     if not os.path.exists(config[2]):
         raise FileNotFoundError(f"Apk file not found: {config[2]}")
+    difficulties = ("Easy", "Normal", "Hard", "Very Hard")
+    config[4] = difficulties[int(config[4])]
     return config
 
 
@@ -70,7 +73,10 @@ def get_available_slots(driver: webdriver.Edge):
     return result
 
 
-def upload_to_slot(driver: webdriver.Edge, slot_id: int, file_path: str):
+def upload_to_slot(driver: webdriver.Edge, slot_id: int, config: list):
+    file_path = config[2]
+    memo = config[3]
+    difficulty = config[4]
     # Upload file
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.XPATH, "/html/body/input[1]"))
@@ -82,7 +88,20 @@ def upload_to_slot(driver: webdriver.Edge, slot_id: int, file_path: str):
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.XPATH, memo_input_xpath))
     )
-    driver.find_element(By.XPATH, memo_input_xpath).send_keys("Meow, automated test")
+    driver.find_element(By.XPATH, memo_input_xpath).send_keys(memo)
+
+    dropdown_xpath = f"/html/body/div/div/main/div/div/div[2]/div[2]/div[{slot_id}]/div[1]/div[5]/select"
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.XPATH, dropdown_xpath))
+    )
+
+    # Locate the dropdown element
+    dropdown = Select(driver.find_element(By.XPATH, dropdown_xpath))
+
+    # Select the simulator level by visible text (adjust the text as needed)
+    dropdown.select_by_visible_text(difficulty)
+
+    time.sleep(0.5)
 
     # Click start button
     start_button_xpath = (
@@ -115,7 +134,7 @@ def start_simulation(driver: webdriver.Edge, config: list):
     available_slots = get_available_slots(driver)
 
     while available_slots:
-        upload_to_slot(driver, available_slots[0], config[2])
+        upload_to_slot(driver, available_slots[0], config)
 
         # Refresh and get available slots again
         driver.refresh()
@@ -209,7 +228,7 @@ def view_result_and_reupload(driver: webdriver.Edge, config: list):
                     remove_simulation(driver)
 
                 driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
-                upload_to_slot(driver, index, config[2])
+                upload_to_slot(driver, index, config)
                 any_finished = True
                 break
 
