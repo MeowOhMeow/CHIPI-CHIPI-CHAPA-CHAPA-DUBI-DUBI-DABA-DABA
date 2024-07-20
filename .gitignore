@@ -20,10 +20,11 @@ opencv/*
 
 datasets/*
 opencv/*
-**/.*
 visualizer/screenshot.png
 !basic_structure/graph/test
 
 YOLO/data/*
 YOLO/models/*
 YOLO/config.json
+
+!**/.gitignore
