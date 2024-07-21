@@ -1,6 +1,6 @@
-package jp.jaxa.iss.kibo.rpc.sampleapk.algorithm;
+package jp.jaxa.iss.kibo.rpc.taiwan.algorithm;
 
-import jp.jaxa.iss.kibo.rpc.sampleapk.graph.*;
+import jp.jaxa.iss.kibo.rpc.taiwan.graph.*;
 
 /**
  * The heuristic interface.

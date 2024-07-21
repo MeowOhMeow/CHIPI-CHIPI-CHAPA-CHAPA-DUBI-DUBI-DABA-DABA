@@ -1,4 +1,4 @@
-package jp.jaxa.iss.kibo.rpc.sampleapk.graph;
+package jp.jaxa.iss.kibo.rpc.taiwan.graph;
 
 /**
  * The edge property class.

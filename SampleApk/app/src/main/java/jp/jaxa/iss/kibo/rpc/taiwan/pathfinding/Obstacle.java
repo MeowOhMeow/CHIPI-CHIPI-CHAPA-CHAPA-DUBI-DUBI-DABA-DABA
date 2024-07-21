@@ -1,4 +1,4 @@
-package jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding;
+package jp.jaxa.iss.kibo.rpc.taiwan.pathfinding;
 
 public class Obstacle {
     public double minX, minY, minZ, maxX, maxY, maxZ;

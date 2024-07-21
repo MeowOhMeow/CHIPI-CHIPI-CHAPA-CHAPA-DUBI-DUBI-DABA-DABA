@@ -1,9 +1,9 @@
-package jp.jaxa.iss.kibo.rpc.sampleapk.algorithm;
+package jp.jaxa.iss.kibo.rpc.taiwan.algorithm;
 
 import java.util.*;
 
-import jp.jaxa.iss.kibo.rpc.sampleapk.graph.*;
-import jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding.*;
+import jp.jaxa.iss.kibo.rpc.taiwan.graph.*;
+import jp.jaxa.iss.kibo.rpc.taiwan.pathfinding.*;
 
 /**
  * The Theta* algorithm.
