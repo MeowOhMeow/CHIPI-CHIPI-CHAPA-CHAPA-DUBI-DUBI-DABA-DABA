@@ -5,20 +5,35 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 import os
 import time
+import glob
+import shutil
+
+current_dir = os.path.dirname(__file__)
+if not os.path.exists(os.path.join(current_dir, "htmls")):
+    os.makedirs(os.path.join(current_dir, "htmls"))
+if not os.path.exists(os.path.join(current_dir, "images")):
+    os.makedirs(os.path.join(current_dir, "images"))
+if not os.path.exists(os.path.join(current_dir, "results")):
+    os.makedirs(os.path.join(current_dir, "results"))
 
 
 # Load configuration from file
 def load_config(filename):
     if not os.path.exists(filename):
         raise FileNotFoundError(f"Config file not found: {filename}")
-    with open(filename, "r") as file:
+    with open(filename, "r", encoding="utf-8") as file:
         config = [line.strip() for line in file.readlines()]
-    if len(config) != 5:
-        raise ValueError("Config file must contain 4 lines: account ID, password, apk file path, memo, difficulty")
+    if len(config) != 7:
+        raise ValueError(
+            "Config file must contain 4 lines: account ID, password, apk file path, memo, difficulty, download path, rounds"
+        )
     if not os.path.exists(config[2]):
         raise FileNotFoundError(f"Apk file not found: {config[2]}")
+    if not os.path.exists(config[5]):
+        raise FileNotFoundError(f"Download path not found: {config[5]}")
     difficulties = ("Easy", "Normal", "Hard", "Very Hard")
     config[4] = difficulties[int(config[4])]
+    config[6] = int(config[6])
     return config
 
 
@@ -164,7 +179,9 @@ def remove_simulation(driver: webdriver.Edge):
     )
 
 
-def download_files(driver: webdriver.Edge):
+def download_files(driver: webdriver.Edge, index: int):
+    global current_dir
+
     status_value_xpath = "/html/body/div/div/main/div/div/div[2]/div/div[1]/span[2]"
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.XPATH, status_value_xpath))
@@ -173,6 +190,14 @@ def download_files(driver: webdriver.Edge):
     if status_value != "Finished":
         print("Simulation failed")
         return False
+
+    source = driver.page_source
+    with open(
+        os.path.join(current_dir, "htmls", f"simulation_{index}.html"),
+        "w",
+        encoding="utf-8",
+    ) as file:
+        file.write(source)
 
     log_file_xpath = "/html/body/div/div/main/div/div/div[2]/div/div[4]/div/button[2]"
     image_file_xpath = "/html/body/div/div/main/div/div/div[2]/div/div[4]/div/button[4]"
@@ -203,8 +228,12 @@ def download_files(driver: webdriver.Edge):
     return True
 
 
+idx = 0
+
+
 def view_result_and_reupload(driver: webdriver.Edge, config: list):
-    while True:
+    global idx
+    while idx < config[6] * 3 - 3:
         # Wait until the slots are loaded
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CLASS_NAME, "slot-status"))
@@ -223,7 +252,8 @@ def view_result_and_reupload(driver: webdriver.Edge, config: list):
                 view_button = driver.find_element(By.XPATH, view_button_xpath)
                 driver.execute_script("arguments[0].click();", view_button)
 
-                has_successed = download_files(driver)
+                has_successed = download_files(driver, idx)
+                idx += 1
                 if has_successed:
                     remove_simulation(driver)
 
@@ -237,12 +267,83 @@ def view_result_and_reupload(driver: webdriver.Edge, config: list):
         driver.refresh()
 
 
+def rename_and_move_files(download_folder, images_folder, results_folder, start_time):
+    image_files = glob.glob(os.path.join(download_folder, "*DebugImages*.zip"))
+    log_files = glob.glob(os.path.join(download_folder, "*results.zip"))
+    image_files.sort(key=os.path.getmtime)
+    log_files.sort(key=os.path.getmtime)
+    image_files = [file for file in image_files if os.path.getmtime(file) > start_time]
+    log_files = [file for file in log_files if os.path.getmtime(file) > start_time]
+    for i in range(len(image_files)):
+        new_name = f"image_{i}.zip"
+        shutil.move(image_files[i], os.path.join(images_folder, new_name))
+    for i in range(len(log_files)):
+        new_name = f"result_{i}.zip"
+        shutil.move(log_files[i], os.path.join(results_folder, new_name))
+
+
+def wait_till_all_finished():
+    global idx
+
+    driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
+    run = True
+    while run:
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.CLASS_NAME, "slot-status"))
+        )
+
+        slots = driver.find_elements(By.CLASS_NAME, "slot-status")
+
+        run = False
+
+        any_finished = False
+
+        for index, slot in enumerate(slots, start=1):
+            slot_status = slot.text.strip().lower()
+            run |= slot_status == "in progress"
+
+            if slot_status == "finished":
+                view_button_xpath = f"/html/body/div/div/main/div/div/div[2]/div[2]/div[{index}]/div[2]/button[3]"
+                view_button = driver.find_element(By.XPATH, view_button_xpath)
+                driver.execute_script("arguments[0].click();", view_button)
+
+                has_successed = download_files(driver, idx)
+                idx += 1
+                if has_successed:
+                    remove_simulation(driver)
+
+                driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
+                any_finished = True
+                run = True
+                break
+
+        if not any_finished:
+            time.sleep(15)
+        driver.refresh()
+
+
+def remove_not_used_files(download_folder, start_time):
+    global current_dir
+
+    os.remove(os.path.join(current_dir, "htmls", "simulation_-1.html"))
+    # remove files in download folder from start_time to now
+    image_files = glob.glob(os.path.join(download_folder, "*DebugImages.zip"))
+    log_files = glob.glob(os.path.join(download_folder, "*results.zip"))
+    for image_file in image_files:
+        if os.path.getmtime(image_file) > start_time:
+            os.remove(image_file)
+    for log_file in log_files:
+        if os.path.getmtime(log_file) > start_time:
+            os.remove(log_file)
+
+
 if __name__ == "__main__":
-    current_dir = os.path.dirname(__file__)
+    start = time.time()
     config = load_config(os.path.join(current_dir, "config.txt"))
 
     driver = webdriver.Edge()
     try:
+        print("Logging in")
         login(driver, config)
         driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation/results")
         view_button_xpath = "/html/body/div/div/main/div/div/div[2]/div[3]/table/tbody/tr[1]/td[5]/button[1]"
@@ -250,12 +351,26 @@ if __name__ == "__main__":
             EC.presence_of_element_located((By.XPATH, view_button_xpath))
         )
         driver.find_element(By.XPATH, view_button_xpath).click()
-        download_files(driver)
+        download_files(driver, -1)
         time.sleep(5)
 
         driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
+        print("Starting simulation")
         start_simulation(driver, config)
+        remove_not_used_files(config[5], start)
+        print("Viewing results and reuploading")
         view_result_and_reupload(driver, config)
+        print("Waiting for all simulations to finish")
+        wait_till_all_finished()
+        print("All simulations finished")
+        print("Renaming and moving files")
+        rename_and_move_files(
+            config[5],
+            os.path.join(current_dir, "images"),
+            os.path.join(current_dir, "results"),
+            start,
+        )
+
         # driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation/results")
         # view_button_xpath = "/html/body/div/div/main/div/div/div[2]/div[3]/table/tbody/tr[1]/td[5]/button[1]"
         # WebDriverWait(driver, 10).until(
@@ -267,3 +382,5 @@ if __name__ == "__main__":
         # time.sleep(5)
     finally:
         driver.quit()
+    
+    print("Done")
