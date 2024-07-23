@@ -378,7 +378,7 @@ if __name__ == "__main__":
         start_simulation(driver, config)
         remove_not_used_files(config[5], start, html_folder)
         print("Viewing results and reuploading")
-        view_result_and_reupload(driver, config)
+        view_result_and_reupload(driver, config, html_folder)
         print("Waiting for all simulations to finish")
         wait_till_all_finished()
         print("All simulations finished")
