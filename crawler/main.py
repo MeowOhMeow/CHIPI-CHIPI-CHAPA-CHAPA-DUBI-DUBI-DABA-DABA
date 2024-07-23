@@ -293,7 +293,7 @@ def rename_and_move_files(download_folder, images_folder, results_folder, start_
         shutil.move(log_files[i], os.path.join(results_folder, new_name))
 
 
-def wait_till_all_finished():
+def wait_till_all_finished(html_folder: str):
     global idx
 
     driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
@@ -318,7 +318,7 @@ def wait_till_all_finished():
                 view_button = driver.find_element(By.XPATH, view_button_xpath)
                 driver.execute_script("arguments[0].click();", view_button)
 
-                has_successed = download_files(driver, idx)
+                has_successed = download_files(driver, idx, html_folder)
                 idx += 1
                 if has_successed and config[7]:
                     remove_simulation(driver)
@@ -371,7 +371,7 @@ if __name__ == "__main__":
         )
         driver.find_element(By.XPATH, view_button_xpath).click()
         download_files(driver, -1, html_folder)
-        time.sleep(5)
+        input("Press Enter to continue...")
 
         driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
         print("Starting simulation")
@@ -380,7 +380,7 @@ if __name__ == "__main__":
         print("Viewing results and reuploading")
         view_result_and_reupload(driver, config, html_folder)
         print("Waiting for all simulations to finish")
-        wait_till_all_finished()
+        wait_till_all_finished(html_folder)
         print("All simulations finished")
         print("Renaming and moving files")
         rename_and_move_files(
