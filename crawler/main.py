@@ -7,6 +7,7 @@ import os
 import time
 import glob
 import shutil
+import datetime
 
 current_dir = os.path.dirname(__file__)
 if not os.path.exists(os.path.join(current_dir, "htmls")):
@@ -32,7 +33,7 @@ def load_config(filename):
             "memo, "
             "difficulty, "
             "download path, "
-            "rounds, "
+            "sim times, "
             "del sims on site"
         )
     if not os.path.exists(config[2]):
@@ -156,13 +157,14 @@ def upload_to_slot(driver: webdriver.Edge, slot_id: int, config: list):
 # Start simulation in available slots
 def start_simulation(driver: webdriver.Edge, config: list):
     available_slots = get_available_slots(driver)
-
-    while available_slots:
+    counter = 0
+    while available_slots and counter < config[6]:
         upload_to_slot(driver, available_slots[0], config)
 
         # Refresh and get available slots again
         driver.refresh()
         available_slots = get_available_slots(driver)
+        counter += 1
 
 
 def remove_simulation(driver: webdriver.Edge):
@@ -188,7 +190,7 @@ def remove_simulation(driver: webdriver.Edge):
     )
 
 
-def download_files(driver: webdriver.Edge, index: int):
+def download_files(driver: webdriver.Edge, index: int, html_folder: str):
     global current_dir
 
     status_value_xpath = "/html/body/div/div/main/div/div/div[2]/div/div[1]/span[2]"
@@ -228,7 +230,7 @@ def download_files(driver: webdriver.Edge, index: int):
 
     source = driver.page_source
     with open(
-        os.path.join(current_dir, "htmls", f"simulation_{index}.html"),
+        os.path.join(html_folder, f"simulation_{index}.html"),
         "w",
         encoding="utf-8",
     ) as file:
@@ -240,9 +242,9 @@ def download_files(driver: webdriver.Edge, index: int):
 idx = 0
 
 
-def view_result_and_reupload(driver: webdriver.Edge, config: list):
+def view_result_and_reupload(driver: webdriver.Edge, config: list, html_folder: str):
     global idx
-    while idx < config[6] * 3 - 3:
+    while idx < config[6] - 3:
         # Wait until the slots are loaded
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CLASS_NAME, "slot-status"))
@@ -261,7 +263,7 @@ def view_result_and_reupload(driver: webdriver.Edge, config: list):
                 view_button = driver.find_element(By.XPATH, view_button_xpath)
                 driver.execute_script("arguments[0].click();", view_button)
 
-                has_successed = download_files(driver, idx)
+                has_successed = download_files(driver, idx, html_folder)
                 idx += 1
                 if has_successed and config[7]:
                     remove_simulation(driver)
@@ -331,10 +333,10 @@ def wait_till_all_finished():
         driver.refresh()
 
 
-def remove_not_used_files(download_folder, start_time):
+def remove_not_used_files(download_folder, start_time, html_folder):
     global current_dir
 
-    os.remove(os.path.join(current_dir, "htmls", "simulation_-1.html"))
+    os.remove(os.path.join(html_folder, "simulation_-1.html"))
     # remove files in download folder from start_time to now
     image_files = glob.glob(os.path.join(download_folder, "*DebugImages.zip"))
     log_files = glob.glob(os.path.join(download_folder, "*results.zip"))
@@ -350,6 +352,13 @@ if __name__ == "__main__":
     start = time.time()
     config = load_config(os.path.join(current_dir, "config.txt"))
     print("Config:", config)
+    time_stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    html_folder = os.path.join(current_dir, "htmls", time_stamp)
+    images_folder = os.path.join(current_dir, "images", time_stamp)
+    results_folder = os.path.join(current_dir, "results", time_stamp)
+    os.makedirs(html_folder)
+    os.makedirs(images_folder)
+    os.makedirs(results_folder)
 
     driver = webdriver.Edge()
     try:
@@ -361,13 +370,13 @@ if __name__ == "__main__":
             EC.presence_of_element_located((By.XPATH, view_button_xpath))
         )
         driver.find_element(By.XPATH, view_button_xpath).click()
-        download_files(driver, -1)
+        download_files(driver, -1, html_folder)
         time.sleep(5)
 
         driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
         print("Starting simulation")
         start_simulation(driver, config)
-        remove_not_used_files(config[5], start)
+        remove_not_used_files(config[5], start, html_folder)
         print("Viewing results and reuploading")
         view_result_and_reupload(driver, config)
         print("Waiting for all simulations to finish")
@@ -376,8 +385,8 @@ if __name__ == "__main__":
         print("Renaming and moving files")
         rename_and_move_files(
             config[5],
-            os.path.join(current_dir, "images"),
-            os.path.join(current_dir, "results"),
+            images_folder,
+            results_folder,
             start,
         )
 
