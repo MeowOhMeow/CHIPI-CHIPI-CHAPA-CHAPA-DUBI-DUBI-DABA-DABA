@@ -23,9 +23,17 @@ def load_config(filename):
         raise FileNotFoundError(f"Config file not found: {filename}")
     with open(filename, "r", encoding="utf-8") as file:
         config = [line.strip() for line in file.readlines()]
-    if len(config) != 7:
+    if len(config) != 8:
         raise ValueError(
-            "Config file must contain 4 lines: account ID, password, apk file path, memo, difficulty, download path, rounds"
+            "Config file must contain 8 lines: "
+            "account ID, "
+            "password, "
+            "apk file path, "
+            "memo, "
+            "difficulty, "
+            "download path, "
+            "rounds, "
+            "del sims on site"
         )
     if not os.path.exists(config[2]):
         raise FileNotFoundError(f"Apk file not found: {config[2]}")
@@ -34,6 +42,7 @@ def load_config(filename):
     difficulties = ("Easy", "Normal", "Hard", "Very Hard")
     config[4] = difficulties[int(config[4])]
     config[6] = int(config[6])
+    config[7] = bool(int(config[7]))
     return config
 
 
@@ -191,14 +200,6 @@ def download_files(driver: webdriver.Edge, index: int):
         print("Simulation failed")
         return False
 
-    source = driver.page_source
-    with open(
-        os.path.join(current_dir, "htmls", f"simulation_{index}.html"),
-        "w",
-        encoding="utf-8",
-    ) as file:
-        file.write(source)
-
     log_file_xpath = "/html/body/div/div/main/div/div/div[2]/div/div[4]/div/button[2]"
     image_file_xpath = "/html/body/div/div/main/div/div/div[2]/div/div[4]/div/button[4]"
 
@@ -224,6 +225,14 @@ def download_files(driver: webdriver.Edge, index: int):
         time.sleep(0.5)
         status = image_button.get_attribute("class")
     time.sleep(0.5)
+
+    source = driver.page_source
+    with open(
+        os.path.join(current_dir, "htmls", f"simulation_{index}.html"),
+        "w",
+        encoding="utf-8",
+    ) as file:
+        file.write(source)
 
     return True
 
@@ -254,7 +263,7 @@ def view_result_and_reupload(driver: webdriver.Edge, config: list):
 
                 has_successed = download_files(driver, idx)
                 idx += 1
-                if has_successed:
+                if has_successed and config[7]:
                     remove_simulation(driver)
 
                 driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
@@ -309,7 +318,7 @@ def wait_till_all_finished():
 
                 has_successed = download_files(driver, idx)
                 idx += 1
-                if has_successed:
+                if has_successed and config[7]:
                     remove_simulation(driver)
 
                 driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
@@ -340,6 +349,7 @@ def remove_not_used_files(download_folder, start_time):
 if __name__ == "__main__":
     start = time.time()
     config = load_config(os.path.join(current_dir, "config.txt"))
+    print("Config:", config)
 
     driver = webdriver.Edge()
     try:
@@ -382,5 +392,5 @@ if __name__ == "__main__":
         # time.sleep(5)
     finally:
         driver.quit()
-    
+
     print("Done")
