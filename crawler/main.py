@@ -183,7 +183,7 @@ def remove_simulation(driver: webdriver.Edge):
     driver.execute_script("arguments[0].click();", confirm_button)
     time.sleep(0.5)
 
-    WebDriverWait(driver, 10).until(
+    WebDriverWait(driver, 100).until(
         EC.invisibility_of_element_located(
             (By.XPATH, "/html/body/div/div/main/div/div/div[2]/div[3]/div/div/div/form")
         )
