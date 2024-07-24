@@ -49,8 +49,13 @@ def load_config(filename):
     return config
 
 
+previous_log_in_time = 0
+
+
 # Log in to the application
 def login(driver: webdriver.Edge, config: list):
+    global previous_log_in_time
+
     driver.get("https://d392k6hrcntwyp.cloudfront.net/user-auth")
 
     # Wait for account ID and password fields to be present
@@ -79,6 +84,8 @@ def login(driver: webdriver.Edge, config: list):
     )
     driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
 
+    previous_log_in_time = time.time()
+
 
 # Get available slots
 def get_available_slots(driver: webdriver.Edge):
@@ -104,6 +111,7 @@ def upload_to_slot(driver: webdriver.Edge, slot_id: int, config: list):
     file_path = config[2]
     memo = config[3]
     difficulty = config[4]
+    driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
     # Upload file
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.XPATH, "/html/body/input[1]"))
@@ -185,10 +193,21 @@ def remove_simulation(driver: webdriver.Edge):
     driver.execute_script("arguments[0].click();", confirm_button)
     time.sleep(0.5)
     # if modal is not closed, wait until it is closed
-    if len(driver.find_elements(By.XPATH, "/html/body/div/div/main/div/div/div[2]/div[3]/div/div/div/form")) > 0:
+    if (
+        len(
+            driver.find_elements(
+                By.XPATH,
+                "/html/body/div/div/main/div/div/div[2]/div[3]/div/div/div/form",
+            )
+        )
+        > 0
+    ):
         WebDriverWait(driver, 100).until(
             EC.invisibility_of_element_located(
-                (By.XPATH, "/html/body/div/div/main/div/div/div[2]/div[3]/div/div/div/form")
+                (
+                    By.XPATH,
+                    "/html/body/div/div/main/div/div/div[2]/div[3]/div/div/div/form",
+                )
             )
         )
 
@@ -246,8 +265,12 @@ idx = 0
 
 
 def view_result_and_reupload(driver: webdriver.Edge, config: list, html_folder: str):
-    global idx
+    global idx, previous_log_in_time
     while idx < config[6] - 3:
+        if time.time() - previous_log_in_time > 3600:
+            login(driver, config)
+        driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
+
         # Wait until the slots are loaded
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CLASS_NAME, "slot-status"))
@@ -271,14 +294,12 @@ def view_result_and_reupload(driver: webdriver.Edge, config: list, html_folder: 
                 if has_successed and config[7]:
                     remove_simulation(driver)
 
-                driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
                 upload_to_slot(driver, index, config)
                 any_finished = True
                 break
 
         if not any_finished:
             time.sleep(15)
-        driver.refresh()
 
 
 def rename_and_move_files(download_folder, images_folder, results_folder, start_time):
@@ -297,11 +318,14 @@ def rename_and_move_files(download_folder, images_folder, results_folder, start_
 
 
 def wait_till_all_finished(html_folder: str):
-    global idx
+    global idx, previous_log_in_time
 
-    driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
     run = True
     while run:
+        if time.time() - previous_log_in_time > 3600:
+            login(driver, config)
+        driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
+
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CLASS_NAME, "slot-status"))
         )
@@ -326,14 +350,12 @@ def wait_till_all_finished(html_folder: str):
                 if has_successed and config[7]:
                     remove_simulation(driver)
 
-                driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
                 any_finished = True
                 run = True
                 break
 
         if not any_finished:
             time.sleep(15)
-        driver.refresh()
 
 
 def remove_not_used_files(download_folder, start_time, html_folder):
@@ -425,4 +447,4 @@ if __name__ == "__main__":
         driver.quit()
 
     print("Done")
-    playsound.playsound(os.path.join(current_dir, "alarm.mp3"), True)
+    playsound.playsound(os.path.join(current_dir, "sakana.wav"), True)

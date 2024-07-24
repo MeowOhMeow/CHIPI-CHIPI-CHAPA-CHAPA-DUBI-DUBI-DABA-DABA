@@ -22,7 +22,7 @@ import jp.jaxa.iss.kibo.rpc.taiwan.pathfinding.PathFindingAPI;
 public class YourService extends KiboRpcService {
     private static final String TAG = "YourService";
     private static final int LOOP_LIMIT = 10;
-    private static final int SNAP_SHOT_WAIT_TIME = 2000;
+    private static final int SNAP_SHOT_WAIT_TIME = 1900;
 
     private static Quaternion[] areaOrientations = new Quaternion[4];
     private static Point[] snapPoints = new Point[4];
