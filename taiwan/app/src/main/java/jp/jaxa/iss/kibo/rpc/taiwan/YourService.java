@@ -253,7 +253,7 @@ public class YourService extends KiboRpcService {
 
         Result isMoveToSuccessResult = null;
         isMoveToSuccessResult = api.moveTo(new Point(10.9078d, -9.967877763897507d, 5.1124d),
-                new Quaternion(0.707f, -0.707f, 0f, 0f), false);
+                new Quaternion(0, 0, -0.71f, 0.71f), false);
         if (!isMoveToSuccessResult.hasSucceeded()) {
             Log.i(TAG, "----------Go to area 0 fail, retrying with theta star algorithm----------");
             moveToTarget(new Point(10.9078d, -9.967877763897507d, 5.1124d), new Quaternion(0, 0, -0.71f, 0.71f));
@@ -267,18 +267,18 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "Area 0 done");
         Log.i(TAG, "--------------------------------------------");
 
-        isMoveToSuccessResult = api.moveTo(new Point(11.07, -9.5, 5.17d), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f),
+        isMoveToSuccessResult = api.moveTo(new Point(11.07, -9.5, 5.17d), new Quaternion(0.5f, 0.5f, -0.5f, 0.5f),
                 false);
         if (!isMoveToSuccessResult.hasSucceeded()) {
             Log.i(TAG, "----------Go to second point fail, retrying with theta star algorithm----------");
-            moveToTarget(new Point(11.07, -9.5, 5.17d), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f));
+            moveToTarget(new Point(11.07, -9.5, 5.17d), new Quaternion(0.5f, 0.5f, -0.5f, 0.5f));
         }
 
-        isMoveToSuccessResult = api.moveTo(new Point(10.8828, -8.2674, 4.719), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f),
+        isMoveToSuccessResult = api.moveTo(new Point(10.8828, -8.2674, 4.719), new Quaternion(0.5f, 0.5f, -0.5f, 0.5f),
                 false);
         if (!isMoveToSuccessResult.hasSucceeded()) {
             Log.i(TAG, "----------Go to area 1, 2 fail, retrying with theta star algorithm----------");
-            moveToTarget(new Point(10.8828, -8.2674, 4.719), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f));
+            moveToTarget(new Point(10.8828, -8.2674, 4.719), new Quaternion(0.5f, 0.5f, -0.5f, 0.5f));
         }
 
         Log.i(TAG, "--------------------------------------------");
@@ -290,7 +290,7 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "--------------------------------------------");
 
         isMoveToSuccessResult = api.moveTo(new Point(10.605058889481256d, -6.7699d, 4.9872000000000005d),
-                new Quaternion(0f, 0.707f, 0.707f, 0f), false);
+                new Quaternion(0f, -0.71f, 0.71f, 0f), false);
         if (!isMoveToSuccessResult.hasSucceeded()) {
             Log.i(TAG, "----------Go to area 3 fail, retrying with theta star algorithm----------");
             moveToTarget(new Point(10.605058889481256d, -6.7699d, 4.9872000000000005d),
