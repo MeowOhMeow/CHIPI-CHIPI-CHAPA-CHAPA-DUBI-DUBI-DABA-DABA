@@ -9,6 +9,7 @@ import glob
 import shutil
 import datetime
 import json
+import playsound
 
 current_dir = os.path.dirname(__file__)
 if not os.path.exists(os.path.join(current_dir, "htmls")):
@@ -424,3 +425,4 @@ if __name__ == "__main__":
         driver.quit()
 
     print("Done")
+    playsound.playsound(os.path.join(current_dir, "alarm.mp3"), True)
