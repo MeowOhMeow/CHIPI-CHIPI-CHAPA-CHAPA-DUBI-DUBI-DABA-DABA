@@ -2,7 +2,6 @@ import os
 import shutil
 import zipfile
 
-
 # Function to unzip files and clean up
 def unzip(zip_file, dest_dir):
     if not os.path.exists(dest_dir):
@@ -20,6 +19,12 @@ def unzip(zip_file, dest_dir):
 main_dir = os.path.join(os.path.dirname(__file__), "SimResult_img")
 base_dir = os.path.join(os.path.dirname(__file__), "zips")
 target_dir = main_dir
+if not os.path.exists(main_dir):
+    os.makedirs(main_dir)
+    os.makedirs(os.path.join(main_dir, "images"))
+    os.makedirs(os.path.join(main_dir, "labels"))
+if not os.path.exists(target_dir):
+    os.makedirs(target_dir)
 
 # Unzip files in the "zips" directory
 zip_files = [
