@@ -435,14 +435,14 @@ if __name__ == "__main__":
         # download_files(driver)
         # remove_simulation(driver)
         # time.sleep(5)
-    except Exception as e:
-        print("Error:", e)
-        rename_and_move_files(
-            config[5],
-            images_folder,
-            results_folder,
-            start,
-        )
+    # except Exception as e:
+    #     print("Error:", e)
+    #     rename_and_move_files(
+    #         config[5],
+    #         images_folder,
+    #         results_folder,
+    #         start,
+    #     )
     finally:
         driver.quit()
 
