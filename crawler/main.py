@@ -8,6 +8,7 @@ import time
 import glob
 import shutil
 import datetime
+import json
 
 current_dir = os.path.dirname(__file__)
 if not os.path.exists(os.path.join(current_dir, "htmls")):
@@ -360,6 +361,17 @@ if __name__ == "__main__":
     os.makedirs(html_folder)
     os.makedirs(images_folder)
     os.makedirs(results_folder)
+    with open(os.path.join(current_dir, "log.json"), "w") as file:
+        json.dump(
+            {
+                "download_folder": config[5],
+                "html_folder": html_folder,
+                "images_folder": images_folder,
+                "results_folder": results_folder,
+                "start_time": start,
+            },
+            file,
+        )
 
     driver = webdriver.Edge()
     try:
