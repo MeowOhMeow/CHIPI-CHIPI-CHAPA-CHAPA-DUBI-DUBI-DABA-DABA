@@ -4,7 +4,7 @@ package jp.jaxa.iss.kibo.rpc.taiwan;
  * Class to hold the information of an item in the area
  */
 public class AreaItem {
-    private static String[] itemMap = {
+    private static final String[] itemMap = {
             "beaker",
             "goggle",
             "hammer",

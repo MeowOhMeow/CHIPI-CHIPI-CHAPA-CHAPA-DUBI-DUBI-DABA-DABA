@@ -28,3 +28,5 @@ YOLO/models/*
 YOLO/config.json
 
 !**/.gitignore
+
+**/__pycache__/*

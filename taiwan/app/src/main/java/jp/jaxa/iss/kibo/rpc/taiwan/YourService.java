@@ -1,4 +1,4 @@
-package jp.jaxa.iss.kibo.rpc.sampleapk;
+package jp.jaxa.iss.kibo.rpc.taiwan;
 
 import android.util.Log;
 
@@ -13,7 +13,7 @@ import gov.nasa.arc.astrobee.Result;
 import gov.nasa.arc.astrobee.types.Point;
 import gov.nasa.arc.astrobee.types.Quaternion;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
-import jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding.PathFindingAPI;
+import jp.jaxa.iss.kibo.rpc.taiwan.pathfinding.PathFindingAPI;
 
 /**
  * Class meant to handle commands from the Ground Data System and execute them

@@ -1,4 +1,4 @@
-package jp.jaxa.iss.kibo.rpc.sampleapk;
+package jp.jaxa.iss.kibo.rpc.taiwan;
 
 import android.util.Log;
 
@@ -9,7 +9,7 @@ import org.opencv.core.Mat;
 
 import gov.nasa.arc.astrobee.types.Point;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
-import jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding.PathFindingAPI;
+import jp.jaxa.iss.kibo.rpc.taiwan.pathfinding.PathFindingAPI;
 
 //* api is not thread safe.
 /**
