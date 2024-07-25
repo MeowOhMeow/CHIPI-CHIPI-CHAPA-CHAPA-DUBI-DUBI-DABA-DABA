@@ -18,7 +18,7 @@ import jp.jaxa.iss.kibo.rpc.taiwan.pathfinding.PathFindingAPI;
 public class Work extends KiboRpcService implements Runnable {
     private static final String TAG = "Work";
     private int[] areaIdxs;
-    private static ARTagOutput[] detections;
+    private ARTagOutput[] detections;
     private Map<String, Mat> itemImages;
     private Point[] snapPoints;
     private AreaItem[] areaItems;

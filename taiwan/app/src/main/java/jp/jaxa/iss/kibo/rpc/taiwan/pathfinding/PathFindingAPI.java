@@ -200,7 +200,7 @@ public class PathFindingAPI {
         return result;
     }
 
-    private static void logPoints(List<Point> points, String label) {
+    public static void logPoints(List<Point> points, String label) {
         Log.i(TAG, "-------------------------------------------" + label
                 + "-------------------------------------------");
         for (Point p : points) {

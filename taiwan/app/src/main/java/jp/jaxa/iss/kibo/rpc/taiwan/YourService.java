@@ -30,7 +30,6 @@ public class YourService extends KiboRpcService {
     private static Map<String, Integer> areaInfo = new HashMap<>();
     private static AreaItem[] areaItems = new AreaItem[4];
     private static Map<String, Mat> itemImages = new HashMap<>();
-    private static ARTagOutput[] detections;
 
     private static double expansionVal = 0.08;
     private static Point pointAtAstronaut = new Point(11.1852d, -6.7607d, 4.8828d);
@@ -79,32 +78,13 @@ public class YourService extends KiboRpcService {
     private void processingAreaInfo(int[] areaIdxs) {
         Mat image = takeAndSaveSnapshot("Area" + Arrays.toString(areaIdxs) + ".jpg", SNAP_SHOT_WAIT_TIME);
 
-        ARTagException(image, areaIdxs);
+        ARTagOutput[] detections = handleARTagException(image, areaIdxs);
 
         Work work = new Work(areaIdxs, detections, itemImages, snapPoints, areaItems, areaInfo, pointAtAstronaut,
                 expansionVal, paths);
         queue.add(work);
     }
-
-    /**
-     * Log the path
-     * 
-     * @param path: the path to log
-     */
-    public static void logPath(List<Point> path) {
-        Log.i(TAG, "------------------- Path -------------------");
-        Log.i(TAG, "Number of points in the path: " + path.size());
-
-        // show each point in the path and the number of points in the path
-        for (int i = 0; i < path.size() - 1; i++) {
-            Point current = path.get(i);
-            Point next = path.get((i + 1));
-            Log.i(TAG, current.getX() + "," + current.getY() + "," + current.getZ() + "," + next.getX() + ","
-                    + next.getY() + "," + next.getZ());
-        }
-        Log.i(TAG, "--------------------------------------------");
-    }
-
+    
     /**
      * Move to the target point by applying theta star algorithm
      * 
@@ -114,7 +94,7 @@ public class YourService extends KiboRpcService {
     public void moveToTarget(Point targetPoint, Quaternion orientation) {
         List<Point> path = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(), targetPoint,
                 expansionVal);
-        logPath(path);
+        PathFindingAPI.logPoints(path, "Path before moving to target");
         Result result = null;
         boolean pathSuccess = false;
         int loopCounter = 0;
@@ -129,7 +109,7 @@ public class YourService extends KiboRpcService {
                     path = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(),
                             targetPoint,
                             expansionVal);
-                    logPath(path);
+                    PathFindingAPI.logPoints(path, "Path after increasing expansionVal");
                     break;
                 }
             }
@@ -148,7 +128,7 @@ public class YourService extends KiboRpcService {
      * @param Idxs: Area indexes
      * @return detection result of ARTag Process
      */
-    private ARTagOutput retake_forward(double move_x, double move_y, double move_z, Quaternion quaternion, int[] Idxs){
+    private ARTagOutput retakeForward(double move_x, double move_y, double move_z, Quaternion quaternion, int[] Idxs){
         Kinematics kinematics = api.getRobotKinematics();
         Result isMoveToSuccessResult = null;
         ARTagOutput detection = null;
@@ -182,7 +162,7 @@ public class YourService extends KiboRpcService {
      * @param Idxs: Area indexes
      * @return detection result of ARTag Process
      */
-    private ARTagOutput[] retake_moveToPoint(Point point, Quaternion quaternion, int[] Idxs){
+    private ARTagOutput[] retakeMoveToPoint(Point point, Quaternion quaternion, int[] Idxs){
         Kinematics kinematics = api.getRobotKinematics();
         Result isMoveToSuccessResult = null;
         isMoveToSuccessResult = api.moveTo(point, quaternion, false);
@@ -203,7 +183,7 @@ public class YourService extends KiboRpcService {
      * @param end_x, end_y, end_z: end point
      * @return distance(m)
      */
-    private double calculate_distance(double start_x, double start_y, double start_z, double end_x, double end_y, double end_z){
+    private double calculateDistance(double start_x, double start_y, double start_z, double end_x, double end_y, double end_z){
         double distance = Math.sqrt(Math.pow(start_x - end_x, 2) + Math.pow(start_y - end_y, 2) + Math.pow(start_z - end_z, 2));
         return distance;
     }
@@ -214,21 +194,21 @@ public class YourService extends KiboRpcService {
      * @param image: image from NavCam
      * @param areaIdxs: Area indexes
      */
-    private void ARTagException(Mat image, int[] areaIdxs){
+    private ARTagOutput[] handleARTagException(Mat image, int[] areaIdxs){
         Kinematics kinematics = api.getRobotKinematics();
-        detections = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image);
+        ARTagOutput[] detections = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image);
 
         // Handling the case when no detection is returned
         if ((Arrays.equals(areaIdxs, new int[]{0})) && (detections == null)) {
             Log.i(TAG, "retake image of area 0");
             detections = new ARTagOutput[1];
-            detections = retake_moveToPoint(new Point(10.9078d, -9.887558906125106d, 5.1124d),
+            detections = retakeMoveToPoint(new Point(10.9078d, -9.887558906125106d, 5.1124d),
                     new Quaternion(0.707f, -0.707f, 0f, 0f), new int[]{areaIdxs[0]});
         }
         else if ((Arrays.equals(areaIdxs, new int[]{3})) && (detections == null)) {
             Log.i(TAG, "retake image of area 3");
             detections = new ARTagOutput[1];
-            detections[0] = retake_forward(-0.05, 0, 0, new Quaternion(0f, 0.707f, 0.707f, 0f), areaIdxs);
+            detections[0] = retakeForward(-0.05, 0, 0, new Quaternion(0f, 0.707f, 0.707f, 0f), areaIdxs);
         }
         else if (Arrays.equals(areaIdxs, new int[]{1, 2})){
             // both failed
@@ -236,27 +216,27 @@ public class YourService extends KiboRpcService {
                 // move to area1
                 Log.i(TAG, "Both failed, retake image of area 1");
                 detections = new ARTagOutput[2];
-                ARTagOutput[] detect_arr = retake_moveToPoint(new Point(10.8828d, -8.7924d, 4.557490723909075d),
+                ARTagOutput[] detect_arr = retakeMoveToPoint(new Point(10.8828d, -8.7924d, 4.557490723909075d),
                         new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[]{areaIdxs[0]});
                 detections[0] = detect_arr[0];
                 if(detections[0] == null){
-                    detections[0] = retake_forward(0, 0, -0.05, new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[]{areaIdxs[0]});
+                    detections[0] = retakeForward(0, 0, -0.05, new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[]{areaIdxs[0]});
                 }
 
                 //move to area2
                 Log.i(TAG, "Both failed, retake image of area 2");
-                detect_arr = retake_moveToPoint(new Point(10.8828d, -7.8424d, 4.569366733183541d),
+                detect_arr = retakeMoveToPoint(new Point(10.8828d, -7.8424d, 4.569366733183541d),
                         new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[]{areaIdxs[1]});
                 detections[1] = detect_arr[1];
                 if(detections[1] == null){
-                    detections[1] = retake_forward(0, 0, -0.05, new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[]{areaIdxs[1]});
+                    detections[1] = retakeForward(0, 0, -0.05, new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[]{areaIdxs[1]});
                 }
             }
             // One in the two failed
             else if (detections.length == 1){
-                double distance_to_area1 = calculate_distance(kinematics.getPosition().getX(), kinematics.getPosition().getY(), kinematics.getPosition().getZ()
+                double distance_to_area1 = calculateDistance(kinematics.getPosition().getX(), kinematics.getPosition().getY(), kinematics.getPosition().getZ()
                         , 10.925, -8.875, 3.76203);
-                double distance_to_area2 = calculate_distance(kinematics.getPosition().getX(), kinematics.getPosition().getY(), kinematics.getPosition().getZ()
+                double distance_to_area2 = calculateDistance(kinematics.getPosition().getX(), kinematics.getPosition().getY(), kinematics.getPosition().getZ()
                         , 10.925, -7.925, 3.76093);
 
                 // area1 failed, area2 success
@@ -264,14 +244,14 @@ public class YourService extends KiboRpcService {
                     Log.i(TAG, "retake image of area 1");
 
                     ARTagOutput[] newDetections = new ARTagOutput[2];
-                    ARTagOutput[] detect_arr = retake_moveToPoint(new Point(10.8828d, -8.7924d, 4.557490723909075d),
+                    ARTagOutput[] detect_arr = retakeMoveToPoint(new Point(10.8828d, -8.7924d, 4.557490723909075d),
                             new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[]{areaIdxs[0]});
                     newDetections[0] = detect_arr[0];
                     newDetections[1] = detections[0];
                     detections = newDetections;
 
                     if(detections[0] == null){
-                        detections[0] = retake_forward(0, 0, -0.05, new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[]{areaIdxs[0]});
+                        detections[0] = retakeForward(0, 0, -0.05, new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[]{areaIdxs[0]});
                     }
                 }
                 // area1 success, area2 failed
@@ -279,18 +259,20 @@ public class YourService extends KiboRpcService {
                     Log.i(TAG, "retake image of area 2");
 
                     ARTagOutput[] newDetections = new ARTagOutput[2];
-                    ARTagOutput[] detect_arr = retake_moveToPoint(new Point(10.8828d, -7.8424d, 4.569366733183541d),
+                    ARTagOutput[] detect_arr = retakeMoveToPoint(new Point(10.8828d, -7.8424d, 4.569366733183541d),
                             new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[]{areaIdxs[1]});
                     newDetections[0] = detections[0];
                     newDetections[1] = detect_arr[1];
                     detections = newDetections;
 
                     if(detections[1] == null){
-                        detections[1] = retake_forward(0, 0, -0.05, new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[]{areaIdxs[1]});
+                        detections[1] = retakeForward(0, 0, -0.05, new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[]{areaIdxs[1]});
                     }
                 }
             }
         }
+
+        return detections;
     }
 
     /**
@@ -454,7 +436,7 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "areaIdx: " + areaIdx);
             if (areaIdx != null) {
                 List<Point> path = paths[areaIdx];
-                logPath(path);
+                PathFindingAPI.logPoints(path, "Path to the target point");
                 Result result = null;
                 boolean pathSuccess = false;
                 int loopCounter = 0;
@@ -469,7 +451,7 @@ public class YourService extends KiboRpcService {
                             path = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(),
                                     snapPoints[areaIdx],
                                     expansionVal);
-                            logPath(path);
+                            PathFindingAPI.logPoints(path, "Path after increasing expansionVal");
                             break;
                         }
                     }
