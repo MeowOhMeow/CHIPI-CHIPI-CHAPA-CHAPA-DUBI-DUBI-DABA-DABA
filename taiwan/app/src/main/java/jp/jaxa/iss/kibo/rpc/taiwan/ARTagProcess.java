@@ -158,10 +158,12 @@ public class ARTagProcess {
             singleCorner.add(corners.get(ARTagIdx));
             DetectionResult result = cutImageByCorner(undistortedImage, singleCorner);
 
-            Point snapWorld = getWorldPoint(center, orientation, result.getRvec(),
+            Point snapWorld = getCameraWorldPoint(center, orientation, result.getRvec(),
+                    result.getTvec());
+            Point ARTagWorld = getARTagWorldPoint(center, orientation, result.getRvec(),
                     result.getTvec());
 
-            output[ARTagIdx] = new ARTagOutput(snapWorld, result.getResultImage(), result.getValid());
+            output[ARTagIdx] = new ARTagOutput(snapWorld, ARTagWorld,result.getResultImage(), result.getValid());
         }
 
         Log.i(TAG, "End process");
@@ -178,7 +180,7 @@ public class ARTagProcess {
      * @param tvec:        tvec from aruco
      * @return Point: world point
      */
-    private static Point getWorldPoint(Point center, Quaternion orientation, Mat rvec, Mat tvec) {
+    private static Point getCameraWorldPoint(Point center, Quaternion orientation, Mat rvec, Mat tvec) {
         // get tvec and rotation matrix
         double[] arTagInCamera = { tvec.get(0, 0)[0], tvec.get(0, 0)[1], tvec.get(0, 0)[2] };
         Mat rotationMatrix = new Mat();
@@ -219,6 +221,60 @@ public class ARTagProcess {
         double[] Q = { orientation.getW(), orientation.getX(), orientation.getY(), orientation.getZ() };
         double[] centerPoint = { center.getX(), center.getY(), center.getZ() };
         double[] worldPoint = cameraToWorld(centerPoint, Q, snapPoint);
+
+        return new Point(worldPoint[0], worldPoint[1], worldPoint[2]);
+    }
+
+    /**
+     * Get the world point from the artag point
+     * 
+     * @param center:      astrobee center point
+     * @param orientation: astrobee orientation
+     * @param rvec:        rvec from aruco
+     * @param tvec:        tvec from aruco
+     * @return Point: world point
+     */
+    private static Point getARTagWorldPoint(Point center, Quaternion orientation, Mat rvec, Mat tvec) {
+        // get tvec and rotation matrix
+        double[] arTagInCamera = { tvec.get(0, 0)[0], tvec.get(0, 0)[1], tvec.get(0, 0)[2] };
+        Mat rotationMatrix = new Mat();
+        Calib3d.Rodrigues(rvec, rotationMatrix);
+        // Mat rotationMatrix= rotation.inv();
+        double[][] R = {
+                { rotationMatrix.get(0, 0)[0], rotationMatrix.get(0, 1)[0], rotationMatrix.get(0, 2)[0] },
+                { rotationMatrix.get(1, 0)[0], rotationMatrix.get(1, 1)[0], rotationMatrix.get(1, 2)[0] },
+                { rotationMatrix.get(2, 0)[0], rotationMatrix.get(2, 1)[0], rotationMatrix.get(2, 2)[0] } };
+
+        Log.i(TAG, "tvec: " + arTagInCamera[0] + " " + arTagInCamera[1] + " " + arTagInCamera[2]);
+        Log.i(TAG, "R: " + R[0][0] + " " + R[0][1] + " " + R[0][2]);
+        Log.i(TAG, "   " + R[1][0] + " " + R[1][1] + " " + R[1][2]);
+        Log.i(TAG, "   " + R[2][0] + " " + R[2][1] + " " + R[2][2]);
+
+        // artag to camera
+        double[] item_artag = { -0.135, 0.0375, 0, 1 };
+        double[][] Rt01 = {
+                { R[0][0], R[0][1], R[0][2], arTagInCamera[0] },
+                { R[1][0], R[1][1], R[1][2], arTagInCamera[1] },
+                { R[2][0], R[2][1], R[2][2], arTagInCamera[2] },
+                { 0, 0, 0, 1 }
+        };
+
+        double[] itemPointInCamera = new double[4];
+        // dot product, z to front, x to right, y to down
+        for (int i = 0; i < 4; i++) {
+            double sum = 0;
+            for (int j = 0; j < 4; j++) {
+                sum += Rt01[i][j] * item_artag[j];
+            }
+            itemPointInCamera[i] = sum;
+        }
+        // convert to x to front, y to right, z to down
+        double[] item_camera = { itemPointInCamera[2], itemPointInCamera[0], itemPointInCamera[1] };
+        double[] ARTagPoint = { item_camera[0] , item_camera[1], item_camera[2], 1 };
+
+        double[] Q = { orientation.getW(), orientation.getX(), orientation.getY(), orientation.getZ() };
+        double[] centerPoint = { center.getX(), center.getY(), center.getZ() };
+        double[] worldPoint = cameraToWorld(centerPoint, Q, ARTagPoint);
 
         return new Point(worldPoint[0], worldPoint[1], worldPoint[2]);
     }
