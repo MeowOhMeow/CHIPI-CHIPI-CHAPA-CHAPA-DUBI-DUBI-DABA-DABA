@@ -1,10 +1,9 @@
-package jp.jaxa.iss.kibo.rpc.taiwan;
+package jp.jaxa.iss.kibo.rpc.sampleapk;
 
 import android.util.Log;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.opencv.core.Mat;
 
@@ -13,7 +12,7 @@ import gov.nasa.arc.astrobee.Result;
 import gov.nasa.arc.astrobee.types.Point;
 import gov.nasa.arc.astrobee.types.Quaternion;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
-import jp.jaxa.iss.kibo.rpc.taiwan.pathfinding.PathFindingAPI;
+import jp.jaxa.iss.kibo.rpc.sampleapk.pathfinding.PathFindingAPI;
 
 /**
  * Class meant to handle commands from the Ground Data System and execute them
@@ -51,7 +50,7 @@ public class YourService extends KiboRpcService {
 
     /**
      * Take a snapshot and save it.
-     * 
+     *
      * @param name:     name of the image
      * @param waitTime: time to wait before taking the snapshot. unit: ms
      * @return the snapshot image
@@ -72,7 +71,7 @@ public class YourService extends KiboRpcService {
     /**
      * Process the area information.
      * Call function "takeAndSaveSnapshot" and add new work in queue
-     * 
+     *
      * @param areaIdxs: indexes of the areas to process
      */
     private void processingAreaInfo(int[] areaIdxs) {
@@ -84,10 +83,10 @@ public class YourService extends KiboRpcService {
                 expansionVal, paths);
         queue.add(work);
     }
-    
+
     /**
      * Move to the target point by applying theta star algorithm
-     * 
+     *
      * @param targetPoint: the target point
      * @param orientation: the orientation
      */
@@ -122,7 +121,7 @@ public class YourService extends KiboRpcService {
 
     /**
      * Move forward to retake image.
-     * 
+     *
      * @param move_x, move_y, move_z: the amount of movement
      * @param quaternion: the orientation of Astrobee
      * @param Idxs: Area indexes
@@ -144,26 +143,26 @@ public class YourService extends KiboRpcService {
                         quaternion);
             }
 
+            kinematics = api.getRobotKinematics();
             Mat image_retake = takeAndSaveSnapshot("Area" + Arrays.toString(Idxs) + ".jpg", SNAP_SHOT_WAIT_TIME);
             detection = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image_retake)[0];
             if(detection != null)
                 break;
             move_count++;
         }
-        Log.i(TAG, "move_count:"+ move_count);
+        Log.i(TAG, "move_count:" + move_count);
         return detection;
     }
 
     /**
      * Move to specific point to retake image.
-     * 
+     *
      * @param point: target point
      * @param quaternion: the orientation of Astrobee
      * @param Idxs: Area indexes
      * @return detection result of ARTag Process
      */
     private ARTagOutput[] retakeMoveToPoint(Point point, Quaternion quaternion, int[] Idxs){
-        Kinematics kinematics = api.getRobotKinematics();
         Result isMoveToSuccessResult = null;
         isMoveToSuccessResult = api.moveTo(point, quaternion, false);
         if (!isMoveToSuccessResult.hasSucceeded()) {
@@ -171,6 +170,7 @@ public class YourService extends KiboRpcService {
             moveToTarget(point, quaternion);
         }
 
+        Kinematics kinematics = api.getRobotKinematics();
         Mat image_retake = takeAndSaveSnapshot("Area" + Arrays.toString(Idxs) + ".jpg", SNAP_SHOT_WAIT_TIME);
         ARTagOutput[] detect_arr = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image_retake);
         return detect_arr;
@@ -178,7 +178,7 @@ public class YourService extends KiboRpcService {
 
     /**
      * Calculate the distance of two points.
-     * 
+     *
      * @param start_x, start_y, start_z: starting point
      * @param end_x, end_y, end_z: end point
      * @return distance(m)
@@ -190,7 +190,7 @@ public class YourService extends KiboRpcService {
 
     /**
      * Calculate the distance of two points.
-     * 
+     *
      * @param image: image from NavCam
      * @param areaIdxs: Area indexes
      */
@@ -208,7 +208,10 @@ public class YourService extends KiboRpcService {
         else if ((Arrays.equals(areaIdxs, new int[]{3})) && (detections == null)) {
             Log.i(TAG, "retake image of area 3");
             detections = new ARTagOutput[1];
-            detections[0] = retakeForward(-0.05, 0, 0, new Quaternion(0f, 0.707f, 0.707f, 0f), areaIdxs);
+
+            if(kinematics.getPosition().getX() > 11.1) {
+                detections[0] = retakeForward(-0.05, 0, 0, new Quaternion(0f, 0.707f, 0.707f, 0f), areaIdxs);
+            }
         }
         else if (Arrays.equals(areaIdxs, new int[]{1, 2})){
             // both failed
@@ -225,9 +228,9 @@ public class YourService extends KiboRpcService {
 
                 //move to area2
                 Log.i(TAG, "Both failed, retake image of area 2");
-                detect_arr = retakeMoveToPoint(new Point(10.8828d, -7.8424d, 4.569366733183541d),
+                detect_arr = retakeMoveToPoint(new Point(10.8828d, -7.7424d, 4.569366733183541d),
                         new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[]{areaIdxs[1]});
-                detections[1] = detect_arr[1];
+                detections[1] = detect_arr[0];
                 if(detections[1] == null){
                     detections[1] = retakeForward(0, 0, -0.05, new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[]{areaIdxs[1]});
                 }
@@ -259,10 +262,10 @@ public class YourService extends KiboRpcService {
                     Log.i(TAG, "retake image of area 2");
 
                     ARTagOutput[] newDetections = new ARTagOutput[2];
-                    ARTagOutput[] detect_arr = retakeMoveToPoint(new Point(10.8828d, -7.8424d, 4.569366733183541d),
+                    ARTagOutput[] detect_arr = retakeMoveToPoint(new Point(10.8828d, -7.7424d, 4.569366733183541d),
                             new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[]{areaIdxs[1]});
                     newDetections[0] = detections[0];
-                    newDetections[1] = detect_arr[1];
+                    newDetections[1] = detect_arr[0];
                     detections = newDetections;
 
                     if(detections[1] == null){
@@ -296,21 +299,12 @@ public class YourService extends KiboRpcService {
         Result isMoveToSuccessResult = null;
 
         // move to area 0
-        // isMoveToSuccessResult = api.moveTo(new Point(10.9078d, -9.967877763897507d, 5.1124d),
-        //         new Quaternion(0.707f, -0.707f, 0f, 0f), false);
-//        if (!isMoveToSuccessResult.hasSucceeded()) {
-//            Log.i(TAG, "----------Go to area 0 fail, retrying with theta star algorithm----------");
-//            moveToTarget(new Point(10.9078d, -9.967877763897507d, 5.1124d), new Quaternion(0.707f, -0.707f, 0f, 0f));
-//        }
-
-        //test---------------------------------------------------------------------------------------------
-        isMoveToSuccessResult = api.moveTo(new Point(10.0078d, -9.967877763897507d, 5.1124d),
+        isMoveToSuccessResult = api.moveTo(new Point(10.9078d, -9.967877763897507d, 5.1124d),
                 new Quaternion(0.707f, -0.707f, 0f, 0f), false);
         if (!isMoveToSuccessResult.hasSucceeded()) {
-            Log.i(TAG, "----------Go to area 0 fail, retrying with theta star algorithm----------");
-            moveToTarget(new Point(10.0078d, -9.967877763897507d, 5.1124d), new Quaternion(0.707f, -0.707f, 0f, 0f));
+           Log.i(TAG, "----------Go to area 0 fail, retrying with theta star algorithm----------");
+           moveToTarget(new Point(10.9078d, -9.967877763897507d, 5.1124d), new Quaternion(0.707f, -0.707f, 0f, 0f));
         }
-        //-------------------------------------------------------------------------------------------------
 
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 0");
@@ -321,27 +315,20 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "--------------------------------------------");
 
         // move to area 1,2
-//        isMoveToSuccessResult = api.moveTo(new Point(11.07, -9.5, 5.17d), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f),
-//                false);
-//        if (!isMoveToSuccessResult.hasSucceeded()) {
-//            Log.i(TAG, "----------Go to second point fail, retrying with theta star algorithm----------");
-//            moveToTarget(new Point(11.07, -9.5, 5.17d), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f));
-//        }
-
-//        isMoveToSuccessResult = api.moveTo(new Point(10.8828, -8.2674, 4.719), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f),
-//                false);
-//        if (!isMoveToSuccessResult.hasSucceeded()) {
-//            Log.i(TAG, "----------Go to area 1, 2 fail, retrying with theta star algorithm----------");
-//            moveToTarget(new Point(10.8828, -8.2674, 4.719), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f));
-//        }
-        //test--------------------------------------------------------------------------------------------
-        isMoveToSuccessResult = api.moveTo(new Point(11.07d, -6.0d,  4.719), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f),
+        isMoveToSuccessResult = api.moveTo(new Point(11.07, -9.5, 5.17d), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f),
                 false);
         if (!isMoveToSuccessResult.hasSucceeded()) {
             Log.i(TAG, "----------Go to second point fail, retrying with theta star algorithm----------");
-            moveToTarget(new Point(11.07d, -6.0d,  4.719), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f));
+            moveToTarget(new Point(11.07, -9.5, 5.17d), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f));
         }
-        //-------------------------------------------------------------------------------------------------
+
+        isMoveToSuccessResult = api.moveTo(new Point(10.8828, -8.2674, 4.719), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f),
+                false);
+        if (!isMoveToSuccessResult.hasSucceeded()) {
+            Log.i(TAG, "----------Go to area 1, 2 fail, retrying with theta star algorithm----------");
+            moveToTarget(new Point(10.8828, -8.2674, 4.719), new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f));
+        }
+        
 
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 1, 2");
@@ -352,23 +339,13 @@ public class YourService extends KiboRpcService {
         Log.i(TAG, "--------------------------------------------");
 
         // move to area 3
-        // isMoveToSuccessResult = api.moveTo(new Point(10.605058889481256d, -6.7699d, 4.9872000000000005d),
-        //         new Quaternion(0f, 0.707f, 0.707f, 0f), false);
-//        if (!isMoveToSuccessResult.hasSucceeded()) {
-//            Log.i(TAG, "----------Go to area 3 fail, retrying with theta star algorithm----------");
-//            moveToTarget(new Point(10.605058889481256d, -6.7699d, 4.9872000000000005d),
-//                    new Quaternion(0f, 0.707f, 0.707f, 0f));
-//        }
-
-        //test---------------------------------------------------------------------------------------------
-        isMoveToSuccessResult = api.moveTo(new Point(11.005058889481256d, -6.7699d, 4.9872000000000005d),
+        isMoveToSuccessResult = api.moveTo(new Point(10.605058889481256d, -6.7699d, 4.9872000000000005d),
                 new Quaternion(0f, 0.707f, 0.707f, 0f), false);
         if (!isMoveToSuccessResult.hasSucceeded()) {
             Log.i(TAG, "----------Go to area 3 fail, retrying with theta star algorithm----------");
-            moveToTarget(new Point(11.005058889481256d, -6.7699d, 4.9872000000000005d),
+            moveToTarget(new Point(10.605058889481256d, -6.7699d, 4.9872000000000005d),
                     new Quaternion(0f, 0.707f, 0.707f, 0f));
         }
-        //-------------------------------------------------------------------------------------------------
 
         Log.i(TAG, "--------------------------------------------");
         Log.i(TAG, "go to area 3");
