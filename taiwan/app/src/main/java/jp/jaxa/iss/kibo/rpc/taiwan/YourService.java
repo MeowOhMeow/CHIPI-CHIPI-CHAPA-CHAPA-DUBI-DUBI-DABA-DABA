@@ -4,7 +4,6 @@ import android.util.Log;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.opencv.core.Mat;
 
@@ -22,7 +21,7 @@ import jp.jaxa.iss.kibo.rpc.taiwan.pathfinding.PathFindingAPI;
 public class YourService extends KiboRpcService {
     private static final String TAG = "YourService";
     private static final int LOOP_LIMIT = 10;
-    private static final int SNAP_SHOT_WAIT_TIME = 1900;
+    private static final long SNAP_SHOT_WAIT_TIME = 2000;
 
     private static Quaternion[] areaOrientations = new Quaternion[4];
     private static Point[] snapPoints = new Point[4];
@@ -39,49 +38,6 @@ public class YourService extends KiboRpcService {
     private static Worker worker = new Worker(queue);
     private static Thread workerThread = new Thread(worker);
 
-    private static class Worker implements Runnable {
-        private BlockingQueue<Runnable> queue = null;
-        private AtomicBoolean running = new AtomicBoolean(true);
-        private static final Runnable POISON_PILL = new Runnable() {
-            @Override
-            public void run() {
-            }
-        };
-
-        public Worker(BlockingQueue<Runnable> queue) {
-            this.queue = queue;
-        }
-
-        /**
-         * Gracefully stop the worker thread.
-         */
-        public void stop() {
-            running.set(false);
-            queue.offer(POISON_PILL);
-        }
-
-        @Override
-        public void run() {
-            while (running.get()) {
-                try {
-                    Runnable work = queue.take();
-                    if (work == POISON_PILL) {
-                        break;
-                    }
-                    work.run();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            Runnable work = null;
-            while ((work = queue.poll()) != null) {
-                if (work != POISON_PILL) {
-                    work.run();
-                }
-            }
-        }
-    }
-
     /**
      * Constructor for the YourService class.
      */
@@ -93,143 +49,279 @@ public class YourService extends KiboRpcService {
     }
 
     /**
-     * Take a snapshot and save it.
-     * 
-     * @param name:     name of the image
-     * @param waitTime: time to wait before taking the snapshot. unit: ms
-     * @return the snapshot image
-     */
-    private Mat takeAndSaveSnapshot(String name, int waitTime) {
-        api.flashlightControlFront(0.01f);
-        try {
-            Thread.sleep(waitTime);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        Mat image = api.getMatNavCam();
-        api.saveMatImage(image, name);
-        api.flashlightControlFront(0f);
-        return image;
-    }
-
-    // * api is not thread safe.
-    private static class Work implements Runnable {
-        private Mat image;
-        private int[] areaIdxs;
-        private Kinematics kinematics;
-
-        public Work(Mat image, int[] areaIdxs, Kinematics kinematics) {
-            this.image = image;
-            this.areaIdxs = areaIdxs;
-            this.kinematics = kinematics;
-        }
-
-        @Override
-        public void run() {
-            ARTagOutput[] detections = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(),
-                    image);
-            if (detections == null) {
-                // TODO: handle the case when no detection is returned
-                return;
-            }
-
-            for (int ARTagIdx = 0; ARTagIdx < areaIdxs.length; ARTagIdx++) {
-                int areaIdx = areaIdxs[ARTagIdx];
-                ARTagOutput detection = detections[ARTagIdx];
-
-                // I hope this is thread safe
-                Log.i(TAG, "Item " + areaIdx + " location: " + detection.getSnapWorld());
-                // api.saveMatImage(detection.getResultImage(), "Area" + areaIdx +
-                // "_result.jpg");
-                itemImages.put("Area" + areaIdx + "_result.jpg", detection.getResultImage());
-
-                snapPoints[areaIdx] = detection.getSnapWorld();
-
-                Log.i(TAG, "begin of inference");
-                AreaItem areaItem = YOLOInference.getPredictions(detection.getResultImage());
-                if (areaItem == null) {
-                    Log.i(TAG, "No item detected");
-                    continue;
-                }
-                Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
-                // api.setAreaInfo(areaIdx + 1, areaItem.getItem(), areaItem.getCount());
-                areaItems[areaIdx] = areaItem;
-                areaInfo.put(areaItem.getItem(), areaIdx);
-
-                List<Point> path = PathFindingAPI.findPath(pointAtAstronaut, snapPoints[areaIdx], expansionVal);
-                logPath(path);
-                paths[areaIdx] = path;
-            }
-        }
-    }
-
-    /**
-     * process the area information
-     * 
+     * Process the area information.
+     * Call function "takeAndSaveSnapshot" and add new work in queue
+     *
      * @param areaIdxs: indexes of the areas to process
-     * 
      */
     private void processingAreaInfo(int[] areaIdxs) {
-        Mat image = takeAndSaveSnapshot("Area" + Arrays.toString(areaIdxs) + ".jpg", SNAP_SHOT_WAIT_TIME);
+        Mat image = Utility.takeAndSaveSnapshot(api, "Area" + Arrays.toString(areaIdxs) + ".jpg", SNAP_SHOT_WAIT_TIME);
 
-        Kinematics kinematics = api.getRobotKinematics();
+        ARTagOutput[] detections = handleARTagException(image, areaIdxs);
+        // TODO: save the image here, not in the worker thread
 
-        Work work = new Work(image, areaIdxs, kinematics);
+        Work work = new Work(areaIdxs, detections, itemImages, snapPoints, areaItems, areaInfo, pointAtAstronaut,
+                expansionVal, paths);
         queue.add(work);
     }
 
     /**
-     * Log the path
+     * Move forward to retake image.
+     *
+     * @param move_x,     move_y, move_z: the amount of movement
+     * @param quaternion: the orientation of Astrobee
+     * @param Idxs:       Area indexes
+     * @return detection result of ARTag Process
      * 
-     * @param path: the path to log
+     *         TODO: refactor this function
      */
-    private static void logPath(List<Point> path) {
-        Log.i(TAG, "------------------- Path -------------------");
-        Log.i(TAG, "Number of points in the path: " + path.size());
+    private ARTagOutput retakeForward(double move_x, double move_y, double move_z, Quaternion quaternion, int[] Idxs) {
+        Kinematics kinematics = api.getRobotKinematics();
+        Result isMoveToSuccessResult = null;
+        ARTagOutput detection = null;
 
-        // show each point in the path and the number of points in the path
-        for (int i = 0; i < path.size() - 1; i++) {
-            Point current = path.get(i);
-            Point next = path.get((i + 1));
-            Log.i(TAG, current.getX() + "," + current.getY() + "," + current.getZ() + "," + next.getX() + ","
-                    + next.getY() + "," + next.getZ());
+        int move_count = 0;
+        while (move_count < 3) {
+            isMoveToSuccessResult = api.moveTo(
+                    new Point(kinematics.getPosition().getX() + move_x * move_count,
+                            kinematics.getPosition().getY() + move_y * move_count,
+                            kinematics.getPosition().getZ() + move_z * move_count),
+                    quaternion, false);
+            if (!isMoveToSuccessResult.hasSucceeded()) {
+                Log.i(TAG, "----------Move forward failed, retrying with theta star algorithm----------");
+                Utility.processPathToTarget(api, null,
+                        new Point(kinematics.getPosition().getX() + move_x * move_count,
+                                kinematics.getPosition().getY() + move_y * move_count,
+                                kinematics.getPosition().getZ() + move_z * move_count),
+                        quaternion, expansionVal);
+            }
+
+            kinematics = api.getRobotKinematics();
+            Mat image_retake = Utility.takeAndSaveSnapshot(api, "Area" + Arrays.toString(Idxs) + ".jpg",
+                    SNAP_SHOT_WAIT_TIME);
+            detection = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image_retake)[0];
+            if (detection != null)
+                break;
+            move_count++;
         }
-        Log.i(TAG, "--------------------------------------------");
+        Log.i(TAG, "move_count:" + move_count);
+        return detection;
     }
 
     /**
-     * Move to the target point by applying theta star algorithm
+     * Move to specific point to retake image.
+     *
+     * @param point:      target point
+     * @param quaternion: the orientation of Astrobee
+     * @param Idxs:       Area indexes
+     * @return detection result of ARTag Process
      * 
-     * @param targetPoint: the target point
-     * @param orientation: the orientation
+     *         TODO: refactor this function
      */
-    private void moveToTarget(Point targetPoint, Quaternion orientation) {
-        List<Point> path = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(), targetPoint,
-                expansionVal);
-        logPath(path);
-        Result result = null;
-        boolean pathSuccess = false;
+    private ARTagOutput[] retakeMoveToPoint(Point point, Quaternion quaternion, int[] Idxs) {
+        Result isMoveToSuccessResult = null;
+        isMoveToSuccessResult = api.moveTo(point, quaternion, false);
+        if (!isMoveToSuccessResult.hasSucceeded()) {
+            Log.i(TAG, "----------Move forward failed, retrying with theta star algorithm----------");
+            Utility.processPathToTarget(api, null, point, quaternion, expansionVal);
+        }
+
+        Kinematics kinematics = api.getRobotKinematics();
+        Mat image_retake = Utility.takeAndSaveSnapshot(api, "Area" + Arrays.toString(Idxs) + ".jpg",
+                SNAP_SHOT_WAIT_TIME);
+        ARTagOutput[] detect_arr = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(),
+                image_retake);
+        return detect_arr;
+    }
+
+    /**
+     * Calculate the distance of two points.
+     *
+     * @param image:    image from NavCam
+     * @param areaIdxs: Area indexes
+     * @return detection result of ARTag Process
+     * 
+     *         TODO: refactor this function
+     */
+    private ARTagOutput[] handleARTagException(Mat image, int[] areaIdxs) {
+        Kinematics kinematics = api.getRobotKinematics();
+        ARTagOutput[] detections = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image);
+
+        // Handling the case when no detection is returned
+        if ((Arrays.equals(areaIdxs, new int[] { 0 })) && (detections == null)) {
+            Log.i(TAG, "retake image of area 0");
+            detections = new ARTagOutput[1];
+            detections = retakeMoveToPoint(new Point(10.9078d, -9.887558906125106d, 5.1124d),
+                    new Quaternion(0.707f, -0.707f, 0f, 0f), new int[] { areaIdxs[0] });
+        } else if ((Arrays.equals(areaIdxs, new int[] { 3 })) && (detections == null)) {
+            Log.i(TAG, "retake image of area 3");
+            detections = new ARTagOutput[1];
+
+            if (kinematics.getPosition().getX() > 11.1) {
+                detections[0] = retakeForward(-0.05, 0, 0, new Quaternion(0f, 0.707f, 0.707f, 0f), areaIdxs);
+            }
+        } else if (Arrays.equals(areaIdxs, new int[] { 1, 2 })) {
+            // both failed
+            if (detections == null) {
+                // move to area1
+                Log.i(TAG, "Both failed, retake image of area 1");
+                detections = new ARTagOutput[2];
+                ARTagOutput[] detect_arr = retakeMoveToPoint(new Point(10.8828d, -8.7924d, 4.557490723909075d),
+                        new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[] { areaIdxs[0] });
+                detections[0] = detect_arr[0];
+                if (detections[0] == null) {
+                    detections[0] = retakeForward(0, 0, -0.05, new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f),
+                            new int[] { areaIdxs[0] });
+                }
+
+                // move to area2
+                Log.i(TAG, "Both failed, retake image of area 2");
+                detect_arr = retakeMoveToPoint(new Point(10.8828d, -7.7424d, 4.569366733183541d),
+                        new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[] { areaIdxs[1] });
+                detections[1] = detect_arr[0];
+                if (detections[1] == null) {
+                    detections[1] = retakeForward(0, 0, -0.05, new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f),
+                            new int[] { areaIdxs[1] });
+                }
+            }
+            // One in the two failed
+            else if (detections.length == 1) {
+                Point pos = kinematics.getPosition();
+                double distance_to_area1 = Utility.calEuclideanDistance(pos.getX(), pos.getY(), pos.getZ(),
+                        10.925, -8.875, 3.76203);
+                double distance_to_area2 = Utility.calEuclideanDistance(pos.getX(), pos.getY(), pos.getZ(),
+                        10.925, -7.925, 3.76093);
+
+                // area1 failed, area2 success
+                if ((distance_to_area1 >= distance_to_area2)) {
+                    Log.i(TAG, "retake image of area 1");
+
+                    ARTagOutput[] newDetections = new ARTagOutput[2];
+                    ARTagOutput[] detect_arr = retakeMoveToPoint(new Point(10.8828d, -8.7924d, 4.557490723909075d),
+                            new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[] { areaIdxs[0] });
+                    newDetections[0] = detect_arr[0];
+                    newDetections[1] = detections[0];
+                    detections = newDetections;
+
+                    if (detections[0] == null) {
+                        detections[0] = retakeForward(0, 0, -0.05, new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f),
+                                new int[] { areaIdxs[0] });
+                    }
+                }
+                // area1 success, area2 failed
+                else if (distance_to_area1 < distance_to_area2) {
+                    Log.i(TAG, "retake image of area 2");
+
+                    ARTagOutput[] newDetections = new ARTagOutput[2];
+                    ARTagOutput[] detect_arr = retakeMoveToPoint(new Point(10.8828d, -7.7424d, 4.569366733183541d),
+                            new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f), new int[] { areaIdxs[1] });
+                    newDetections[0] = detections[0];
+                    newDetections[1] = detect_arr[0];
+                    detections = newDetections;
+
+                    if (detections[1] == null) {
+                        detections[1] = retakeForward(0, 0, -0.05, new Quaternion(-0.5f, 0.5f, 0.5f, 0.5f),
+                                new int[] { areaIdxs[1] });
+                    }
+                }
+            }
+        }
+
+        return detections;
+    }
+
+    /**
+     * Handle the target item.
+     *
+     * @param areaItem: the item detected
+     */
+    private void handleTarget(AreaItem areaItem) {
+        if (areaItem == null) {
+            Log.i(TAG, "No item detected");
+            // TODO: Handle the case when no item is detected
+            return;
+        }
+
+        Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
+        Integer areaIdx = areaInfo.get(areaItem.getItem());
+        Log.i(TAG, "areaIdx: " + areaIdx);
+
+        if (areaIdx == null) {
+            Log.i(TAG, "Item not found in the areaInfo map");
+            // TODO: Handle the case when the item is not found in the areaInfo map
+            return;
+        }
+
+        Utility.processPathToTarget(api, paths[areaIdx], snapPoints[areaIdx], areaOrientations[areaIdx], expansionVal);
+    }
+
+    /**
+     * Capture and detect the astronaut.
+     * 
+     * @return
+     */
+    private AreaItem captureAndDetectAstronaut() {
+        AreaItem areaItem = null;
+        Mat image = Utility.takeAndSaveSnapshot(api, "Astronaut.jpg", SNAP_SHOT_WAIT_TIME);
+        ARTagOutput[] detections = ARTagProcess.process(pointAtAstronaut, quaternionAtAstronaut, image);
+
         int loopCounter = 0;
-        while (!pathSuccess && loopCounter < LOOP_LIMIT) {
-            // move to each point in the path
-            for (Point point : path) {
-                result = api.moveTo(point, orientation, false);
-                if (!result.hasSucceeded()) {
-                    expansionVal += 0.02;
-                    Log.i(TAG, "----------Path corrupt, increasing expansionVal to: " + expansionVal
-                            + "----------");
-                    path = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(),
-                            targetPoint,
-                            expansionVal);
-                    logPath(path);
+        while (loopCounter < LOOP_LIMIT && detections == null) {
+            loopCounter++;
+            Log.i(TAG, "Retaking image of astronaut for the " + loopCounter + " time");
+            image = Utility.takeAndSaveSnapshot(api, "Astronaut.jpg", 200);
+            detections = ARTagProcess.process(pointAtAstronaut, quaternionAtAstronaut, image);
+        }
+
+        if (detections != null) {
+            Log.i(TAG, "Astronaut location: " + detections[0].getSnapWorld());
+            api.saveMatImage(detections[0].getResultImage(), "Astronaut_result.jpg");
+            areaItem = YOLOInference.getPredictions(detections[0].getResultImage());
+        } else {
+            // TODO: Handle the case when no detection is returned
+            Log.i(TAG, "No image returned from ARTagProcess");
+        }
+
+        return areaItem;
+    }
+
+    /**
+     * Process the areas.
+     */
+    private void processAreas() {
+        Point[][] outboundTrips = {
+                { new Point(10.9078d, -9.967877763897507d, 5.1124d) },
+                { new Point(11.07d, -9.5d, 5.17d), new Point(10.8828d, -8.2674d, 4.719d) },
+                { new Point(10.605058889481256d, -6.7699d, 4.9872000000000005d) }
+        };
+
+        int[][] areaGroups = {
+                { 0 },
+                { 1, 2 },
+                { 3 }
+        };
+
+        for (int i = 0; i < areaGroups.length; i++) {
+            Utility.logSeperator();
+            Log.i(TAG, "go to area " + Arrays.toString(areaGroups[i]));
+
+            for (int j = 0; j < outboundTrips[i].length; j++) {
+                Result isMoveToSuccessResult = api.moveTo(outboundTrips[i][j], areaOrientations[areaGroups[i][0]],
+                        false);
+                if (!isMoveToSuccessResult.hasSucceeded()) {
+                    Log.i(TAG, "Go to area " + Arrays.toString(areaGroups[i])
+                            + " fail, retrying with theta star algorithm");
+                    Utility.processPathToTarget(api, null, outboundTrips[i][outboundTrips[i].length - 1],
+                            areaOrientations[areaGroups[i][0]], expansionVal);
                     break;
                 }
             }
-            pathSuccess = result != null && result.hasSucceeded();
-            loopCounter++;
-        }
 
-        Log.i(TAG, "Arrive at the target point");
+            processingAreaInfo(areaGroups[i]);
+
+            Log.i(TAG, "Area " + Arrays.toString(areaGroups[i]) + " done");
+            Utility.logSeperator();
+        }
     }
 
     /**
@@ -251,67 +343,16 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "Starting point: " + kinematics.getPosition() + "" + kinematics.getOrientation());
         }
 
-        Result isMoveToSuccessResult = null;
-        isMoveToSuccessResult = api.moveTo(new Point(10.9078d, -9.967877763897507d, 5.1124d),
-                new Quaternion(0, 0, -0.71f, 0.71f), false);
-        if (!isMoveToSuccessResult.hasSucceeded()) {
-            Log.i(TAG, "----------Go to area 0 fail, retrying with theta star algorithm----------");
-            moveToTarget(new Point(10.9078d, -9.967877763897507d, 5.1124d), new Quaternion(0, 0, -0.71f, 0.71f));
-        }
-
-        Log.i(TAG, "--------------------------------------------");
-        Log.i(TAG, "go to area 0");
-        Log.i(TAG, "--------------------------------------------");
-        processingAreaInfo(new int[] { 0 });
-        Log.i(TAG, "--------------------------------------------");
-        Log.i(TAG, "Area 0 done");
-        Log.i(TAG, "--------------------------------------------");
-
-        isMoveToSuccessResult = api.moveTo(new Point(11.07, -9.5, 5.17d), new Quaternion(0.5f, 0.5f, -0.5f, 0.5f),
-                false);
-        if (!isMoveToSuccessResult.hasSucceeded()) {
-            Log.i(TAG, "----------Go to second point fail, retrying with theta star algorithm----------");
-            moveToTarget(new Point(11.07, -9.5, 5.17d), new Quaternion(0.5f, 0.5f, -0.5f, 0.5f));
-        }
-
-        isMoveToSuccessResult = api.moveTo(new Point(10.8828, -8.2674, 4.719), new Quaternion(0.5f, 0.5f, -0.5f, 0.5f),
-                false);
-        if (!isMoveToSuccessResult.hasSucceeded()) {
-            Log.i(TAG, "----------Go to area 1, 2 fail, retrying with theta star algorithm----------");
-            moveToTarget(new Point(10.8828, -8.2674, 4.719), new Quaternion(0.5f, 0.5f, -0.5f, 0.5f));
-        }
-
-        Log.i(TAG, "--------------------------------------------");
-        Log.i(TAG, "go to area 1, 2");
-        Log.i(TAG, "--------------------------------------------");
-        processingAreaInfo(new int[] { 1, 2 });
-        Log.i(TAG, "--------------------------------------------");
-        Log.i(TAG, "Area 1, 2 done");
-        Log.i(TAG, "--------------------------------------------");
-
-        isMoveToSuccessResult = api.moveTo(new Point(10.605058889481256d, -6.7699d, 4.9872000000000005d),
-                new Quaternion(0f, -0.71f, 0.71f, 0f), false);
-        if (!isMoveToSuccessResult.hasSucceeded()) {
-            Log.i(TAG, "----------Go to area 3 fail, retrying with theta star algorithm----------");
-            moveToTarget(new Point(10.605058889481256d, -6.7699d, 4.9872000000000005d),
-                    new Quaternion(0f, -0.71f, 0.71f, 0f));
-        }
-
-        Log.i(TAG, "--------------------------------------------");
-        Log.i(TAG, "go to area 3");
-        Log.i(TAG, "--------------------------------------------");
-        processingAreaInfo(new int[] { 3 });
-        Log.i(TAG, "--------------------------------------------");
-        Log.i(TAG, "Area 3 done");
-        Log.i(TAG, "--------------------------------------------");
+        // Process the areas
+        processAreas();
 
         worker.stop();
 
         // move to astronaut
-        isMoveToSuccessResult = api.moveTo(pointAtAstronaut, quaternionAtAstronaut, false);
+        Result isMoveToSuccessResult = api.moveTo(pointAtAstronaut, quaternionAtAstronaut, false);
         if (!isMoveToSuccessResult.hasSucceeded()) {
-            Log.i(TAG, "----------Go to astronaut fail, retrying with theta star algorithm----------");
-            moveToTarget(pointAtAstronaut, quaternionAtAstronaut);
+            Log.i(TAG, "Go to astronaut fail, retrying with theta star algorithm");
+            Utility.processPathToTarget(api, null, pointAtAstronaut, quaternionAtAstronaut, expansionVal);
         }
 
         try {
@@ -319,7 +360,8 @@ public class YourService extends KiboRpcService {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        // Save the images
+
+        // TODO: instead of saving the images here, save them in the processingAreaInfo
         for (Map.Entry<String, Mat> entry : itemImages.entrySet()) {
             api.saveMatImage(entry.getValue(), entry.getKey());
         }
@@ -330,87 +372,29 @@ public class YourService extends KiboRpcService {
 
         api.reportRoundingCompletion();
 
-        AreaItem areaItem = null;
-        {
-            Mat image = takeAndSaveSnapshot("Astronaut.jpg", SNAP_SHOT_WAIT_TIME);
-            ARTagOutput[] detections = ARTagProcess.process(pointAtAstronaut,
-                    quaternionAtAstronaut, image);
-
-            int loopCounter = 0;
-            while (loopCounter < LOOP_LIMIT && detections == null) {
-                loopCounter++;
-                image = takeAndSaveSnapshot("Astronaut.jpg", 200);
-                detections = ARTagProcess.process(pointAtAstronaut,
-                        quaternionAtAstronaut, image);
-            }
-            if (detections != null) {
-                Log.i(TAG, "Astronaut location: " + detections[0].getSnapWorld());
-                api.saveMatImage(detections[0].getResultImage(), "Astronaut_result.jpg");
-                areaItem = YOLOInference.getPredictions(detections[0].getResultImage());
-            } else {
-                Log.i(TAG, "No image returned from ARTagProcess");
-            }
-        }
+        AreaItem areaItem = captureAndDetectAstronaut();
 
         // Let's notify the astronaut when you recognize it.
         api.notifyRecognitionItem();
 
-        if (areaItem != null) {
-            Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
-
-            Integer areaIdx = areaInfo.get(areaItem.getItem());
-            Log.i(TAG, "----------------------------------------");
-            Log.i(TAG, "areaIdx: " + areaIdx);
-            if (areaIdx != null) {
-                {
-                    List<Point> path = paths[areaIdx];
-                    logPath(path);
-                    Result result = null;
-                    boolean pathSuccess = false;
-                    int loopCounter = 0;
-                    while (!pathSuccess && loopCounter < LOOP_LIMIT) {
-                        // move to each point in the path
-                        for (Point point : path) {
-                            result = api.moveTo(point, areaOrientations[areaIdx], false);
-                            if (!result.hasSucceeded()) {
-                                expansionVal += 0.02;
-                                Log.i(TAG, "----------Path corrupt, increasing expansionVal to: " + expansionVal
-                                        + "----------");
-                                path = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(),
-                                        snapPoints[areaIdx],
-                                        expansionVal);
-                                logPath(path);
-                                break;
-                            }
-                        }
-                        pathSuccess = result != null && result.hasSucceeded();
-                        loopCounter++;
-                    }
-
-                    Log.i(TAG, "Arrive at the target point");
-                }
-
-                // * Get a camera image. Debugging purpose. This needs to be removed.
-                Mat image = takeAndSaveSnapshot("TargetItem.jpg", SNAP_SHOT_WAIT_TIME);
-                ARTagOutput[] detections = ARTagProcess.process(snapPoints[areaIdx],
-                        areaOrientations[areaIdx], image);
-                if (detections != null) {
-                    Log.i(TAG, "Item location: " + detections[0].getSnapWorld());
-                    api.saveMatImage(detections[0].getResultImage(), "TargetItem_result.jpg");
-                } else {
-                    Log.i(TAG, "No image returned from ARTagProcess");
-                }
-            } else {
-                Log.i(TAG, "Item not found in the areaInfo map");
-            }
-        } else {
-            Log.i(TAG, "No item detected");
-        }
+        handleTarget(areaItem);
 
         // Take a snapshot of the target item.
         api.takeTargetItemSnapshot();
 
         // The mission ends.
-        Log.i(TAG, "--- Mission complete ---");
+        Utility.logSeperator();
+        Log.i(TAG, "Mission complete");
+        Utility.logSeperator();
+    }
+
+    @Override
+    protected void runPlan2() {
+        runPlan1();
+    }
+
+    @Override
+    protected void runPlan3() {
+        runPlan1();
     }
 }

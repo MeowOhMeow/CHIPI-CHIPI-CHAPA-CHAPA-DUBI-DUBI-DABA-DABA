@@ -40,26 +40,26 @@ public class ARTagProcess {
         private Boolean valid;
         private Mat rvec, tvec;
 
-        public DetectionResult(Mat resultImage, Boolean valid, Mat rvec, Mat tvec) {
+        DetectionResult(Mat resultImage, Boolean valid, Mat rvec, Mat tvec) {
             this.resultImage = resultImage;
             this.valid = valid;
             this.rvec = rvec;
             this.tvec = tvec;
         }
 
-        public Mat getResultImage() {
+        Mat getResultImage() {
             return resultImage;
         }
 
-        public Boolean getValid() {
+        Boolean getValid() {
             return valid;
         }
 
-        public Mat getRvec() {
+        Mat getRvec() {
             return rvec;
         }
 
-        public Mat getTvec() {
+        Mat getTvec() {
             return tvec;
         }
     }
@@ -315,20 +315,6 @@ public class ARTagProcess {
     }
 
     /**
-     * Calculate the Euclidean distance of a vector
-     * 
-     * @param vec: vector
-     * @return Euclidean distance of vec
-     */
-    private static double getEuclideanDistance(double[] vec) {
-        double sum = 0;
-        for (double v : vec) {
-            sum += v * v;
-        }
-        return Math.sqrt(sum);
-    }
-
-    /**
      * Cut the image by the given corner
      * 
      * @param img:     image from astrobee camera
@@ -403,7 +389,7 @@ public class ARTagProcess {
         dstPoint.put(3, 0, rightBottomDst);
 
         // check whether it's outside or not
-        Boolean valid = true;
+        boolean valid = true;
         for (int srcIdx = 0; srcIdx < 4; srcIdx++) {
             double[] checkPoint = srcPoint.get(srcIdx, 0);
             if (checkPoint[0] > img.width() || checkPoint[0] < 0 || checkPoint[1] > img.height() || checkPoint[1] < 0) {

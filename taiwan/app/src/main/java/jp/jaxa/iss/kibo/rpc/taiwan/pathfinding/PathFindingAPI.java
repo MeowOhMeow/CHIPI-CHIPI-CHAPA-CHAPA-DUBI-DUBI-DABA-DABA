@@ -4,6 +4,8 @@ import java.util.*;
 
 import gov.nasa.arc.astrobee.types.Point;
 import android.util.Log;
+
+import jp.jaxa.iss.kibo.rpc.taiwan.Utility;
 import jp.jaxa.iss.kibo.rpc.taiwan.graph.*;
 import jp.jaxa.iss.kibo.rpc.taiwan.algorithm.*;
 
@@ -200,11 +202,12 @@ public class PathFindingAPI {
         return result;
     }
 
-    private static void logPoints(List<Point> points, String label) {
-        Log.i(TAG, "-------------------------------------------" + label
-                + "-------------------------------------------");
+    public static void logPoints(List<Point> points, String label) {
+        Utility.logSeperator();
+        Log.i(TAG, label + ":");
         for (Point p : points) {
             Log.i(TAG, "x: " + p.getX() + " y: " + p.getY() + " z: " + p.getZ());
         }
+        Utility.logSeperator();
     }
 }
