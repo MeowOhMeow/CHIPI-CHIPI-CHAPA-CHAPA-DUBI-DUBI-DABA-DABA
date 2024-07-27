@@ -63,7 +63,7 @@ public class Work extends KiboRpcService implements Runnable {
             areaInfo.put(areaItem.getItem(), areaIdx);
 
             List<Point> path = PathFindingAPI.findPath(pointAtAstronaut, snapPoints[areaIdx], expansionVal);
-            YourService.logPath(path);
+            PathFindingAPI.logPoints(path, "Path from astronaut to item " + areaIdx);
             paths[areaIdx] = path;
         }
     }

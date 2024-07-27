@@ -166,6 +166,7 @@ def upload_to_slot(driver: webdriver.Edge, slot_id: int, config: list):
 
 # Start simulation in available slots
 def start_simulation(driver: webdriver.Edge, config: list):
+    driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
     available_slots = get_available_slots(driver)
     counter = 0
     while available_slots and counter < config[6]:
@@ -409,7 +410,6 @@ if __name__ == "__main__":
         download_files(driver, -1, html_folder)
         input("Press Enter to continue...")
 
-        driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
         print("Starting simulation")
         start_simulation(driver, config)
         remove_not_used_files(config[5], start, html_folder)
@@ -435,14 +435,14 @@ if __name__ == "__main__":
         # download_files(driver)
         # remove_simulation(driver)
         # time.sleep(5)
-    # except Exception as e:
-    #     print("Error:", e)
-    #     rename_and_move_files(
-    #         config[5],
-    #         images_folder,
-    #         results_folder,
-    #         start,
-    #     )
+    except Exception as e:
+        print("Error:", e)
+        rename_and_move_files(
+            config[5],
+            images_folder,
+            results_folder,
+            start,
+        )
     finally:
         driver.quit()
 
