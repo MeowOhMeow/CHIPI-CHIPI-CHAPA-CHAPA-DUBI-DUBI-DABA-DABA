@@ -42,10 +42,10 @@ public class YourService extends KiboRpcService {
      * Constructor for the YourService class.
      */
     public YourService() {
-        areaOrientations[0] = new Quaternion(0, 0, -0.71, 0.71);
-        areaOrientations[1] = new Quaternion(0.5, 0.5, -0.5, 0.5);
-        areaOrientations[2] = new Quaternion(0.5, 0.5, -0.5, 0.5);
-        areaOrientations[3] = new Quaternion(0, -0.71, 0.71, 0);
+        areaOrientations[0] = new Quaternion(0f, 0f, -0.71f, 0.71f);
+        areaOrientations[1] = new Quaternion(0.5f, 0.5f, -0.5f, 0.5f);
+        areaOrientations[2] = new Quaternion(0.5f, 0.5f, -0.5f, 0.5f);
+        areaOrientations[3] = new Quaternion(0f, -0.71f, 0.71f, 0f);
     }
 
     /**
@@ -152,13 +152,13 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "retake image of area 0");
             detections = new ARTagOutput[1];
             detections = retakeMoveToPoint(new Point(10.9078d, -9.887558906125106d, 5.1124d),
-                    new Quaternion(0, 0, -0.71, 0.71), new int[] { areaIdxs[0] });
+                    new Quaternion(0f, 0f, -0.71f, 0.71f), new int[] { areaIdxs[0] });
         } else if ((Arrays.equals(areaIdxs, new int[] { 3 })) && (detections == null)) {
             Log.i(TAG, "retake image of area 3");
             detections = new ARTagOutput[1];
 
             if (kinematics.getPosition().getX() > 11.1) {
-                detections[0] = retakeForward(-0.05, 0, 0, new Quaternion(0, -0.71, 0.71, 0), areaIdxs);
+                detections[0] = retakeForward(-0.05, 0, 0, new Quaternion(0f, -0.71f, 0.71f, 0f), areaIdxs);
             }
         } else if (Arrays.equals(areaIdxs, new int[] { 1, 2 })) {
             // both failed
@@ -167,20 +167,20 @@ public class YourService extends KiboRpcService {
                 Log.i(TAG, "Both failed, retake image of area 1");
                 detections = new ARTagOutput[2];
                 ARTagOutput[] detect_arr = retakeMoveToPoint(new Point(10.8828d, -8.7924d, 4.557490723909075d),
-                        new Quaternion(0.5, 0.5, -0.5, 0.5), new int[] { areaIdxs[0] });
+                        new Quaternion(0.5f, 0.5f, -0.5f, 0.5f), new int[] { areaIdxs[0] });
                 detections[0] = detect_arr[0];
                 if (detections[0] == null) {
-                    detections[0] = retakeForward(0, 0, -0.05, new Quaternion(0.5, 0.5, -0.5, 0.5),
+                    detections[0] = retakeForward(0, 0, -0.05, new Quaternion(0.5f, 0.5f, -0.5f, 0.5f),
                             new int[] { areaIdxs[0] });
                 }
 
                 // move to area2
                 Log.i(TAG, "Both failed, retake image of area 2");
                 detect_arr = retakeMoveToPoint(new Point(10.8828d, -7.7424d, 4.569366733183541d),
-                        new Quaternion(0.5, 0.5, -0.5, 0.5), new int[] { areaIdxs[1] });
+                        new Quaternion(0.5f, 0.5f, -0.5f, 0.5f), new int[] { areaIdxs[1] });
                 detections[1] = detect_arr[0];
                 if (detections[1] == null) {
-                    detections[1] = retakeForward(0, 0, -0.05, new Quaternion(0.5, 0.5, -0.5, 0.5),
+                    detections[1] = retakeForward(0, 0, -0.05, new Quaternion(0.5f, 0.5f, -0.5f, 0.5f),
                             new int[] { areaIdxs[1] });
                 }
             }
@@ -198,13 +198,13 @@ public class YourService extends KiboRpcService {
 
                     ARTagOutput[] newDetections = new ARTagOutput[2];
                     ARTagOutput[] detect_arr = retakeMoveToPoint(new Point(10.8828d, -8.7924d, 4.557490723909075d),
-                            new Quaternion(0.5, 0.5, -0.5, 0.5), new int[] { areaIdxs[0] });
+                            new Quaternion(0.5f, 0.5f, -0.5f, 0.5f), new int[] { areaIdxs[0] });
                     newDetections[0] = detect_arr[0];
                     newDetections[1] = detections[0];
                     detections = newDetections;
 
                     if (detections[0] == null) {
-                        detections[0] = retakeForward(0, 0, -0.05, new Quaternion(0.5, 0.5, -0.5, 0.5),
+                        detections[0] = retakeForward(0, 0, -0.05, new Quaternion(0.5f, 0.5f, -0.5f, 0.5f),
                                 new int[] { areaIdxs[0] });
                     }
                 }
@@ -214,13 +214,13 @@ public class YourService extends KiboRpcService {
 
                     ARTagOutput[] newDetections = new ARTagOutput[2];
                     ARTagOutput[] detect_arr = retakeMoveToPoint(new Point(10.8828d, -7.7424d, 4.569366733183541d),
-                            new Quaternion(0.5, 0.5, -0.5, 0.5), new int[] { areaIdxs[1] });
+                            new Quaternion(0.5f, 0.5f, -0.5f, 0.5f), new int[] { areaIdxs[1] });
                     newDetections[0] = detections[0];
                     newDetections[1] = detect_arr[0];
                     detections = newDetections;
 
                     if (detections[1] == null) {
-                        detections[1] = retakeForward(0, 0, -0.05, new Quaternion(0.5, 0.5, -0.5, 0.5),
+                        detections[1] = retakeForward(0, 0, -0.05, new Quaternion(0.5f, 0.5f, -0.5f, 0.5f),
                                 new int[] { areaIdxs[1] });
                     }
                 }
