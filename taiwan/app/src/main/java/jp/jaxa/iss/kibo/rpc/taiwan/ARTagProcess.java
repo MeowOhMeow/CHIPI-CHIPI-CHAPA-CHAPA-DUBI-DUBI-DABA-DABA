@@ -18,14 +18,14 @@ import org.opencv.aruco.*;
 
 /**
  * Process the image and return the snap point
- * 
- * Usage:
- * 1. setDistortCoefficient(double[] distortCoefficient)
- * 2. setCameraMatrix(double[] cameraMatrix)
- * 3. setSnapDistance(double snapDistance) (optional, default is 0.6)
- * 4. process(Point center, Quaternion orientation, Mat img)
+ *
+ * Usage: 1. setDistortCoefficient(double[] distortCoefficient) 2.
+ * setCameraMatrix(double[] cameraMatrix) 3. setSnapDistance(double
+ * snapDistance) (optional, default is 0.6) 4. process(Point center, Quaternion
+ * orientation, Mat img)
  */
 public class ARTagProcess {
+
     private static final String TAG = "ARTagProcess";
 
     private static double snapDistance = 0.6d;
@@ -34,8 +34,12 @@ public class ARTagProcess {
     private static Mat newCameraMatrix = new Mat();
     private static Dictionary ArUcoDict = Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
     private static DetectorParameters parameters = DetectorParameters.create();
+    private static Point[] areaPoint = { new Point(10.95d, -10.58d, 5.195d), new Point(10.925d, -9.075d, 3.76203d),
+            new Point(11.925d, -7.725d, 3.76093d), new Point(9.866984d, -6.8525, 4.945d),
+            new Point(11.143d, -6.7607d, 4.9654d) };
 
     private static class DetectionResult {
+
         private Mat resultImage;
         private Boolean valid;
         private Mat rvec, tvec;
@@ -66,7 +70,7 @@ public class ARTagProcess {
 
     /**
      * Set the distortion coefficient
-     * 
+     *
      * @param distortCoefficient: distortion coefficient
      */
     public static void setDistortCoefficient(double[] distortCoefficient) {
@@ -79,7 +83,7 @@ public class ARTagProcess {
 
     /**
      * Set the camera matrix
-     * 
+     *
      * @param cameraMatrix: camera matrix
      */
     public static void setCameraMatrix(double[] cameraMatrix) {
@@ -95,7 +99,7 @@ public class ARTagProcess {
 
     /**
      * Set the snap distance
-     * 
+     *
      * @param snapDistance: snap distance
      */
     public static void setSnapDistance(double snapDistance) {
@@ -104,7 +108,7 @@ public class ARTagProcess {
 
     /**
      * Swap two mat in the list
-     * 
+     *
      * @param corners: list of mat
      * @param idx1:    index 1
      * @param idx2:    index 2
@@ -118,7 +122,7 @@ public class ARTagProcess {
 
     /**
      * Sort the corners
-     * 
+     *
      * @param corners
      * @return void
      */
@@ -158,10 +162,24 @@ public class ARTagProcess {
             singleCorner.add(corners.get(ARTagIdx));
             DetectionResult result = cutImageByCorner(undistortedImage, singleCorner);
 
-            Point snapWorld = getWorldPoint(center, orientation, result.getRvec(),
+            Point snapWorld = getCameraWorldPoint(center, orientation, result.getRvec(),
+                    result.getTvec());
+            Point ARTagWorld = getARTagWorldPoint(center, orientation, result.getRvec(),
                     result.getTvec());
 
-            output[ARTagIdx] = new ARTagOutput(snapWorld, result.getResultImage(), result.getValid(), 0);
+            int whereARTagIs = -1;
+            double leastBoxDistance = 100;
+            for (int areaIdx = 0; areaIdx < areaPoint.length; areaIdx++) {
+                double boxDistance = calDist(ARTagWorld,areaPoint[areaIdx]);
+                if(boxDistance < leastBoxDistance){
+                    leastBoxDistance = boxDistance;
+                    whereARTagIs = areaIdx;
+                }
+            }
+            Log.i(TAG, "ARTagWorld : (" + ARTagWorld.getX() + "," + ARTagWorld.getY() + "," + ARTagWorld.getZ() + ")");
+            Log.i(TAG, "areaIdx:" + whereARTagIs);
+            output[ARTagIdx] = new ARTagOutput(snapWorld, ARTagWorld, result.getResultImage(), result.getValid(),
+                    whereARTagIs);
         }
 
         Log.i(TAG, "End process");
@@ -171,14 +189,14 @@ public class ARTagProcess {
 
     /**
      * Get the world point from the camera point
-     * 
+     *
      * @param center:      astrobee center point
      * @param orientation: astrobee orientation
      * @param rvec:        rvec from aruco
      * @param tvec:        tvec from aruco
      * @return Point: world point
      */
-    private static Point getWorldPoint(Point center, Quaternion orientation, Mat rvec, Mat tvec) {
+    private static Point getCameraWorldPoint(Point center, Quaternion orientation, Mat rvec, Mat tvec) {
         // get tvec and rotation matrix
         double[] arTagInCamera = { tvec.get(0, 0)[0], tvec.get(0, 0)[1], tvec.get(0, 0)[2] };
         Mat rotationMatrix = new Mat();
@@ -224,8 +242,58 @@ public class ARTagProcess {
     }
 
     /**
+     * Get the world point from the artag point
+     *
+     * @param center:      astrobee center point
+     * @param orientation: astrobee orientation
+     * @param rvec:        rvec from aruco
+     * @param tvec:        tvec from aruco
+     * @return Point: world point
+     */
+    private static Point getARTagWorldPoint(Point center, Quaternion orientation, Mat rvec, Mat tvec) {
+        // get tvec and rotation matrix
+        double[] arTagInCamera = { tvec.get(0, 0)[0], tvec.get(0, 0)[1], tvec.get(0, 0)[2] };
+        Mat rotationMatrix = new Mat();
+        Calib3d.Rodrigues(rvec, rotationMatrix);
+        // Mat rotationMatrix= rotation.inv();
+        double[][] R = {
+                { rotationMatrix.get(0, 0)[0], rotationMatrix.get(0, 1)[0], rotationMatrix.get(0, 2)[0] },
+                { rotationMatrix.get(1, 0)[0], rotationMatrix.get(1, 1)[0], rotationMatrix.get(1, 2)[0] },
+                { rotationMatrix.get(2, 0)[0], rotationMatrix.get(2, 1)[0], rotationMatrix.get(2, 2)[0] } };
+
+
+        // artag to camera
+        double[] item_artag = { -0.135, 0.0375, 0, 1 };
+        double[][] Rt01 = {
+                { R[0][0], R[0][1], R[0][2], arTagInCamera[0] },
+                { R[1][0], R[1][1], R[1][2], arTagInCamera[1] },
+                { R[2][0], R[2][1], R[2][2], arTagInCamera[2] },
+                { 0, 0, 0, 1 }
+        };
+
+        double[] itemPointInCamera = new double[4];
+        // dot product, z to front, x to right, y to down
+        for (int i = 0; i < 4; i++) {
+            double sum = 0;
+            for (int j = 0; j < 4; j++) {
+                sum += Rt01[i][j] * item_artag[j];
+            }
+            itemPointInCamera[i] = sum;
+        }
+        // convert to x to front, y to right, z to down
+        double[] item_camera = { itemPointInCamera[2], itemPointInCamera[0], itemPointInCamera[1] };
+        double[] ARTagPoint = { item_camera[0], item_camera[1], item_camera[2], 1 };
+
+        double[] Q = { orientation.getW(), orientation.getX(), orientation.getY(), orientation.getZ() };
+        double[] centerPoint = { center.getX(), center.getY(), center.getZ() };
+        double[] worldPoint = cameraToWorld(centerPoint, Q, ARTagPoint);
+
+        return new Point(worldPoint[0], worldPoint[1], worldPoint[2]);
+    }
+
+    /**
      * Undistort the image
-     * 
+     *
      * @param img: image from astrobee camera
      * @return Mat
      */
@@ -243,7 +311,7 @@ public class ARTagProcess {
 
     /**
      * Convert a quaternion to a 3x3 rotation matrix
-     * 
+     *
      * @param Q: quaternion in (w, x, y, z)
      * @return 3x3 rotation matrix
      */
@@ -270,13 +338,12 @@ public class ARTagProcess {
         double r22 = 2 * (q0 * q0 + q3 * q3) - 1;
 
         // 3x3 rotation matrix
-
         return new double[][] { { r00, r01, r02 }, { r10, r11, r12 }, { r20, r21, r22 } };
     }
 
     /**
      * Transform a point from camera to world coordinates
-     * 
+     *
      * @param pos:        position of the camera
      * @param quaternion: quaternion of the camera
      * @param point:      point in camera coordinates
@@ -305,7 +372,7 @@ public class ARTagProcess {
 
     /**
      * Calculate the distance between two points
-     * 
+     *
      * @param a: point a
      * @param b: point b
      * @return distance between a and b
@@ -314,9 +381,28 @@ public class ARTagProcess {
         return Math.sqrt((a[0] - b[0]) * (a[0] - b[0]) + (a[1] - b[1]) * (a[1] - b[1]));
     }
 
+    private static double calDist(Point a, Point b) {
+        return Math.sqrt((a.getX() - b.getX()) * (a.getX() - b.getX()) + (a.getY() - b.getY()) * (a.getY() - b.getY())
+                + (a.getZ() - b.getZ()) * (a.getZ() - b.getZ()));
+    }
+
+    /**
+     * Calculate the Euclidean distance of a vector
+     *
+     * @param vec: vector
+     * @return Euclidean distance of vec
+     */
+    private static double getEuclideanDistance(double[] vec) {
+        double sum = 0;
+        for (double v : vec) {
+            sum += v * v;
+        }
+        return Math.sqrt(sum);
+    }
+
     /**
      * Cut the image by the given corner
-     * 
+     *
      * @param img:     image from astrobee camera
      * @param corners: list of corners
      * @return DetectionResult
