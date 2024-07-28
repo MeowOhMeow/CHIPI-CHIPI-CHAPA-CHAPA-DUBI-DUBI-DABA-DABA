@@ -19,23 +19,24 @@ import org.opencv.aruco.*;
 /**
  * Process the image and return the snap point
  *
- * Usage: 1. setDistortCoefficient(double[] distortCoefficient) 2.
- * setCameraMatrix(double[] cameraMatrix) 3. setSnapDistance(double
- * snapDistance) (optional, default is 0.6) 4. process(Point center, Quaternion
- * orientation, Mat img)
+ * Usage:
+ * 1. setDistortCoefficient(double[] distortCoefficient)
+ * 2. setCameraMatrix(double[] cameraMatrix)
+ * 3. setSnapDistance(double snapDistance) (optional, default is 0.6)
+ * 4. process(Point center, Quaternion orientation, Mat img)
  */
 public class ARTagProcess {
 
     private static final String TAG = "ARTagProcess";
 
     private static double snapDistance = 0.6d;
-    private static Mat distortCoefficient = new Mat();
-    private static Mat cameraMatrix = new Mat();
+    private static Mat distortCoefficient = null;
+    private static Mat cameraMatrix = null;
     private static Mat newCameraMatrix = new Mat();
     private static Dictionary ArUcoDict = Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
     private static DetectorParameters parameters = DetectorParameters.create();
-    private static Point[] areaPoint = { new Point(10.95d, -10.58d, 5.195d), new Point(10.925d, -9.075d, 3.76203d),
-            new Point(11.925d, -7.725d, 3.76093d), new Point(9.866984d, -6.8525, 4.945d),
+    private static Point[] areaCenter = { new Point(10.95d, -10.58d, 5.195d), new Point(10.925d, -8.875d, 3.76203d),
+            new Point(10.925d, -7.925d, 3.76093d), new Point(9.866984d, -6.8525d, 4.945d),
             new Point(11.143d, -6.7607d, 4.9654d) };
 
     private static class DetectionResult {
@@ -106,46 +107,17 @@ public class ARTagProcess {
         ARTagProcess.snapDistance = snapDistance;
     }
 
-    /**
-     * Swap two mat in the list
-     *
-     * @param corners: list of mat
-     * @param idx1:    index 1
-     * @param idx2:    index 2
-     * @return void
-     */
-    private static void swapMat(List<Mat> corners, int idx1, int idx2) {
-        Mat temp = corners.get(idx1);
-        corners.set(idx1, corners.get(idx2));
-        corners.set(idx2, temp);
-    }
-
-    /**
-     * Sort the corners
-     *
-     * @param corners
-     * @return void
-     */
-    private static void sort(List<Mat> corners) {
-        for (int i = 0; i < corners.size(); i++) {
-            for (int j = i + 1; j < corners.size(); j++) {
-                double x1 = corners.get(i).get(0, 0)[0];
-                double y1 = corners.get(i).get(0, 0)[1];
-                double x2 = corners.get(j).get(0, 0)[0];
-                double y2 = corners.get(j).get(0, 0)[1];
-                if (y1 > y2 || (y1 == y2 && x1 > x2)) {
-                    swapMat(corners, i, j);
-                }
-            }
-        }
-    }
-
     public static ARTagOutput[] process(Point center, Quaternion orientation, Mat img) {
+        if (distortCoefficient == null || cameraMatrix == null) {
+            Log.e(TAG, "Camera matrix or distortion coefficient is not set");
+            return new ARTagOutput[0];
+        }
+
         Log.i(TAG, "Start process");
         // img processing
         Mat undistortedImage = undistortImage(img);
         Log.i(TAG, "Image undistorted");
-        List<Mat> corners = new ArrayList<Mat>();
+        List<Mat> corners = new ArrayList<>();
         Aruco.detectMarkers(undistortedImage, ArUcoDict, corners, new Mat(), parameters);
         ARTagOutput[] output = new ARTagOutput[corners.size()];
 
@@ -155,10 +127,8 @@ public class ARTagProcess {
             return new ARTagOutput[0];
         }
 
-        sort(corners);
-
         for (int ARTagIdx = 0; ARTagIdx < corners.size(); ARTagIdx++) {
-            List<Mat> singleCorner = new ArrayList<Mat>();
+            List<Mat> singleCorner = new ArrayList<>();
             singleCorner.add(corners.get(ARTagIdx));
             DetectionResult result = cutImageByCorner(undistortedImage, singleCorner);
 
@@ -168,16 +138,16 @@ public class ARTagProcess {
                     result.getTvec());
 
             int whereARTagIs = -1;
-            double leastBoxDistance = 100;
-            for (int areaIdx = 0; areaIdx < areaPoint.length; areaIdx++) {
-                double boxDistance = calDist(ARTagWorld,areaPoint[areaIdx]);
-                if(boxDistance < leastBoxDistance){
+            double leastBoxDistance = Double.MAX_VALUE;
+            for (int areaIdx = 0; areaIdx < areaCenter.length; areaIdx++) {
+                double boxDistance = Utility.calEuclideanDistance(ARTagWorld, areaCenter[areaIdx]);
+                if (boxDistance < leastBoxDistance) {
                     leastBoxDistance = boxDistance;
                     whereARTagIs = areaIdx;
                 }
             }
-            Log.i(TAG, "ARTagWorld : (" + ARTagWorld.getX() + "," + ARTagWorld.getY() + "," + ARTagWorld.getZ() + ")");
-            Log.i(TAG, "areaIdx:" + whereARTagIs);
+            Log.i(TAG, "ARTagWorld: (" + ARTagWorld.getX() + "," + ARTagWorld.getY() + "," + ARTagWorld.getZ() + ")");
+            Log.i(TAG, "areaIdx: " + whereARTagIs);
             output[ARTagIdx] = new ARTagOutput(snapWorld, ARTagWorld, result.getResultImage(), result.getValid(),
                     whereARTagIs);
         }
@@ -260,7 +230,6 @@ public class ARTagProcess {
                 { rotationMatrix.get(0, 0)[0], rotationMatrix.get(0, 1)[0], rotationMatrix.get(0, 2)[0] },
                 { rotationMatrix.get(1, 0)[0], rotationMatrix.get(1, 1)[0], rotationMatrix.get(1, 2)[0] },
                 { rotationMatrix.get(2, 0)[0], rotationMatrix.get(2, 1)[0], rotationMatrix.get(2, 2)[0] } };
-
 
         // artag to camera
         double[] item_artag = { -0.135, 0.0375, 0, 1 };
@@ -381,25 +350,6 @@ public class ARTagProcess {
         return Math.sqrt((a[0] - b[0]) * (a[0] - b[0]) + (a[1] - b[1]) * (a[1] - b[1]));
     }
 
-    private static double calDist(Point a, Point b) {
-        return Math.sqrt((a.getX() - b.getX()) * (a.getX() - b.getX()) + (a.getY() - b.getY()) * (a.getY() - b.getY())
-                + (a.getZ() - b.getZ()) * (a.getZ() - b.getZ()));
-    }
-
-    /**
-     * Calculate the Euclidean distance of a vector
-     *
-     * @param vec: vector
-     * @return Euclidean distance of vec
-     */
-    private static double getEuclideanDistance(double[] vec) {
-        double sum = 0;
-        for (double v : vec) {
-            sum += v * v;
-        }
-        return Math.sqrt(sum);
-    }
-
     /**
      * Cut the image by the given corner
      *
@@ -469,7 +419,7 @@ public class ARTagProcess {
         srcPoint.put(2, 0, leftBottomCorner);
         srcPoint.put(3, 0, rightBottomCorner);
 
-        dstPoint.put(0, 0, new double[] { 0, 0 });
+        dstPoint.put(0, 0, 0, 0);
         dstPoint.put(1, 0, rightTopDst);
         dstPoint.put(2, 0, leftBottomDst);
         dstPoint.put(3, 0, rightBottomDst);

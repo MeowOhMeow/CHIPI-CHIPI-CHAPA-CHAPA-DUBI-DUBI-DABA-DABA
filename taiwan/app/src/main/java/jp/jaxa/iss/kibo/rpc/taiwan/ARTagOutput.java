@@ -13,7 +13,6 @@ public class ARTagOutput {
     private Mat resultImage;
     private Boolean valid;
     private int areaIdx;
-    
 
     /**
      * Constructor for the ArtagOutput class
@@ -24,7 +23,7 @@ public class ARTagOutput {
      * @param valid:       if the AR tag is valid or not
      * @param areaIdx:     index of the area
      */
-    public ARTagOutput(Point snapWorld,Point ARTagWorld, Mat resultImage, Boolean valid, int areaIdx) {
+    public ARTagOutput(Point snapWorld, Point ARTagWorld, Mat resultImage, Boolean valid, int areaIdx) {
         this.snapWorld = snapWorld;
         this.ARTagWorld = ARTagWorld;
         this.resultImage = resultImage;
@@ -40,6 +39,7 @@ public class ARTagOutput {
     public Point getSnapWorld() {
         return snapWorld;
     }
+
     /**
      * Get the ARTag world point
      * 
@@ -48,7 +48,7 @@ public class ARTagOutput {
     public Point getARTagWorld() {
         return ARTagWorld;
     }
-    
+
     /**
      * Get the result image
      * 
@@ -69,6 +69,7 @@ public class ARTagOutput {
 
     /**
      * Get areaIdx
+     * 
      * @return areaIdx
      */
     public int getAreaIdx() {

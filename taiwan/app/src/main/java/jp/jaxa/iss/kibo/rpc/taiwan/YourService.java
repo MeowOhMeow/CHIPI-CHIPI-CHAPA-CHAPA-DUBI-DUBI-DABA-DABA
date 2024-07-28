@@ -157,6 +157,7 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "Item " + areaIdx + " location: " + targetDetection.getSnapWorld());
             snapPoints[areaIdx] = targetDetection.getSnapWorld();
             // TODO: handle the case when the ar tag it too far from the astrobee
+            // TODO: handle the case when the ar tag is not valid
             api.saveMatImage(targetDetection.getResultImage(), "Area" + areaIdx + "_result.jpg");
             Work work = new Work(targetDetection, areaItems, areaInfo, pointAtAstronaut, expansionVal, paths);
             queue.add(work);
@@ -179,189 +180,6 @@ public class YourService extends KiboRpcService {
             }
         }
         return null;
-    }
-
-    /**
-     * Move forward to retake image.
-     *
-     * @param move_x,     move_y, move_z: the amount of movement
-     * @param quaternion: the orientation of Astrobee
-     * @param Idxs:       Area indexes
-     * @return detection result of ARTag Process
-     * 
-     *         TODO: refactor this function
-     * 
-     * @deprecated
-     */
-    private ARTagOutput retakeForward(double move_x, double move_y, double move_z, Quaternion quaternion, int[] Idxs) {
-        Kinematics kinematics = api.getRobotKinematics();
-        Result isMoveToSuccessResult = null;
-        ARTagOutput detection = null;
-
-        int move_count = 0;
-        while (move_count < 3) {
-            isMoveToSuccessResult = api.moveTo(
-                    new Point(kinematics.getPosition().getX() + move_x * move_count,
-                            kinematics.getPosition().getY() + move_y * move_count,
-                            kinematics.getPosition().getZ() + move_z * move_count),
-                    quaternion, false);
-            if (!isMoveToSuccessResult.hasSucceeded()) {
-                Log.i(TAG, "----------Move forward failed, retrying with theta star algorithm----------");
-                Utility.processPathToTarget(api, null,
-                        new Point(kinematics.getPosition().getX() + move_x * move_count,
-                                kinematics.getPosition().getY() + move_y * move_count,
-                                kinematics.getPosition().getZ() + move_z * move_count),
-                        quaternion, expansionVal);
-            }
-
-            kinematics = api.getRobotKinematics();
-            Mat image_retake = Utility.takeAndSaveSnapshot(api, "Area" + Arrays.toString(Idxs) + ".jpg",
-                    SNAP_SHOT_WAIT_TIME);
-            detection = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image_retake)[0];
-            if (detection != null)
-                break;
-            move_count++;
-        }
-        Log.i(TAG, "move_count:" + move_count);
-        return detection;
-    }
-
-    /**
-     * Move to specific point to retake image.
-     *
-     * @param point:      target point
-     * @param quaternion: the orientation of Astrobee
-     * @param Idxs:       Area indexes
-     * @return detection result of ARTag Process
-     * 
-     *         TODO: refactor this function
-     * 
-     * @deprecated
-     */
-    private ARTagOutput[] retakeMoveToPoint(Point point, Quaternion quaternion, int[] Idxs) {
-        Result isMoveToSuccessResult = null;
-        isMoveToSuccessResult = api.moveTo(point, quaternion, false);
-        if (!isMoveToSuccessResult.hasSucceeded()) {
-            Log.i(TAG, "----------Move forward failed, retrying with theta star algorithm----------");
-            Utility.processPathToTarget(api, null, point, quaternion, expansionVal);
-        }
-
-        Kinematics kinematics = api.getRobotKinematics();
-        Mat image_retake = Utility.takeAndSaveSnapshot(api, "Area" + Arrays.toString(Idxs) + ".jpg",
-                SNAP_SHOT_WAIT_TIME);
-        ARTagOutput[] detect_arr = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(),
-                image_retake);
-        return detect_arr;
-    }
-
-    /**
-     * Calculate the distance of two points.
-     *
-     * @param image:    image from NavCam
-     * @param areaIdxs: Area indexes
-     * @return detection result of ARTag Process
-     * 
-     *         TODO: refactor this function
-     * 
-     * @deprecated
-     */
-    private ARTagOutput[] handleARTagException(Mat image, int[] areaIdxs) {
-        Kinematics kinematics = api.getRobotKinematics();
-        ARTagOutput[] detections = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image);
-
-        // Handling the case when no detection is returned
-        if ((Arrays.equals(areaIdxs, new int[] { 0 })) && (detections == null)) {
-            Log.i(TAG, "retake image of area 0");
-            detections = new ARTagOutput[1];
-            detections = retakeMoveToPoint(new Point(10.9078d, -9.887558906125106d,
-                    5.1124d),
-                    new Quaternion(0f, 0f, -0.71f, 0.71f), new int[] { areaIdxs[0] });
-        } else if ((Arrays.equals(areaIdxs, new int[] { 3 })) && (detections == null)) {
-            Log.i(TAG, "retake image of area 3");
-            detections = new ARTagOutput[1];
-
-            if (kinematics.getPosition().getX() > 11.1) {
-                detections[0] = retakeForward(-0.05, 0, 0, new Quaternion(0f, -0.71f, 0.71f,
-                        0f), areaIdxs);
-            }
-        } else if (Arrays.equals(areaIdxs, new int[] { 1, 2 })) {
-            // both failed
-            if (detections == null) {
-                // move to area1
-                Log.i(TAG, "Both failed, retake image of area 1");
-                detections = new ARTagOutput[2];
-                ARTagOutput[] detect_arr = retakeMoveToPoint(new Point(10.8828d, -8.7924d,
-                        4.557490723909075d),
-                        new Quaternion(0.5f, 0.5f, -0.5f, 0.5f), new int[] { areaIdxs[0] });
-                detections[0] = detect_arr[0];
-                if (detections[0] == null) {
-                    detections[0] = retakeForward(0, 0, -0.05, new Quaternion(0.5f, 0.5f, -0.5f,
-                            0.5f),
-                            new int[] { areaIdxs[0] });
-                }
-
-                // move to area2
-                Log.i(TAG, "Both failed, retake image of area 2");
-                detect_arr = retakeMoveToPoint(new Point(10.8828d, -7.7424d,
-                        4.569366733183541d),
-                        new Quaternion(0.5f, 0.5f, -0.5f, 0.5f), new int[] { areaIdxs[1] });
-                detections[1] = detect_arr[0];
-                if (detections[1] == null) {
-                    detections[1] = retakeForward(0, 0, -0.05, new Quaternion(0.5f, 0.5f, -0.5f,
-                            0.5f),
-                            new int[] { areaIdxs[1] });
-                }
-            }
-            // One in the two failed
-            else if (detections.length == 1) {
-                Point pos = kinematics.getPosition();
-                double distance_to_area1 = Utility.calEuclideanDistance(pos.getX(),
-                        pos.getY(), pos.getZ(),
-                        10.925, -8.875, 3.76203);
-                double distance_to_area2 = Utility.calEuclideanDistance(pos.getX(),
-                        pos.getY(), pos.getZ(),
-                        10.925, -7.925, 3.76093);
-
-                // area1 failed, area2 success
-                if ((distance_to_area1 >= distance_to_area2)) {
-                    Log.i(TAG, "retake image of area 1");
-
-                    ARTagOutput[] newDetections = new ARTagOutput[2];
-                    ARTagOutput[] detect_arr = retakeMoveToPoint(new Point(10.8828d, -8.7924d,
-                            4.557490723909075d),
-                            new Quaternion(0.5f, 0.5f, -0.5f, 0.5f), new int[] { areaIdxs[0] });
-                    newDetections[0] = detect_arr[0];
-                    newDetections[1] = detections[0];
-                    detections = newDetections;
-
-                    if (detections[0] == null) {
-                        detections[0] = retakeForward(0, 0, -0.05, new Quaternion(0.5f, 0.5f, -0.5f,
-                                0.5f),
-                                new int[] { areaIdxs[0] });
-                    }
-                }
-                // area1 success, area2 failed
-                else if (distance_to_area1 < distance_to_area2) {
-                    Log.i(TAG, "retake image of area 2");
-
-                    ARTagOutput[] newDetections = new ARTagOutput[2];
-                    ARTagOutput[] detect_arr = retakeMoveToPoint(new Point(10.8828d, -7.7424d,
-                            4.569366733183541d),
-                            new Quaternion(0.5f, 0.5f, -0.5f, 0.5f), new int[] { areaIdxs[1] });
-                    newDetections[0] = detections[0];
-                    newDetections[1] = detect_arr[0];
-                    detections = newDetections;
-
-                    if (detections[1] == null) {
-                        detections[1] = retakeForward(0, 0, -0.05, new Quaternion(0.5f, 0.5f, -0.5f,
-                                0.5f),
-                                new int[] { areaIdxs[1] });
-                    }
-                }
-            }
-        }
-
-        return detections;
     }
 
     /**
@@ -393,16 +211,14 @@ public class YourService extends KiboRpcService {
      * Capture and detect the astronaut.
      * 
      * @return the item detected
-     * 
-     *         TODO: need to adjust because of the new ARTagProcess.process
      */
     private AreaItem captureAndDetectAstronaut() {
-        AreaItem areaItem = null;
+        AreaItem areaItem;
         Mat image = Utility.takeAndSaveSnapshot(api, "Astronaut.jpg", SNAP_SHOT_WAIT_TIME);
         ARTagOutput[] detections = ARTagProcess.process(pointAtAstronaut, quaternionAtAstronaut, image);
 
         int loopCounter = 0;
-        while (loopCounter < LOOP_LIMIT && detections == null) {
+        while (loopCounter < LOOP_LIMIT && detections.length == 0) {
             loopCounter++;
             Log.i(TAG, "Retaking image of astronaut for the " + loopCounter + " time");
             image = Utility.takeAndSaveSnapshot(api, "Astronaut.jpg", 200);
