@@ -66,6 +66,7 @@ public class YourService extends KiboRpcService {
         categorizeDetections(detections, failedIdxs, successfulIdxs);
 
         processSuccessfulDetections(successfulIdxs, detections);
+        // TODO: test failed detections
         processFailedDetections(failedIdxs);
     }
 
@@ -238,7 +239,7 @@ public class YourService extends KiboRpcService {
     private void processAreas() {
         Point[][] outboundTrips = {
                 { new Point(10.9922d, -9.8876d, 5.2776d) },
-                { new Point(10.98d, -8.467d, 4.85d), new Point(10.9672d, -8.4326d, 4.8557d) },
+                { new Point(10.9672d, -8.4326d, 4.8557d) },
                 { new Point(10.6925d, -6.9351d, 4.9028d) }
         };
 
