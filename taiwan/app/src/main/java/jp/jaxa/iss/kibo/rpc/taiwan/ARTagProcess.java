@@ -35,7 +35,7 @@ public class ARTagProcess {
     private static Mat newCameraMatrix = new Mat();
     private static Dictionary ArUcoDict = Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
     private static DetectorParameters parameters = DetectorParameters.create();
-    private static Point[] areaCenter = { new Point(10.95d, -10.58d, 5.195d), new Point(10.925d, -8.875d, 3.76203d),
+    private static final Point[] areaCenter = { new Point(10.95d, -10.58d, 5.195d), new Point(10.925d, -8.875d, 3.76203d),
             new Point(10.925d, -7.925d, 3.76093d), new Point(9.866984d, -6.8525d, 4.945d),
             new Point(11.143d, -6.7607d, 4.9654d) };
 

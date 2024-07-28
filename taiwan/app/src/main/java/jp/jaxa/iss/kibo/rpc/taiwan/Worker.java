@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Worker implements Runnable {
     private BlockingQueue<Runnable> queue = null;
     private AtomicBoolean running = new AtomicBoolean(true);
-    //signal that used to stop the Worker threading process
+    // signal that used to stop the Worker threading process
     private static final Runnable POISON_PILL = new Runnable() {
         @Override
         public void run() {
@@ -30,7 +30,7 @@ public class Worker implements Runnable {
 
     @Override
     public void run() {
-        //parallel porcessing with Main thread and Worker thread 
+        // parallel porcessing with Main thread and Worker thread
         while (running.get()) {
             try {
                 Runnable work = queue.take();
@@ -42,7 +42,7 @@ public class Worker implements Runnable {
                 e.printStackTrace();
             }
         }
-        //finish the remianed task in Worker thread
+        // finish the remianed task in Worker thread
         Runnable work = null;
         while ((work = queue.poll()) != null) {
             if (work != POISON_PILL) {
@@ -51,5 +51,3 @@ public class Worker implements Runnable {
         }
     }
 }
-
-    

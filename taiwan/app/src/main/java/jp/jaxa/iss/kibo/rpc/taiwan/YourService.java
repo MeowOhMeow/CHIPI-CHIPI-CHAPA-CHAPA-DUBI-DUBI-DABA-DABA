@@ -277,14 +277,14 @@ public class YourService extends KiboRpcService {
      */
     @Override
     protected void runPlan1() {
+        // The mission starts.
+        api.startMission();
+
         double[][] navCamIntrinsics = api.getNavCamIntrinsics();
         ARTagProcess.setCameraMatrix(navCamIntrinsics[0]);
         ARTagProcess.setDistortCoefficient(navCamIntrinsics[1]);
         YOLOInference.init(this.getResources());
         workerThread.start();
-
-        // The mission starts.
-        api.startMission();
 
         {
             Kinematics kinematics = api.getRobotKinematics();
