@@ -141,7 +141,7 @@ public class Utility {
     /**
      * Log a separator
      */
-    public static void logSeperator() {
+    public static void logSeparator() {
         Log.i(TAG, "----------------------------------------");
     }
 }

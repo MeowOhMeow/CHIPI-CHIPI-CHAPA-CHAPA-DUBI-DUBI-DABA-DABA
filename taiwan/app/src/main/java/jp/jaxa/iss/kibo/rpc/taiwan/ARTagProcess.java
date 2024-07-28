@@ -148,7 +148,7 @@ public class ARTagProcess {
         Log.i(TAG, "corners size:" + corners.size());
         if (corners.size() == 0) {
             Log.i(TAG, "no aruco tag detected");
-            return null;
+            return new ARTagOutput[0];
         }
 
         sort(corners);
@@ -161,7 +161,7 @@ public class ARTagProcess {
             Point snapWorld = getWorldPoint(center, orientation, result.getRvec(),
                     result.getTvec());
 
-            output[ARTagIdx] = new ARTagOutput(snapWorld, result.getResultImage(), result.getValid());
+            output[ARTagIdx] = new ARTagOutput(snapWorld, result.getResultImage(), result.getValid(), 0);
         }
 
         Log.i(TAG, "End process");

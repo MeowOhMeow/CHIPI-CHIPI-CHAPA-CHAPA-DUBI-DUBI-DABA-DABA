@@ -203,11 +203,11 @@ public class PathFindingAPI {
     }
 
     public static void logPoints(List<Point> points, String label) {
-        Utility.logSeperator();
+        Utility.logSeparator();
         Log.i(TAG, label + ":");
         for (Point p : points) {
             Log.i(TAG, "x: " + p.getX() + " y: " + p.getY() + " z: " + p.getZ());
         }
-        Utility.logSeperator();
+        Utility.logSeparator();
     }
 }
