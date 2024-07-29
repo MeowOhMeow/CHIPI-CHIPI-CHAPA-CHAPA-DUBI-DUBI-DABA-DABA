@@ -17,7 +17,7 @@ public class PathFindingAPI {
     private static final double GRID_SIZE = 0.05;
 
     private static List<Obstacle> obstacles = createObstacles();
-    private static Graph<Block, Double> graph = null;
+    private static Graph<Point, NoProperty> graph = null;
     private static double lastExpansionVal = -1;
 
     /**
@@ -40,10 +40,19 @@ public class PathFindingAPI {
         Vertex source = findNearestVertex(start, graph);
         Vertex target = findNearestVertex(end, graph);
 
+        // set temporary target point to avoid obstacles
+        Point originalTargetPoint = graph.getVertexProperty(target.getId()).getValue();
+        graph.setVertexProperty(target, new VertexProperty<>(new Point(end.getX(), end.getY(), end.getZ())));
+
         Stack<Vertex> path = ThetaStar.run(source, target, graph, new Heuristic(), obstacles, expansionVal);
         List<Point> result = extractPath(path, graph);
-        // remove the first point since it is the starting point
+
+        // restore the original target point
+        graph.setVertexProperty(target, new VertexProperty<>(originalTargetPoint));
+
+        // remove the first and last points
         result.remove(0);
+
         logPoints(result, "result");
         return result;
     }
@@ -95,8 +104,8 @@ public class PathFindingAPI {
                     double actualY = minY + y * GRID_SIZE;
                     double actualZ = minZ + z * GRID_SIZE;
 
-                    Block block = new Block(vertexId, actualX, actualY, actualZ);
-                    graph.setVertexProperty(new Vertex(vertexId), new VertexProperty<>(block));
+                    Point point = new Point(actualX, actualY, actualZ);
+                    graph.setVertexProperty(new Vertex(vertexId), new VertexProperty<>(point));
                     vertexLocation[x][y][z] = vertexId++;
                 }
             }
@@ -173,16 +182,16 @@ public class PathFindingAPI {
      * @param graph: The graph
      * @return The nearest vertex
      */
-    private static Vertex findNearestVertex(Point point, Graph<Block, Double> graph) {
+    private static Vertex findNearestVertex(Point point, Graph<Point, NoProperty> graph) {
         // TODO: optimize this
         double px = point.getX(), py = point.getY(), pz = point.getZ();
         double minDistance = Double.MAX_VALUE;
         int nearestVertexId = 0;
 
         for (int i = 0; i < graph.size(); i++) {
-            Block block = graph.getVertexProperty(i).getValue();
-            double distance = Math.sqrt(Math.pow(px - block.getX(), 2) + Math.pow(py - block.getY(), 2)
-                    + Math.pow(pz - block.getZ(), 2));
+            Point pt = graph.getVertexProperty(i).getValue();
+            double distance = Math.sqrt(Math.pow(px - pt.getX(), 2) + Math.pow(py - pt.getY(), 2)
+                    + Math.pow(pz - pt.getZ(), 2));
             if (distance < minDistance) {
                 minDistance = distance;
                 nearestVertexId = i;
@@ -192,12 +201,12 @@ public class PathFindingAPI {
         return new Vertex(nearestVertexId);
     }
 
-    private static List<Point> extractPath(Stack<Vertex> path, Graph<Block, Double> graph) {
+    private static List<Point> extractPath(Stack<Vertex> path, Graph<Point, NoProperty> graph) {
         List<Point> result = new ArrayList<>();
         while (!path.isEmpty()) {
             Vertex vertex = path.pop();
-            Block block = graph.getVertexProperty(vertex.getId()).getValue();
-            result.add(new Point(block.getX(), block.getY(), block.getZ()));
+            Point point = graph.getVertexProperty(vertex.getId()).getValue();
+            result.add(new Point(point.getX(), point.getY(), point.getZ()));
         }
         return result;
     }

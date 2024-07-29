@@ -2,13 +2,15 @@ package jp.jaxa.iss.kibo.rpc.taiwan.algorithm;
 
 import java.util.*;
 
+import gov.nasa.arc.astrobee.types.Point;
+import jp.jaxa.iss.kibo.rpc.taiwan.Utility;
 import jp.jaxa.iss.kibo.rpc.taiwan.graph.*;
 import jp.jaxa.iss.kibo.rpc.taiwan.pathfinding.*;
 
 /**
  * The Theta* algorithm.
  * 
- * * This algorithm only alows Graph<Block, Double> as input graph.
+ * * This algorithm only allows Graph<Point, NoProperty> as input graph.
  * 
  * @see ThetaStar#run(Vertex, Vertex, Graph, HeuristicInterface, List, double)
  */
@@ -52,9 +54,9 @@ public class ThetaStar {
      * @param vertex: The vertex.
      * @return The coordinates of the vertex.
      */
-    private static double[] getCoordinates(Graph<Block, Double> graph, Vertex vertex) {
-        Block block = graph.getVertexProperty(vertex).getValue();
-        return new double[] { block.getX(), block.getY(), block.getZ() };
+    private static double[] getCoordinates(Graph<Point, NoProperty> graph, Vertex vertex) {
+        Point point = graph.getVertexProperty(vertex).getValue();
+        return new double[] { point.getX(), point.getY(), point.getZ() };
     }
 
     /**
@@ -124,7 +126,7 @@ public class ThetaStar {
      * @return True if there is a line of sight between the source and target
      *         vertices.
      */
-    private static boolean lineOfSight(Vertex source, Vertex target, Graph<Block, Double> graph,
+    private static boolean lineOfSight(Vertex source, Vertex target, Graph<Point, NoProperty> graph,
             List<Obstacle> obstacles, double expansionVal) {
         double[] startPoint = getCoordinates(graph, source);
         double[] endPoint = getCoordinates(graph, target);
@@ -148,20 +150,6 @@ public class ThetaStar {
     }
 
     /**
-     * Get the Euclidean distance between two blocks.
-     * 
-     * @param a: The first block.
-     * @param b: The second block.
-     * @return The Euclidean distance between the two blocks.
-     */
-    private static double distance(Block a, Block b) {
-        double dx = a.getX() - b.getX();
-        double dy = a.getY() - b.getY();
-        double dz = a.getZ() - b.getZ();
-        return Math.sqrt(dx * dx + dy * dy + dz * dz);
-    }
-
-    /**
      * Run the Theta* algorithm.
      * 
      * @param source:       The source vertex.
@@ -172,8 +160,8 @@ public class ThetaStar {
      * @param expansionVal: The expansion value.
      * @return The path from the source to the target vertex.
      */
-    public static Stack<Vertex> run(Vertex source, Vertex target, Graph<Block, Double> graph,
-            HeuristicInterface<Block, Double> heuristic, List<Obstacle> obstacles, double expansionVal) {
+    public static Stack<Vertex> run(Vertex source, Vertex target, Graph<Point, NoProperty> graph,
+            HeuristicInterface<Point, NoProperty> heuristic, List<Obstacle> obstacles, double expansionVal) {
         int numVertices = graph.size();
         double[] gScore = new double[numVertices];
         double[] fScore = new double[numVertices];
@@ -208,7 +196,7 @@ public class ThetaStar {
 
                 if (predVertex != -1
                         && lineOfSight(new Vertex(predVertex), new Vertex(neighbor), graph, obstacles, expansionVal)) {
-                    tentative_gScore += gScore[predVertex] + distance(graph.getVertexProperty(neighbor).getValue(),
+                    tentative_gScore += gScore[predVertex] + Utility.calEuclideanDistance(graph.getVertexProperty(neighbor).getValue(),
                             graph.getVertexProperty(new Vertex(predVertex)).getValue());
 
                     if (tentative_gScore < gScore[neighbor]) {
