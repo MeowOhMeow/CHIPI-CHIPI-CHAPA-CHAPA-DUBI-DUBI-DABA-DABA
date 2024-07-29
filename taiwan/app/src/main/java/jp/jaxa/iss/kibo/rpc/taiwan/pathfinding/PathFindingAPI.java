@@ -37,8 +37,9 @@ public class PathFindingAPI {
             Log.i(TAG, "Graph built");
         }
 
-        Vertex source = findNearestVertex(start, graph);
-        Vertex target = findNearestVertex(end, graph);
+        Pair<Vertex, Vertex> nearestVertices = findNearestVertices(start, end, graph);
+        Vertex source = nearestVertices.getFirst();
+        Vertex target = nearestVertices.getSecond();
 
         // set temporary points to avoid obstacles
         Point originalSourcePoint = graph.getVertexProperty(source.getId()).getValue();
@@ -179,29 +180,37 @@ public class PathFindingAPI {
     }
 
     /**
-     * Finds the nearest vertex to the given point
+     * Finds the nearest vertices to the start and end points
      * 
-     * @param point: The point
+     * @param start: The starting point
+     * @param end:   The ending point
      * @param graph: The graph
-     * @return The nearest vertex
+     * @return A pair of vertices representing the nearest vertices to the start and
+     *         end points
      */
-    private static Vertex findNearestVertex(Point point, Graph<Point, NoProperty> graph) {
+    private static Pair<Vertex, Vertex> findNearestVertices(Point start, Point end, Graph<Point, NoProperty> graph) {
         // TODO: optimize this
-        double px = point.getX(), py = point.getY(), pz = point.getZ();
-        double minDistance = Double.MAX_VALUE;
-        int nearestVertexId = 0;
+
+        double minStartDistance = Double.MAX_VALUE;
+        double minEndDistance = Double.MAX_VALUE;
+        int nearestStartVertexId = -1;
+        int nearestEndVertexId = -1;
 
         for (int i = 0; i < graph.size(); i++) {
             Point pt = graph.getVertexProperty(i).getValue();
-            double distance = Math.sqrt(Math.pow(px - pt.getX(), 2) + Math.pow(py - pt.getY(), 2)
-                    + Math.pow(pz - pt.getZ(), 2));
-            if (distance < minDistance) {
-                minDistance = distance;
-                nearestVertexId = i;
+            double startDistance = Utility.calEuclideanDistance(start, pt);
+            double endDistance = Utility.calEuclideanDistance(end, pt);
+            if (startDistance < minStartDistance) {
+                minStartDistance = startDistance;
+                nearestStartVertexId = i;
+            }
+            if (endDistance < minEndDistance) {
+                minEndDistance = endDistance;
+                nearestEndVertexId = i;
             }
         }
 
-        return new Vertex(nearestVertexId);
+        return new Pair<>(new Vertex(nearestStartVertexId), new Vertex(nearestEndVertexId));
     }
 
     private static List<Point> extractPath(Stack<Vertex> path, Graph<Point, NoProperty> graph) {
