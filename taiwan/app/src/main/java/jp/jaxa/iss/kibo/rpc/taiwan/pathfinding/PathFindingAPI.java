@@ -40,14 +40,17 @@ public class PathFindingAPI {
         Vertex source = findNearestVertex(start, graph);
         Vertex target = findNearestVertex(end, graph);
 
-        // set temporary target point to avoid obstacles
+        // set temporary points to avoid obstacles
+        Point originalSourcePoint = graph.getVertexProperty(source.getId()).getValue();
         Point originalTargetPoint = graph.getVertexProperty(target.getId()).getValue();
+        graph.setVertexProperty(source, new VertexProperty<>(new Point(start.getX(), start.getY(), start.getZ())));
         graph.setVertexProperty(target, new VertexProperty<>(new Point(end.getX(), end.getY(), end.getZ())));
 
         Stack<Vertex> path = ThetaStar.run(source, target, graph, new Heuristic(), obstacles, expansionVal);
         List<Point> result = extractPath(path, graph);
 
-        // restore the original target point
+        // restore the original points
+        graph.setVertexProperty(source, new VertexProperty<>(originalSourcePoint));
         graph.setVertexProperty(target, new VertexProperty<>(originalTargetPoint));
 
         // remove the first and last points
