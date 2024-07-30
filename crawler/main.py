@@ -11,6 +11,8 @@ import datetime
 import json
 import playsound
 import pandas as pd
+import traceback
+
 
 current_dir = os.path.dirname(__file__)
 if not os.path.exists(os.path.join(current_dir, "htmls")):
@@ -485,7 +487,8 @@ if __name__ == "__main__":
         # remove_simulation(driver)
         # time.sleep(5)
     except Exception as e:
-        print("Error:", e)
+        print("Error:")
+        traceback.print_exc()
     finally:
         driver.quit()
 

@@ -4,7 +4,19 @@ import java.util.*;
 import graph.*;
 import pathfinding.*;
 
+/**
+ * The Theta* algorithm.
+ * 
+ * * This algorithm only allows Graph<Point, NoProperty> as input graph.
+ * 
+ * @see ThetaStar#run(Vertex, Vertex, Graph, HeuristicInterface, List, double)
+ */
 public class ThetaStar {
+    /**
+     * The penalty value of adding a vertex to the path.
+     * This value is calculated based on the max speed and acceleration of the
+     * astrobee.
+     */
     private static final double PENALTY = 4.15;
 
     private static class VertexComparator implements Comparator<Pair<Double, Integer>> {
@@ -14,7 +26,15 @@ public class ThetaStar {
         }
     }
 
-    public static Stack<Vertex> reconstructPath(Vertex source, Vertex target, int[] pred) {
+    /**
+     * Reconstruct the path from the source to the target vertex.
+     * 
+     * @param source: The source vertex.
+     * @param target: The target vertex.
+     * @param pred:   The predecessor array.
+     * @return The path from the source to the target vertex.
+     */
+    private static Stack<Vertex> reconstructPath(Vertex source, Vertex target, int[] pred) {
         Stack<Vertex> path = new Stack<>();
         int current = target.getId();
         while (current != -1 && current != source.getId()) {
@@ -25,18 +45,44 @@ public class ThetaStar {
         return path;
     }
 
-    private static double[] getCoordinates(Graph<Block, Double> graph, Vertex vertex) {
-        Block block = graph.getVertexProperty(vertex).getValue();
-        return new double[] { block.getX(), block.getY(), block.getZ() };
+    /**
+     * Get the coordinates of the given vertex.
+     * 
+     * @param graph:  The graph.
+     * @param vertex: The vertex.
+     * @return The coordinates of the vertex.
+     */
+    private static double[] getCoordinates(Graph<Point, NoProperty> graph, Vertex vertex) {
+        Point point = graph.getVertexProperty(vertex).getValue();
+        return new double[] { point.getX(), point.getY(), point.getZ() };
     }
 
+    /**
+     * Check if the line between the two points has potential to intersect the
+     * bounding box.
+     * 
+     * @param boxMin: The minimum coordinates of the bounding box.
+     * @param boxMax: The maximum coordinates of the bounding box.
+     * @param point1: The first point.
+     * @param point2: The second point.
+     * @return True if the line has potential to intersect the bounding box.
+     */
     private static boolean isWithinBoundingBox(double[] boxMin, double[] boxMax, double[] point1, double[] point2) {
         return !(boxMin[0] > Math.max(point1[0], point2[0]) || boxMax[0] < Math.min(point1[0], point2[0]) ||
                 boxMin[1] > Math.max(point1[1], point2[1]) || boxMax[1] < Math.min(point1[1], point2[1]) ||
                 boxMin[2] > Math.max(point1[2], point2[2]) || boxMax[2] < Math.min(point1[2], point2[2]));
     }
 
-    public static boolean lineIntersectsBox(double[] linePoint, double[] lineDir, double[] boxMin, double[] boxMax) {
+    /**
+     * Check if the line intersects the bounding box.
+     * 
+     * @param linePoint: The point on the line.
+     * @param lineDir:   The direction of the line.
+     * @param boxMin:    The minimum coordinates of the bounding box.
+     * @param boxMax:    The maximum coordinates of the bounding box.
+     * @return True if the line intersects the bounding box.
+     */
+    private static boolean lineIntersectsBox(double[] linePoint, double[] lineDir, double[] boxMin, double[] boxMax) {
         double tMin = (boxMin[0] - linePoint[0]) / lineDir[0];
         double tMax = (boxMax[0] - linePoint[0]) / lineDir[0];
 
@@ -67,7 +113,18 @@ public class ThetaStar {
         return true;
     }
 
-    public static boolean lineOfSight(Vertex source, Vertex target, Graph<Block, Double> graph,
+    /**
+     * Check if there is a line of sight between the source and target vertices.
+     * 
+     * @param source:       The source vertex.
+     * @param target:       The target vertex.
+     * @param graph:        The graph.
+     * @param obstacles:    The list of obstacles.
+     * @param expansionVal: The expansion value.
+     * @return True if there is a line of sight between the source and target
+     *         vertices.
+     */
+    private static boolean lineOfSight(Vertex source, Vertex target, Graph<Point, NoProperty> graph,
             List<Obstacle> obstacles, double expansionVal) {
         double[] startPoint = getCoordinates(graph, source);
         double[] endPoint = getCoordinates(graph, target);
@@ -90,8 +147,19 @@ public class ThetaStar {
         return true;
     }
 
-    public static Stack<Vertex> run(Vertex source, Vertex target, Graph<Block, Double> graph,
-            HeuristicInterface<Block, Double> heuristic, List<Obstacle> obstacles, double expansionVal) {
+    /**
+     * Run the Theta* algorithm.
+     * 
+     * @param source:       The source vertex.
+     * @param target:       The target vertex.
+     * @param graph:        The graph.
+     * @param heuristic:    The heuristic.
+     * @param obstacles:    The list of obstacles.
+     * @param expansionVal: The expansion value.
+     * @return The path from the source to the target vertex.
+     */
+    public static Stack<Vertex> run(Vertex source, Vertex target, Graph<Point, NoProperty> graph,
+            HeuristicInterface<Point, NoProperty> heuristic, List<Obstacle> obstacles, double expansionVal) {
         int numVertices = graph.size();
         double[] gScore = new double[numVertices];
         double[] fScore = new double[numVertices];
@@ -103,23 +171,32 @@ public class ThetaStar {
         fScore[source.getId()] = heuristic.get(graph, source, target);
 
         PriorityQueue<Pair<Double, Integer>> openSet = new PriorityQueue<>(new VertexComparator());
+        Set<Integer> closedSet = new HashSet<>();
         openSet.add(new Pair<>(fScore[source.getId()], source.getId()));
 
         while (!openSet.isEmpty()) {
             int currentVertex = openSet.poll().getSecond();
+            closedSet.add(currentVertex);
             int predVertex = pred[currentVertex];
 
+            // Check if the target has been reached
             if (currentVertex == target.getId()) {
                 return reconstructPath(source, target, pred);
             }
 
+            // Iterate over the neighbors of the current vertex
             for (int neighbor : graph.getNeighbors(currentVertex)) {
+                if (closedSet.contains(neighbor)) {
+                    continue;
+                }
+
                 double tentative_gScore = PENALTY;
 
                 if (predVertex != -1
                         && lineOfSight(new Vertex(predVertex), new Vertex(neighbor), graph, obstacles, expansionVal)) {
-                    tentative_gScore += gScore[predVertex] + distance(graph.getVertexProperty(neighbor).getValue(),
-                            graph.getVertexProperty(new Vertex(predVertex)).getValue());
+                    tentative_gScore += gScore[predVertex]
+                            + Utility.calEuclideanDistance(graph.getVertexProperty(neighbor).getValue(),
+                                    graph.getVertexProperty(new Vertex(predVertex)).getValue());
 
                     if (tentative_gScore < gScore[neighbor]) {
                         pred[neighbor] = predVertex;
@@ -141,12 +218,5 @@ public class ThetaStar {
             }
         }
         return new Stack<>();
-    }
-
-    private static double distance(Block a, Block b) {
-        double dx = a.getX() - b.getX();
-        double dy = a.getY() - b.getY();
-        double dz = a.getZ() - b.getZ();
-        return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 }

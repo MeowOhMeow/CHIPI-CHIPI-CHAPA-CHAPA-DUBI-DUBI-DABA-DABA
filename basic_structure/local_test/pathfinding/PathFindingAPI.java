@@ -1,13 +1,10 @@
-package jp.jaxa.iss.kibo.rpc.taiwan.pathfinding;
+package pathfinding;
 
 import java.util.*;
 
-import gov.nasa.arc.astrobee.types.Point;
-import android.util.Log;
-
-import jp.jaxa.iss.kibo.rpc.taiwan.Utility;
-import jp.jaxa.iss.kibo.rpc.taiwan.graph.*;
-import jp.jaxa.iss.kibo.rpc.taiwan.algorithm.*;
+import graph.*;
+import main.Log;
+import algorithm.*;
 
 /**
  * The path finding API class.

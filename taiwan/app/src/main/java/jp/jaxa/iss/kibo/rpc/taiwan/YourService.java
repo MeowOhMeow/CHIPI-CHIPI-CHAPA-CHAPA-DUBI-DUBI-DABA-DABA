@@ -62,6 +62,7 @@ public class YourService extends KiboRpcService {
         Set<Integer> failedIdxs = new HashSet<>();
         List<Integer> successfulIdxs = new ArrayList<>();
 
+        // TODO: handle the case when the ar tag is not valid
         initializeIndices(areaIdxs, failedIdxs);
         categorizeDetections(detections, failedIdxs, successfulIdxs);
 
@@ -158,7 +159,6 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "Item " + areaIdx + " location: " + targetDetection.getSnapWorld());
             snapPoints[areaIdx] = targetDetection.getSnapWorld();
             // TODO: handle the case when the ar tag it too far from the astrobee
-            // TODO: handle the case when the ar tag is not valid
             api.saveMatImage(targetDetection.getResultImage(), "Area" + areaIdx + "_result.jpg");
             Work work = new Work(targetDetection, areaItems, areaInfo, pointAtAstronaut, expansionVal, paths);
             queue.add(work);
