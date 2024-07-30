@@ -10,6 +10,7 @@ import shutil
 import datetime
 import json
 import playsound
+import pandas as pd
 
 current_dir = os.path.dirname(__file__)
 if not os.path.exists(os.path.join(current_dir, "htmls")):
@@ -18,6 +19,8 @@ if not os.path.exists(os.path.join(current_dir, "images")):
     os.makedirs(os.path.join(current_dir, "images"))
 if not os.path.exists(os.path.join(current_dir, "results")):
     os.makedirs(os.path.join(current_dir, "results"))
+if not os.path.exists(os.path.join(current_dir, "logs")):
+    os.makedirs(os.path.join(current_dir, "logs"))
 
 
 # Load configuration from file
@@ -213,6 +216,48 @@ def remove_simulation(driver: webdriver.Edge):
         )
 
 
+data: list = []
+
+
+def pt_to_float(pt: str) -> float:
+    return float(pt[:-3])
+
+
+def convert_to_second(time: str) -> float:
+    time = time.split(":")
+    return float(time[0]) * 60 + float(time[1])
+
+
+def append_info(driver: webdriver.Edge):
+    global data
+
+    total_score_xpath = "/html/body/div/div/main/div/div/div[2]/div/div[2]/span[7]"
+    game_time_xpath = "/html/body/div/div/main/div/div/div[2]/div/div[2]/span[9]"
+    recognition_score_xpath = (
+        "/html/body/div/div/main/div/div/div[2]/div/div[2]/span[23]"
+    )
+    target_score_xpath = "/html/body/div/div/main/div/div/div[2]/div/div[2]/span[25]"
+
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.XPATH, total_score_xpath))
+    )
+
+    total_score = pt_to_float(driver.find_element(By.XPATH, total_score_xpath).text)
+    game_time = convert_to_second(driver.find_element(By.XPATH, game_time_xpath).text)
+    recognition_score = pt_to_float(
+        driver.find_element(By.XPATH, recognition_score_xpath).text
+    )
+    target_score = pt_to_float(driver.find_element(By.XPATH, target_score_xpath).text)
+
+    data.append(
+        {
+            "total score": total_score,
+            "game time": game_time,
+            "time score": total_score - recognition_score - target_score,
+        }
+    )
+
+
 def download_files(driver: webdriver.Edge, index: int, html_folder: str):
     global current_dir
 
@@ -250,6 +295,9 @@ def download_files(driver: webdriver.Edge, index: int, html_folder: str):
         time.sleep(0.5)
         status = image_button.get_attribute("class")
     time.sleep(0.5)
+
+    if index != -1:
+        append_info(driver)
 
     source = driver.page_source
     with open(
@@ -311,10 +359,10 @@ def rename_and_move_files(download_folder, images_folder, results_folder, start_
     image_files = [file for file in image_files if os.path.getmtime(file) > start_time]
     log_files = [file for file in log_files if os.path.getmtime(file) > start_time]
     for i in range(len(image_files)):
-        new_name = f"image_{i}.zip"
+        new_name = f"image_{i}_{int(os.path.getmtime(image_files[i]))}.zip"
         shutil.move(image_files[i], os.path.join(images_folder, new_name))
     for i in range(len(log_files)):
-        new_name = f"result_{i}.zip"
+        new_name = f"result_{i}_{int(os.path.getmtime(log_files[i]))}.zip"
         shutil.move(log_files[i], os.path.join(results_folder, new_name))
 
 
@@ -374,6 +422,13 @@ def remove_not_used_files(download_folder, start_time, html_folder):
             os.remove(log_file)
 
 
+def save_logs_to_csv(log_folder):
+    global data
+
+    df = pd.DataFrame(data)
+    df.to_csv(os.path.join(log_folder, "result.csv"), index=False)
+
+
 if __name__ == "__main__":
     start = time.time()
     config = load_config(os.path.join(current_dir, "config.txt"))
@@ -382,9 +437,11 @@ if __name__ == "__main__":
     html_folder = os.path.join(current_dir, "htmls", time_stamp)
     images_folder = os.path.join(current_dir, "images", time_stamp)
     results_folder = os.path.join(current_dir, "results", time_stamp)
+    log_folder = os.path.join(current_dir, "logs", time_stamp)
     os.makedirs(html_folder)
     os.makedirs(images_folder)
     os.makedirs(results_folder)
+    os.makedirs(log_folder)
     with open(os.path.join(current_dir, "log.json"), "w") as file:
         json.dump(
             {
@@ -418,14 +475,6 @@ if __name__ == "__main__":
         print("Waiting for all simulations to finish")
         wait_till_all_finished(html_folder)
         print("All simulations finished")
-        print("Renaming and moving files")
-        rename_and_move_files(
-            config[5],
-            images_folder,
-            results_folder,
-            start,
-        )
-
         # driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation/results")
         # view_button_xpath = "/html/body/div/div/main/div/div/div[2]/div[3]/table/tbody/tr[1]/td[5]/button[1]"
         # WebDriverWait(driver, 10).until(
@@ -437,14 +486,16 @@ if __name__ == "__main__":
         # time.sleep(5)
     except Exception as e:
         print("Error:", e)
-        rename_and_move_files(
-            config[5],
-            images_folder,
-            results_folder,
-            start,
-        )
     finally:
         driver.quit()
 
+    print("Renaming and moving files")
+    rename_and_move_files(
+        config[5],
+        images_folder,
+        results_folder,
+        start,
+    )
+    save_logs_to_csv(log_folder)
     print("Done")
     playsound.playsound(os.path.join(current_dir, "sakana.wav"), True)
