@@ -50,8 +50,12 @@ if os.path.exists("YOLO/config.json") == False:
                 "images_dir": "YOLO/data/images",
                 "labels_dir": "YOLO/data/labels",
                 "batch_size": 128,
-                "conf_step": 0.1,
-                "iou_step": 0.1,
+                "conf_start": 0.1,
+                "conf_end": 1,
+                "conf_count": 10,
+                "iou_start": 0.1,
+                "iou_end": 1,
+                "iou_count": 10,
             },
             f,
             indent=4,
@@ -81,8 +85,8 @@ batch_size = config["batch_size"]
 
 
 # testing parmeters
-conf_range = [conf / 100 for conf in range(10, 91, int(config["conf_step"] * 100))]
-iou_range = [iou / 100 for iou in range(10, 91, int(config["iou_step"] * 100))]
+conf_range = np.arange(config["conf_start"], config["conf_end"], config["conf_count"])
+iou_range = np.arange(config["iou_start"], config["iou_end"], config["iou_count"])
 
 best_acc = 0
 best_conf = 0
@@ -114,4 +118,5 @@ plt.yticks(range(len(conf_range)), conf_range)
 plt.xlabel("IOU")
 plt.ylabel("Confidence")
 plt.title("Accuracy heatmap")
-plt.show()
+# plt.show()
+plt.savefig("YOLO/heatmap.png")

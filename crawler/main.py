@@ -198,24 +198,6 @@ def remove_simulation(driver: webdriver.Edge):
     confirm_button = driver.find_element(By.XPATH, confirm_button_xpath)
     driver.execute_script("arguments[0].click();", confirm_button)
     time.sleep(0.5)
-    # if modal is not closed, wait until it is closed
-    if (
-        len(
-            driver.find_elements(
-                By.XPATH,
-                "/html/body/div/div/main/div/div/div[2]/div[3]/div/div/div/form",
-            )
-        )
-        > 0
-    ):
-        WebDriverWait(driver, 100).until(
-            EC.invisibility_of_element_located(
-                (
-                    By.XPATH,
-                    "/html/body/div/div/main/div/div/div[2]/div[3]/div/div/div/form",
-                )
-            )
-        )
 
 
 data: list = []
