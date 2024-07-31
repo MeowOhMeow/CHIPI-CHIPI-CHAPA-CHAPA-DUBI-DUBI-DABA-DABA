@@ -89,7 +89,6 @@ def login(driver: webdriver.Edge, config: list):
             (By.XPATH, "/html/body/div/div/div[2]/nav/div[3]/div[2]/a")
         )
     )
-    driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
 
     previous_log_in_time = time.time()
 
@@ -340,6 +339,10 @@ def view_result_and_reupload(driver: webdriver.Edge, config: list, html_folder: 
             driver.execute_script("arguments[0].click();", log_out_button)
             time.sleep(0.5)
             login(driver, config)
+            driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_all_elements_located((By.CLASS_NAME, "slot-status"))
+            )
 
         # Locate all slot elements by class name
         slots = driver.find_elements(By.CLASS_NAME, "slot-status")
@@ -400,6 +403,10 @@ def wait_till_all_finished(html_folder: str):
             driver.execute_script("arguments[0].click();", log_out_button)
             time.sleep(0.5)
             login(driver, config)
+            driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_all_elements_located((By.CLASS_NAME, "slot-status"))
+            )
 
         slots = driver.find_elements(By.CLASS_NAME, "slot-status")
 
