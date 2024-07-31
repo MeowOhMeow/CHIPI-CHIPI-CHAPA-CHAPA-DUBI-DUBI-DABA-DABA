@@ -63,8 +63,6 @@ previous_log_in_time = 0
 def login(driver: webdriver.Edge, config: list):
     global previous_log_in_time
 
-    driver.get("https://d392k6hrcntwyp.cloudfront.net/user-auth")
-
     # Wait for account ID and password fields to be present
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located(
@@ -328,14 +326,20 @@ idx = 0
 def view_result_and_reupload(driver: webdriver.Edge, config: list, html_folder: str):
     global idx, previous_log_in_time
     while idx < config[6] - 3:
-        if time.time() - previous_log_in_time > 3600:
-            login(driver, config)
         driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
 
         # Wait until the slots are loaded
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CLASS_NAME, "slot-status"))
         )
+
+        if time.time() - previous_log_in_time > 3600:
+            log_out_button = driver.find_element(
+                By.XPATH, "/html/body/div/div/div[2]/nav/div[3]/div[5]/button/i"
+            )
+            driver.execute_script("arguments[0].click();", log_out_button)
+            time.sleep(0.5)
+            login(driver, config)
 
         # Locate all slot elements by class name
         slots = driver.find_elements(By.CLASS_NAME, "slot-status")
@@ -383,13 +387,19 @@ def wait_till_all_finished(html_folder: str):
 
     run = True
     while run:
-        if time.time() - previous_log_in_time > 3600:
-            login(driver, config)
         driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
 
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CLASS_NAME, "slot-status"))
         )
+
+        if time.time() - previous_log_in_time > 3600:
+            log_out_button = driver.find_element(
+                By.XPATH, "/html/body/div/div/div[2]/nav/div[3]/div[5]/button/i"
+            )
+            driver.execute_script("arguments[0].click();", log_out_button)
+            time.sleep(0.5)
+            login(driver, config)
 
         slots = driver.find_elements(By.CLASS_NAME, "slot-status")
 
@@ -504,6 +514,7 @@ if __name__ == "__main__":
     driver = webdriver.Edge()
     try:
         print("Logging in")
+        driver.get("https://d392k6hrcntwyp.cloudfront.net/user-auth")
         login(driver, config)
         driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation/results")
         view_button_xpath = "/html/body/div/div/main/div/div/div[2]/div[3]/table/tbody/tr[1]/td[5]/button[1]"
