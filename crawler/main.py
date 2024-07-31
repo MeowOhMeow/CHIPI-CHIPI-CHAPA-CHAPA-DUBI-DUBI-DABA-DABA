@@ -12,6 +12,8 @@ import json
 import playsound
 import pandas as pd
 import traceback
+import zipfile
+import re
 
 
 current_dir = os.path.dirname(__file__)
@@ -77,9 +79,11 @@ def login(driver: webdriver.Edge, config: list):
     driver.find_element(
         By.XPATH, "/html/body/div/div/main/div/div/div/div[1]/input[2]"
     ).send_keys(config[1])
-    driver.find_element(
+    time.sleep(0.5)
+    login_button = driver.find_element(
         By.XPATH, "/html/body/div/div/main/div/div/div/div[2]/button"
-    ).click()
+    )
+    driver.execute_script("arguments[0].click();", login_button)
 
     # Wait until login is successful
     WebDriverWait(driver, 10).until(
@@ -183,7 +187,7 @@ def start_simulation(driver: webdriver.Edge, config: list):
         counter += 1
 
 
-def remove_simulation(driver: webdriver.Edge):
+def remove_simulation(driver: webdriver.Edge) -> bool:
     driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation/results")
     remove_button_xpath = "/html/body/div/div/main/div/div/div[2]/div[3]/table/tbody/tr[1]/td[5]/button[2]"
     confirm_button_xpath = "/html/body/div/div/main/div/div/div[2]/div[3]/div/div/div/form/div[2]/button[1]"
@@ -198,6 +202,30 @@ def remove_simulation(driver: webdriver.Edge):
     confirm_button = driver.find_element(By.XPATH, confirm_button_xpath)
     driver.execute_script("arguments[0].click();", confirm_button)
     time.sleep(0.5)
+
+    # if modal is not closed, wait until it is closed
+    if (
+        len(
+            driver.find_elements(
+                By.XPATH,
+                "/html/body/div/div/main/div/div/div[2]/div[3]/div/div/div/form",
+            )
+        )
+        > 0
+    ):
+        try:
+            WebDriverWait(driver, 15).until(
+                EC.invisibility_of_element_located(
+                    (
+                        By.XPATH,
+                        "/html/body/div/div/main/div/div/div[2]/div[3]/div/div/div/form",
+                    )
+                )
+            )
+            return True
+        except:
+            return False
+    return True
 
 
 data: list = []
@@ -325,7 +353,9 @@ def view_result_and_reupload(driver: webdriver.Edge, config: list, html_folder: 
                 has_successed = download_files(driver, idx, html_folder)
                 idx += 1
                 if has_successed and config[7]:
-                    remove_simulation(driver)
+                    retry = True
+                    while retry:
+                        retry = not remove_simulation(driver)
 
                 upload_to_slot(driver, index, config)
                 any_finished = True
@@ -381,7 +411,9 @@ def wait_till_all_finished(html_folder: str):
                 has_successed = download_files(driver, idx, html_folder)
                 idx += 1
                 if has_successed and config[7]:
-                    remove_simulation(driver)
+                    retry = True
+                    while retry:
+                        retry = not remove_simulation(driver)
 
                 any_finished = True
                 run = True
@@ -411,6 +443,41 @@ def save_logs_to_csv(log_folder):
 
     df = pd.DataFrame(data)
     df.to_csv(os.path.join(log_folder, "result.csv"), index=False)
+
+
+def extract_last_area_idx_from_logs(target_dir):
+    # Find and sort all ZIP files in the target directory
+    zip_files = [f for f in os.listdir(target_dir) if f.endswith(".zip")]
+    zip_files.sort()
+
+    last_area_idxs = []
+
+    # Unzip all files in the target directory and extract last areaIdx
+    for file in zip_files:
+        zip_file = os.path.join(target_dir, file)
+        extracted_dir = zip_file.replace(".zip", "")
+
+        with zipfile.ZipFile(zip_file, "r") as zip_ref:
+            zip_ref.extractall(extracted_dir)
+            # print(f"Unzipped {file}")
+
+        # Walk through the unzipped files
+        for root, dirs, files in os.walk(extracted_dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                if not file_path.endswith(".log"):
+                    continue
+
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    log_content = f.read()
+                    matches = re.findall(r"areaIdx: (\d+)", log_content)
+                    if matches:
+                        last_area_idx = matches[-1]
+                        last_area_idxs.append(int(last_area_idx))
+                    else:
+                        last_area_idxs.append(None)
+
+    return last_area_idxs
 
 
 if __name__ == "__main__":
@@ -459,15 +526,6 @@ if __name__ == "__main__":
         print("Waiting for all simulations to finish")
         wait_till_all_finished(html_folder)
         print("All simulations finished")
-        # driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation/results")
-        # view_button_xpath = "/html/body/div/div/main/div/div/div[2]/div[3]/table/tbody/tr[1]/td[5]/button[1]"
-        # WebDriverWait(driver, 10).until(
-        #     EC.presence_of_element_located((By.XPATH, view_button_xpath))
-        # )
-        # driver.find_element(By.XPATH, view_button_xpath).click()
-        # download_files(driver)
-        # remove_simulation(driver)
-        # time.sleep(5)
     except Exception as e:
         print("Error:")
         traceback.print_exc()
@@ -481,6 +539,14 @@ if __name__ == "__main__":
         results_folder,
         start,
     )
-    save_logs_to_csv(log_folder)
+    try:
+        areaIndices = extract_last_area_idx_from_logs(results_folder)
+        for i in range(len(areaIndices)):
+            data[i]["area index"] = areaIndices[i]
+        save_logs_to_csv(log_folder)
+    except Exception as e:
+        print("Probably is caused by mismatched number of logs and simulations")
+        traceback.print_exc()
+
     print("Done")
     playsound.playsound(os.path.join(current_dir, "sakana.wav"), True)
