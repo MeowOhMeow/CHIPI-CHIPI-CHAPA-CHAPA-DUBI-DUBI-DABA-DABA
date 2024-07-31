@@ -187,7 +187,7 @@ def start_simulation(driver: webdriver.Edge, config: list):
         counter += 1
 
 
-def remove_simulation(driver: webdriver.Edge) -> bool:
+def remove_simulation(driver: webdriver.Edge) -> None:
     driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation/results")
     remove_button_xpath = "/html/body/div/div/main/div/div/div[2]/div[3]/table/tbody/tr[1]/td[5]/button[2]"
     confirm_button_xpath = "/html/body/div/div/main/div/div/div[2]/div[3]/div/div/div/form/div[2]/button[1]"
@@ -203,29 +203,29 @@ def remove_simulation(driver: webdriver.Edge) -> bool:
     driver.execute_script("arguments[0].click();", confirm_button)
     time.sleep(0.5)
 
-    # if modal is not closed, wait until it is closed
-    if (
-        len(
-            driver.find_elements(
-                By.XPATH,
-                "/html/body/div/div/main/div/div/div[2]/div[3]/div/div/div/form",
-            )
-        )
-        > 0
-    ):
-        try:
-            WebDriverWait(driver, 15).until(
-                EC.invisibility_of_element_located(
-                    (
-                        By.XPATH,
-                        "/html/body/div/div/main/div/div/div[2]/div[3]/div/div/div/form",
-                    )
-                )
-            )
-            return True
-        except:
-            return False
-    return True
+    # # if modal is not closed, wait until it is closed
+    # if (
+    #     len(
+    #         driver.find_elements(
+    #             By.XPATH,
+    #             "/html/body/div/div/main/div/div/div[2]/div[3]/div/div/div/form",
+    #         )
+    #     )
+    #     > 0
+    # ):
+    #     try:
+    #         WebDriverWait(driver, 15).until(
+    #             EC.invisibility_of_element_located(
+    #                 (
+    #                     By.XPATH,
+    #                     "/html/body/div/div/main/div/div/div[2]/div[3]/div/div/div/form",
+    #                 )
+    #             )
+    #         )
+    #         return True
+    #     except:
+    #         return False
+    # return True
 
 
 data: list = []
@@ -353,9 +353,7 @@ def view_result_and_reupload(driver: webdriver.Edge, config: list, html_folder: 
                 has_successed = download_files(driver, idx, html_folder)
                 idx += 1
                 if has_successed and config[7]:
-                    retry = True
-                    while retry:
-                        retry = not remove_simulation(driver)
+                    remove_simulation(driver)
 
                 upload_to_slot(driver, index, config)
                 any_finished = True
@@ -411,9 +409,7 @@ def wait_till_all_finished(html_folder: str):
                 has_successed = download_files(driver, idx, html_folder)
                 idx += 1
                 if has_successed and config[7]:
-                    retry = True
-                    while retry:
-                        retry = not remove_simulation(driver)
+                    remove_simulation(driver)
 
                 any_finished = True
                 run = True
@@ -514,7 +510,8 @@ if __name__ == "__main__":
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, view_button_xpath))
         )
-        driver.find_element(By.XPATH, view_button_xpath).click()
+        view_button = driver.find_element(By.XPATH, view_button_xpath)
+        driver.execute_script("arguments[0].click();", view_button)
         download_files(driver, -1, html_folder)
         input("Press Enter to continue...")
 
