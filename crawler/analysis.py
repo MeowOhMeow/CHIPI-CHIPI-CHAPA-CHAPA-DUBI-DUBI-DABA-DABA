@@ -30,15 +30,15 @@ def calculate_area_averages(file_name, variable_of_y_axis):
 
     return area_average
 
-def plot_area_averages(area_average):
+def plot_area_averages(area_average, variable_of_y_axis):
     indices = list(area_average.keys())
     averages = list(area_average.values())
     
     plt.scatter(indices, averages, color='blue', s=50)  # s为点的大小
     
     plt.xlabel('Area Index')
-    plt.ylabel('Average Total Score')
-    plt.title('Average Total Score by Area Index')
+    plt.ylabel(f"Average {variable_of_y_axis}")
+    plt.title(f"Average {variable_of_y_axis} by Area Index")
     
     # Optional: Add value labels on each point
     for i, txt in enumerate(averages):
@@ -158,7 +158,7 @@ elif(instruction == 5):
     #calcute average and plot
     variable = input("Choose variable to analyze.(Input \"total score\" or \"time score\")\n")
     area_average = calculate_area_averages(main_file, variable)
-    plot_area_averages(area_average)
+    plot_area_averages(area_average, variable)
     
 elif(instruction == 6):
     #find maximum
