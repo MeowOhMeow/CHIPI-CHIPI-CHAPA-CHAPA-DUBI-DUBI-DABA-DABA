@@ -46,16 +46,16 @@ if os.path.exists("YOLO/config.json") == False:
     with open("YOLO/config.json", "w") as f:
         json.dump(
             {
-                "model_path": "YOLO/models/train8.pt",
+                "model_path": "test/train/weights/best.pt",
                 "images_dir": "YOLO/data/images",
                 "labels_dir": "YOLO/data/labels",
-                "batch_size": 128,
+                "batch_size": 192,
                 "conf_start": 0.1,
                 "conf_end": 1,
-                "conf_count": 10,
+                "conf_step": 0.1,
                 "iou_start": 0.1,
                 "iou_end": 1,
-                "iou_count": 10,
+                "iou_step": 0.1,
             },
             f,
             indent=4,
@@ -85,8 +85,10 @@ batch_size = config["batch_size"]
 
 
 # testing parmeters
-conf_range = np.arange(config["conf_start"], config["conf_end"], config["conf_count"])
-iou_range = np.arange(config["iou_start"], config["iou_end"], config["iou_count"])
+conf_range = np.arange(config["conf_start"], config["conf_end"], config["conf_step"])
+iou_range = np.arange(config["iou_start"], config["iou_end"], config["iou_step"])
+print(f"Confidence range: {conf_range}")
+print(f"IOU range: {iou_range}")
 
 best_acc = 0
 best_conf = 0
