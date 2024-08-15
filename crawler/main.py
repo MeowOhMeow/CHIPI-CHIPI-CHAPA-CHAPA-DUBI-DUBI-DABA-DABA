@@ -118,6 +118,15 @@ def upload_to_slot(driver: webdriver.Edge, slot_id: int, config: list):
     memo = config[3]
     difficulty = config[4]
     driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located(
+            (By.XPATH, "/html/body/div/div/main/div/div/div[2]/div[1]/ul/li[3]")
+        )
+    )
+    target_button = driver.find_element(
+        By.XPATH, "/html/body/div/div/main/div/div/div[2]/div[1]/ul/li[3]"
+    )
+    driver.execute_script("arguments[0].click();", target_button)
     # Upload file
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.XPATH, "/html/body/input[1]"))
@@ -173,6 +182,15 @@ def upload_to_slot(driver: webdriver.Edge, slot_id: int, config: list):
 # Start simulation in available slots
 def start_simulation(driver: webdriver.Edge, config: list):
     driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located(
+            (By.XPATH, "/html/body/div/div/main/div/div/div[2]/div[1]/ul/li[3]")
+        )
+    )
+    target_button = driver.find_element(
+        By.XPATH, "/html/body/div/div/main/div/div/div[2]/div[1]/ul/li[3]"
+    )
+    driver.execute_script("arguments[0].click();", target_button)
     available_slots = get_available_slots(driver)
     counter = 0
     while available_slots and counter < config[6]:
@@ -326,6 +344,15 @@ def view_result_and_reupload(driver: webdriver.Edge, config: list, html_folder: 
     global idx, previous_log_in_time
     while idx < config[6] - 3:
         driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located(
+                (By.XPATH, "/html/body/div/div/main/div/div/div[2]/div[1]/ul/li[3]")
+            )
+        )
+        target_button = driver.find_element(
+            By.XPATH, "/html/body/div/div/main/div/div/div[2]/div[1]/ul/li[3]"
+        )
+        driver.execute_script("arguments[0].click();", target_button)
 
         # Wait until the slots are loaded
         WebDriverWait(driver, 10).until(
@@ -340,6 +367,15 @@ def view_result_and_reupload(driver: webdriver.Edge, config: list, html_folder: 
             time.sleep(0.5)
             login(driver, config)
             driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "/html/body/div/div/main/div/div/div[2]/div[1]/ul/li[3]")
+                )
+            )
+            target_button = driver.find_element(
+                By.XPATH, "/html/body/div/div/main/div/div/div[2]/div[1]/ul/li[3]"
+            )
+            driver.execute_script("arguments[0].click();", target_button)
             WebDriverWait(driver, 10).until(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, "slot-status"))
             )
@@ -391,7 +427,15 @@ def wait_till_all_finished(html_folder: str):
     run = True
     while run:
         driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
-
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located(
+                (By.XPATH, "/html/body/div/div/main/div/div/div[2]/div[1]/ul/li[3]")
+            )
+        )
+        target_button = driver.find_element(
+            By.XPATH, "/html/body/div/div/main/div/div/div[2]/div[1]/ul/li[3]"
+        )
+        driver.execute_script("arguments[0].click();", target_button)
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CLASS_NAME, "slot-status"))
         )
@@ -404,6 +448,15 @@ def wait_till_all_finished(html_folder: str):
             time.sleep(0.5)
             login(driver, config)
             driver.get("https://d392k6hrcntwyp.cloudfront.net/simulation")
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "/html/body/div/div/main/div/div/div[2]/div[1]/ul/li[3]")
+                )
+            )
+            target_button = driver.find_element(
+                By.XPATH, "/html/body/div/div/main/div/div/div[2]/div[1]/ul/li[3]"
+            )
+            driver.execute_script("arguments[0].click();", target_button)
             WebDriverWait(driver, 10).until(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, "slot-status"))
             )
