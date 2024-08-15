@@ -5,6 +5,7 @@ import java.util.*;
 import graph.*;
 import main.Log;
 import algorithm.*;
+import pathfinding.Point;
 
 /**
  * The path finding API class.
@@ -36,6 +37,7 @@ public class PathFindingAPI {
             lastExpansionVal = expansionVal;
             Log.i(TAG, "Graph built");
         }
+        Log.i(TAG, "x:" + start.getX());
 
         Vertex source = findNearestVertex(start, graph);
         Vertex target = findNearestVertex(end, graph);
@@ -223,9 +225,13 @@ public class PathFindingAPI {
      */
     public static void logPoints(List<Point> points, String label) {
         Utility.logSeparator();
-        Log.i(TAG, label + ":");
+        // Log.i(TAG, label + ":");
+        // for (Point p : points) {
+        // Log.i(TAG, "x: " + p.getX() + " y: " + p.getY() + " z: " + p.getZ());
+        // }
+        System.out.println(TAG + label + ":");
         for (Point p : points) {
-            Log.i(TAG, "x: " + p.getX() + " y: " + p.getY() + " z: " + p.getZ());
+            System.out.println("x: " + p.getX() + " y: " + p.getY() + " z: " + p.getZ());
         }
         Utility.logSeparator();
     }
