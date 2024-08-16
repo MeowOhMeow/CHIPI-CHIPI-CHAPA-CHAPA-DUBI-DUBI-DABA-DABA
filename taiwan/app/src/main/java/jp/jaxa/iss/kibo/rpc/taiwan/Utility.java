@@ -11,6 +11,7 @@ import gov.nasa.arc.astrobee.types.Quaternion;
 import gov.nasa.arc.astrobee.Result;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcApi;
 import jp.jaxa.iss.kibo.rpc.taiwan.pathfinding.PathFindingAPI;
+import jp.jaxa.iss.kibo.rpc.taiwan.Publisher.Implementation;
 
 /**
  * Utility class for common functions
@@ -68,7 +69,7 @@ public class Utility {
      * @param expansionVal:      Expansion value for path finding
      */
     public static void processPathToTarget(
-            KiboRpcApi api, List<Point> path, Point targetPoint, Quaternion targetOrientation, double expansionVal) {
+            KiboRpcApi api, List<Point> path, Point targetPoint, Quaternion targetOrientation, double expansionVal, Implementation observerImplementation) {
         if (path == null) {
             path = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(),
                     targetPoint,
@@ -81,7 +82,7 @@ public class Utility {
         int loopCounter = 0;
 
         while (!pathSuccess && loopCounter < LOOP_LIMIT) {
-            pathSuccess = moveToPathPoints(api, path, targetPoint, targetOrientation, expansionVal);
+            pathSuccess = moveToPathPoints(api, path, targetPoint, targetOrientation, expansionVal, observerImplementation);
             loopCounter++;
         }
 
@@ -100,7 +101,7 @@ public class Utility {
      *         otherwise
      */
     private static boolean moveToPathPoints(KiboRpcApi api,
-            List<Point> path, Point targetPoint, Quaternion targetOrientation, double expansionVal) {
+            List<Point> path, Point targetPoint, Quaternion targetOrientation, double expansionVal, Implementation observerImplementation) {
         Result result = null;
 
         for (Point point : path) {
@@ -108,6 +109,9 @@ public class Utility {
 
             if (!result.hasSucceeded()) {
                 expansionVal += 0.02;
+                observerImplementation.setExpansionVal(observerImplementation.getExpansionVal() + 0.01);
+                observerImplementation.update();
+
                 Log.i(TAG, "----------Path corrupt, increasing expansionVal to: " + expansionVal + "----------");
 
                 path = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(),

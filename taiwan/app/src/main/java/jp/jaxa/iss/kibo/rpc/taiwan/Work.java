@@ -10,6 +10,8 @@ import org.opencv.core.Mat;
 import gov.nasa.arc.astrobee.types.Point;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
 import jp.jaxa.iss.kibo.rpc.taiwan.pathfinding.PathFindingAPI;
+import jp.jaxa.iss.kibo.rpc.taiwan.Publisher.Path;
+import jp.jaxa.iss.kibo.rpc.taiwan.Publisher.Implementation;
 
 /**
  * Class to implement ARTagProcess, YOLOInference, and find the returned path
@@ -21,17 +23,17 @@ public class Work extends KiboRpcService implements Runnable {
     private Map<String, Integer> areaInfo;
     private Point pointAtAstronaut;
     private double expansionVal;
-    private List[] paths;
+    private static Implementation observerImplementation;
 
     public Work(ARTagOutput detection, AreaItem[] areaItems, Map<String, Integer> areaInfo, Point pointAtAstronaut,
-            double expansionVal, List[] paths) {
+            double expansionVal, Implementation observerImplementation) {
         super(); // This calls the Parent class constructor
         this.detection = detection;
         this.areaItems = areaItems;
         this.areaInfo = areaInfo;
         this.pointAtAstronaut = pointAtAstronaut;
         this.expansionVal = expansionVal;
-        this.paths = paths;
+        this.observerImplementation = observerImplementation;
     }
 
     @Override
@@ -49,8 +51,10 @@ public class Work extends KiboRpcService implements Runnable {
         areaItems[areaIdx] = areaItem;
         areaInfo.put(areaItem.getItem(), areaIdx);
 
-        List<Point> path = PathFindingAPI.findPath(pointAtAstronaut, detection.getSnapWorld(), expansionVal);
-        PathFindingAPI.logPoints(path, "Path from astronaut to item " + areaIdx);
-        paths[areaIdx] = path;
+        List<Point> points = PathFindingAPI.findPath(pointAtAstronaut, detection.getSnapWorld(), expansionVal);
+        PathFindingAPI.logPoints(points, "Path from astronaut to item " + areaIdx);
+
+        Path path = new Path(points, 0.08, pointAtAstronaut, detection.getSnapWorld());
+        observerImplementation.addPath(String.valueOf(areaIdx), path);
     }
 }
