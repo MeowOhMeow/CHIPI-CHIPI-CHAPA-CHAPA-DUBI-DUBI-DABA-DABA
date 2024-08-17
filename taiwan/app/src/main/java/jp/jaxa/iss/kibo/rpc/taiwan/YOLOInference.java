@@ -30,8 +30,8 @@ public class YOLOInference {
 
     private static OrtEnvironment env;
     private static OrtSession session;
-    private static final float CONF_THRESHOLD = 0.55f;
-    private static final float NMS_THRESHOLD = 0.55f;
+    private static final float CONF_THRESHOLD = 0.4f;
+    private static final float NMS_THRESHOLD = 0.6f;
 
     /**
      * Initialize the YOLO model
@@ -89,7 +89,7 @@ public class YOLOInference {
         env = OrtEnvironment.getEnvironment();
         try {
             tensor = OnnxTensor.createTensor(env, FloatBuffer.wrap(chw),
-                    new long[] {count, channels, netWidth, netHeight});
+                    new long[] { count, channels, netWidth, netHeight });
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(0);

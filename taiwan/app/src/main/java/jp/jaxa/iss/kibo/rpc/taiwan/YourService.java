@@ -13,9 +13,8 @@ import gov.nasa.arc.astrobee.types.Point;
 import gov.nasa.arc.astrobee.types.Quaternion;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
 
-import jp.jaxa.iss.kibo.rpc.taiwan.Publisher.Path;
-import jp.jaxa.iss.kibo.rpc.taiwan.Publisher.Element;
-import jp.jaxa.iss.kibo.rpc.taiwan.Publisher.Implementation;
+import jp.jaxa.iss.kibo.rpc.taiwan.multithreading.*;
+import jp.jaxa.iss.kibo.rpc.taiwan.multithreading.Publisher.*;
 
 /**
  * Class meant to handle commands from the Ground Data System and execute them
@@ -37,16 +36,17 @@ public class YourService extends KiboRpcService {
     private static Map<String, Integer> areaInfo = new HashMap<>();
     private static AreaItem[] areaItems = new AreaItem[4];
 
-    private static double expansionVal = 0.08;
+    // ! WARN Test expansionVal = 0.02
+    public static double expansionVal = 0.08;
     private static Point pointAtAstronaut = new Point(11.1852d, -6.7607d, 4.8828d);
     private static Quaternion quaternionAtAstronaut = new Quaternion(0.707f, 0.707f, 0f, 0f);
 
-    private static final BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
-    private static Worker worker = new Worker(queue);
+    public static final BlockingQueue<Runnable> worksQueue = new LinkedBlockingQueue<>();
+    private static Worker worker = new Worker(worksQueue);
     private static Thread workerThread = new Thread(worker);
 
     private static Map<String, Element<Path>> observerElements = new HashMap<>();
-    private static Implementation observerImplementation = new Implementation(observerElements, expansionVal);
+    public static Implementation observerImplementation = new Implementation(observerElements, expansionVal);
 
     /**
      * Constructor for the YourService class.
@@ -119,8 +119,8 @@ public class YourService extends KiboRpcService {
             snapPoints[areaIdx] = detection.getSnapWorld();
             // TODO: handle the case when the ar tag it too far from the astrobee
             api.saveMatImage(detection.getResultImage(), "Area" + areaIdx + "_result.jpg");
-            Work work = new Work(detection, areaItems, areaInfo, pointAtAstronaut, expansionVal, observerImplementation);
-            queue.add(work);
+            PathCalWork work = new PathCalWork(detection, areaItems, areaInfo, pointAtAstronaut, expansionVal);
+            worksQueue.add(work);
         }
     }
 
@@ -139,8 +139,7 @@ public class YourService extends KiboRpcService {
                 Result isMoveToSuccessResult = api.moveTo(stablePoints[areaIdx], areaOrientations[areaIdx], false);
                 if (!isMoveToSuccessResult.hasSucceeded()) {
                     Log.i(TAG, "Move to stable point " + areaIdx + " fail, retrying with theta star algorithm");
-                    Utility.processPathToTarget(api, null, stablePoints[areaIdx], areaOrientations[areaIdx],
-                            expansionVal, observerImplementation);
+                    Utility.processPathToTarget(api, null, stablePoints[areaIdx], areaOrientations[areaIdx]);
                 }
 
                 handleRetakeForFailedDetection(areaIdx, kinematics);
@@ -166,8 +165,8 @@ public class YourService extends KiboRpcService {
             snapPoints[areaIdx] = targetDetection.getSnapWorld();
             // TODO: handle the case when the ar tag it too far from the astrobee
             api.saveMatImage(targetDetection.getResultImage(), "Area" + areaIdx + "_result.jpg");
-            Work work = new Work(targetDetection, areaItems, areaInfo, pointAtAstronaut, expansionVal, observerImplementation);
-            queue.add(work);
+            PathCalWork work = new PathCalWork(targetDetection, areaItems, areaInfo, pointAtAstronaut, expansionVal);
+            worksQueue.add(work);
         } else {
             Log.i(TAG, "Item " + areaIdx + " still not detected");
         }
@@ -212,7 +211,7 @@ public class YourService extends KiboRpcService {
         }
 
         List<Point> points = (observerElements.get(String.valueOf(areaIdx))).getData().getPoints();
-        Utility.processPathToTarget(api, points, snapPoints[areaIdx], areaOrientations[areaIdx], expansionVal, observerImplementation);
+        Utility.processPathToTarget(api, points, snapPoints[areaIdx], areaOrientations[areaIdx]);
     }
 
     /**
@@ -267,7 +266,7 @@ public class YourService extends KiboRpcService {
                     Log.i(TAG, "Go to area " + Arrays.toString(areaGroups[i])
                             + " fail, retrying with theta star algorithm");
                     Utility.processPathToTarget(api, null, outboundTrips[i][outboundTrips[i].length - 1],
-                            areaOrientations[areaGroups[i][0]], expansionVal, observerImplementation);
+                            areaOrientations[areaGroups[i][0]]);
                     break;
                 }
             }
@@ -307,7 +306,7 @@ public class YourService extends KiboRpcService {
         Result isMoveToSuccessResult = api.moveTo(pointAtAstronaut, quaternionAtAstronaut, false);
         if (!isMoveToSuccessResult.hasSucceeded()) {
             Log.i(TAG, "Go to astronaut fail, retrying with theta star algorithm");
-            Utility.processPathToTarget(api, null, pointAtAstronaut, quaternionAtAstronaut, expansionVal, observerImplementation);
+            Utility.processPathToTarget(api, null, pointAtAstronaut, quaternionAtAstronaut);
         }
 
         try {

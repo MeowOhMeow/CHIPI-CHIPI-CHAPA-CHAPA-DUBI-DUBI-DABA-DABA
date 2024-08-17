@@ -10,8 +10,8 @@ import gov.nasa.arc.astrobee.types.Point;
 import gov.nasa.arc.astrobee.types.Quaternion;
 import gov.nasa.arc.astrobee.Result;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcApi;
+import jp.jaxa.iss.kibo.rpc.taiwan.multithreading.PathUpdateWork;
 import jp.jaxa.iss.kibo.rpc.taiwan.pathfinding.PathFindingAPI;
-import jp.jaxa.iss.kibo.rpc.taiwan.Publisher.Implementation;
 
 /**
  * Utility class for common functions
@@ -19,6 +19,7 @@ import jp.jaxa.iss.kibo.rpc.taiwan.Publisher.Implementation;
 public class Utility {
     private static final String TAG = "Utility";
     private static final int LOOP_LIMIT = 10;
+    private static final double INCREMENT = 0.02;
 
     /**
      * Sleep for a given number of milliseconds
@@ -66,14 +67,13 @@ public class Utility {
      * @param path:              Path to the target point
      * @param targetPoint:       Target point
      * @param targetOrientation: Target orientation
-     * @param expansionVal:      Expansion value for path finding
      */
     public static void processPathToTarget(
-            KiboRpcApi api, List<Point> path, Point targetPoint, Quaternion targetOrientation, double expansionVal, Implementation observerImplementation) {
+            KiboRpcApi api, List<Point> path, Point targetPoint, Quaternion targetOrientation) {
         if (path == null) {
             path = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(),
                     targetPoint,
-                    expansionVal);
+                    YourService.expansionVal);
         }
 
         PathFindingAPI.logPoints(path, "Path to the target point");
@@ -82,7 +82,7 @@ public class Utility {
         int loopCounter = 0;
 
         while (!pathSuccess && loopCounter < LOOP_LIMIT) {
-            pathSuccess = moveToPathPoints(api, path, targetPoint, targetOrientation, expansionVal, observerImplementation);
+            pathSuccess = moveToPathPoints(api, path, targetPoint, targetOrientation);
             loopCounter++;
         }
 
@@ -96,27 +96,27 @@ public class Utility {
      * @param path:              Path to the target point
      * @param targetPoint:       Target point
      * @param targetOrientation: Target orientation
-     * @param expansionVal:      Expansion value for path finding
      * @return true if the robot successfully moves to the path points, false
      *         otherwise
      */
     private static boolean moveToPathPoints(KiboRpcApi api,
-            List<Point> path, Point targetPoint, Quaternion targetOrientation, double expansionVal, Implementation observerImplementation) {
+            List<Point> path, Point targetPoint, Quaternion targetOrientation) {
         Result result = null;
 
         for (Point point : path) {
             result = api.moveTo(point, targetOrientation, false);
 
             if (!result.hasSucceeded()) {
-                expansionVal += 0.02;
-                observerImplementation.setExpansionVal(observerImplementation.getExpansionVal() + 0.01);
-                observerImplementation.update();
+                YourService.expansionVal += INCREMENT;
 
-                Log.i(TAG, "----------Path corrupt, increasing expansionVal to: " + expansionVal + "----------");
+                PathUpdateWork work = new PathUpdateWork();
+                YourService.worksQueue.add(work);
+
+                Log.i(TAG, "Path corrupt, increasing expansionVal to: " + YourService.expansionVal);
 
                 path = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(),
                         targetPoint,
-                        expansionVal);
+                        YourService.expansionVal);
 
                 PathFindingAPI.logPoints(path, "Path after increasing expansionVal");
                 return false;

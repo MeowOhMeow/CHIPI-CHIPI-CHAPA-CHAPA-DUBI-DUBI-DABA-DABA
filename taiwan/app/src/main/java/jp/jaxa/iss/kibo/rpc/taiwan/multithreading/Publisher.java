@@ -1,4 +1,4 @@
-package jp.jaxa.iss.kibo.rpc.taiwan;
+package jp.jaxa.iss.kibo.rpc.taiwan.multithreading;
 
 import java.util.List;
 import java.util.Map;
@@ -11,7 +11,7 @@ public class Publisher {
     private static final String TAG = "Publisher";
 
     // Represents a path consisting of points with an associated expansion value
-    static class Path {
+    public static class Path {
         private List<Point> points;
         private double expansionVal;
         private Point startPoint;
@@ -49,41 +49,8 @@ public class Publisher {
         }
     }
 
-    // Represents a generic element holding data
-    static class Element<D> {
-        private D data;
-
-        public Element(D data) {
-            this.data = data;
-        }
-
-        public D getData() {
-            return data;
-        }
-
-        public void setData(D data) {
-            this.data = data;
-        }
-
-        public void update() {
-            Log.i(TAG, "Element update.");
-        }
-    }
-
-    // Abstract observer that contains a list of elements and requires an update
-    // method
-    static abstract class Observer<Key, E> {
-        protected Map<Key, Element<E>> elements;
-
-        public Observer(Map<Key, Element<E>> elements) {
-            this.elements = elements;
-        }
-
-        public abstract void update();
-    }
-
     // Concrete implementation of Observer for elements of type Path
-    static class Implementation extends Observer<String, Path> {
+    public static class Implementation extends Observer<String, Path> {
         private double expansionVal;
 
         public Implementation(Map<String, Element<Path>> elements, double expansionVal) {
@@ -107,13 +74,20 @@ public class Publisher {
             }
         }
 
+        @Override
+        public void addElement(String key, Element<Path> element) {
+            elements.put(key, element);
+        }
+
         // Method to add a new path
-        public void addPath(String key, Path path) {
+        @Override
+        public void addElement(String key, Path path) {
             elements.put(key, new Element<>(path));
         }
 
         // Method to remove a path by key
-        public Path removePath(String key) {
+        @Override
+        public Path removeElement(String key) {
             Element<Path> removedElement = elements.remove(key);
             return removedElement != null ? removedElement.getData() : null;
         }
@@ -129,4 +103,3 @@ public class Publisher {
         }
     }
 }
-

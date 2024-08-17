@@ -1,4 +1,4 @@
-package jp.jaxa.iss.kibo.rpc.taiwan;
+package jp.jaxa.iss.kibo.rpc.taiwan.multithreading;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
