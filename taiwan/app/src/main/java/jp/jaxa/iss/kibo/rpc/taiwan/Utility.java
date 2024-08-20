@@ -20,6 +20,7 @@ public class Utility {
     private static final String TAG = "Utility";
     private static final int LOOP_LIMIT = 10;
     private static final double INCREMENT = 0.02;
+    private static List<Point> tempPath = null;
 
     /**
      * Sleep for a given number of milliseconds
@@ -71,18 +72,20 @@ public class Utility {
     public static void processPathToTarget(
             KiboRpcApi api, List<Point> path, Point targetPoint, Quaternion targetOrientation) {
         if (path == null) {
-            path = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(),
+            tempPath = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(),
                     targetPoint,
                     YourService.expansionVal);
+        } else {
+            tempPath = path;
         }
 
-        PathFindingAPI.logPoints(path, "Path to the target point");
+        PathFindingAPI.logPoints(tempPath, "Path to the target point");
 
         boolean pathSuccess = false;
         int loopCounter = 0;
 
         while (!pathSuccess && loopCounter < LOOP_LIMIT) {
-            pathSuccess = moveToPathPoints(api, path, targetPoint, targetOrientation);
+            pathSuccess = moveToPathPoints(api, targetPoint, targetOrientation);
             loopCounter++;
         }
 
@@ -93,17 +96,15 @@ public class Utility {
      * Move to the path points
      * 
      * @param api:               KiboRpcApi object
-     * @param path:              Path to the target point
      * @param targetPoint:       Target point
      * @param targetOrientation: Target orientation
      * @return true if the robot successfully moves to the path points, false
      *         otherwise
      */
-    private static boolean moveToPathPoints(KiboRpcApi api,
-            List<Point> path, Point targetPoint, Quaternion targetOrientation) {
+    private static boolean moveToPathPoints(KiboRpcApi api, Point targetPoint, Quaternion targetOrientation) {
         Result result = null;
 
-        for (Point point : path) {
+        for (Point point : tempPath) {
             result = api.moveTo(point, targetOrientation, false);
 
             if (!result.hasSucceeded()) {
@@ -114,11 +115,11 @@ public class Utility {
 
                 Log.i(TAG, "Path corrupt, increasing expansionVal to: " + YourService.expansionVal);
 
-                path = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(),
+                tempPath = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(),
                         targetPoint,
                         YourService.expansionVal);
 
-                PathFindingAPI.logPoints(path, "Path after increasing expansionVal");
+                PathFindingAPI.logPoints(tempPath, "Path after increasing expansionVal");
                 return false;
             }
         }
