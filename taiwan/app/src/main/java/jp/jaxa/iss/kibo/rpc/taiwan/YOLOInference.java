@@ -30,7 +30,7 @@ public class YOLOInference {
 
     private static OrtEnvironment env;
     private static OrtSession session;
-    private static final float CONF_THRESHOLD = 0.4f;
+    private static final float CONF_THRESHOLD = 0.7f;
     private static final float NMS_THRESHOLD = 0.6f;
 
     /**
