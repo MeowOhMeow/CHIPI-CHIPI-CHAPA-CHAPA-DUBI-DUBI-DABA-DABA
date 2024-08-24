@@ -36,22 +36,24 @@ public class YourService extends KiboRpcService {
     private static Map<String, Integer> areaInfo = new HashMap<>();
     private static AreaItem[] areaItems = new AreaItem[4];
 
-    // ! WARN Test expansionVal = 0.02
     public static double expansionVal = 0.08;
     private static Point pointAtAstronaut = new Point(11.1852d, -6.7607d, 4.8828d);
     private static Quaternion quaternionAtAstronaut = new Quaternion(0.707f, 0.707f, 0f, 0f);
 
     public static final BlockingQueue<Runnable> worksQueue = new LinkedBlockingQueue<>();
-    private static Worker worker = new Worker(worksQueue);
-    private static Thread workerThread = new Thread(worker);
+    private static Worker worker;
+    private static Thread workerThread;
 
     private static Map<String, Element<Path>> observerElements = new HashMap<>();
-    public static Implementation observerImplementation = new Implementation(observerElements, expansionVal);
+    public static Implementation observerImplementation;
 
     /**
      * Constructor for the YourService class.
      */
     public YourService() {
+        worker = new Worker(worksQueue);
+        workerThread = new Thread(worker);
+        observerImplementation = new Implementation(observerElements, expansionVal);
     }
 
     /**
@@ -62,7 +64,16 @@ public class YourService extends KiboRpcService {
      */
     private void processingAreaInfo(int[] areaIdxs) {
         Mat image = Utility.takeAndSaveSnapshot(api, "Area" + Arrays.toString(areaIdxs) + ".jpg", SNAP_SHOT_WAIT_TIME);
-        Kinematics kinematics = api.getRobotKinematics();
+        if (image == null) {
+            Log.i(TAG, "Failed to take snapshot of area " + Arrays.toString(areaIdxs));
+            return;
+        }
+        Kinematics kinematics = Utility.getRobotKinematics(api);
+        if (kinematics == null) {
+            Log.i(TAG, "Failed to get robot kinematics");
+            return;
+        }
+
         ARTagOutput[] detections = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(), image);
 
         Set<Integer> failedIdxs = new HashSet<>();
@@ -118,7 +129,9 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "Item " + areaIdx + " location: " + detection.getSnapWorld());
             snapPoints[areaIdx] = detection.getSnapWorld();
             // TODO: handle the case when the ar tag it too far from the astrobee
-            api.saveMatImage(detection.getResultImage(), "Area" + areaIdx + "_result.jpg");
+            api.saveMatImage(detection.getResultImage(), "Area" + areaIdx + "_result.jpg"); // this api call return
+                                                                                            // void. it is not necessary
+                                                                                            // to check the result
             PathCalWork work = new PathCalWork(detection, areaItems, areaInfo, pointAtAstronaut, expansionVal);
             worksQueue.add(work);
         }
@@ -132,14 +145,22 @@ public class YourService extends KiboRpcService {
     private void processFailedDetections(Set<Integer> failedIdxs) {
         for (int areaIdx : failedIdxs) {
             Log.i(TAG, "Item " + areaIdx + " not detected");
-
-            Kinematics kinematics = api.getRobotKinematics();
+            Kinematics kinematics = Utility.getRobotKinematics(api);
+            if (kinematics == null) {
+                Log.i(TAG, "Failed to get robot kinematics");
+                return;
+            }
             if (Utility.calEuclideanDistance(kinematics.getPosition(),
                     stablePoints[areaIdx]) > STABLE_POINT_THRESHOLD) {
                 Result isMoveToSuccessResult = api.moveTo(stablePoints[areaIdx], areaOrientations[areaIdx], false);
+                boolean success = false;
                 if (!isMoveToSuccessResult.hasSucceeded()) {
                     Log.i(TAG, "Move to stable point " + areaIdx + " fail, retrying with theta star algorithm");
-                    Utility.processPathToTarget(api, null, stablePoints[areaIdx], areaOrientations[areaIdx]);
+                    success = Utility.processPathToTarget(api, null, stablePoints[areaIdx], areaOrientations[areaIdx]);
+                }
+                if (!success) {
+                    Log.i(TAG, "Failed to move to stable point " + areaIdx);
+                    return;
                 }
 
                 handleRetakeForFailedDetection(areaIdx, kinematics);
@@ -155,6 +176,10 @@ public class YourService extends KiboRpcService {
      */
     private void handleRetakeForFailedDetection(int areaIdx, Kinematics kinematics) {
         Mat imageRetake = Utility.takeAndSaveSnapshot(api, "Area" + areaIdx + "_stable.jpg", SNAP_SHOT_WAIT_TIME);
+        if (imageRetake == null) {
+            Log.i(TAG, "Failed to take snapshot of area " + areaIdx + " stable point");
+            return;
+        }
         ARTagOutput[] detectionsRetake = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(),
                 imageRetake);
 
@@ -164,7 +189,11 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "Item " + areaIdx + " location: " + targetDetection.getSnapWorld());
             snapPoints[areaIdx] = targetDetection.getSnapWorld();
             // TODO: handle the case when the ar tag it too far from the astrobee
-            api.saveMatImage(targetDetection.getResultImage(), "Area" + areaIdx + "_result.jpg");
+            api.saveMatImage(targetDetection.getResultImage(), "Area" + areaIdx + "_result.jpg"); // this api call
+                                                                                                  // return
+                                                                                                  // void. it is not
+                                                                                                  // necessary
+                                                                                                  // to check the result
             PathCalWork work = new PathCalWork(targetDetection, areaItems, areaInfo, pointAtAstronaut, expansionVal);
             worksQueue.add(work);
         } else {
@@ -211,7 +240,10 @@ public class YourService extends KiboRpcService {
         }
 
         List<Point> points = (observerElements.get(String.valueOf(areaIdx))).getData().getPoints();
-        Utility.processPathToTarget(api, points, snapPoints[areaIdx], areaOrientations[areaIdx]);
+        boolean success = Utility.processPathToTarget(api, points, snapPoints[areaIdx], areaOrientations[areaIdx]);
+        if (!success) {
+            Log.i(TAG, "Failed to move to the target point");
+        }
     }
 
     /**
@@ -220,20 +252,34 @@ public class YourService extends KiboRpcService {
      * @return the item detected
      */
     private AreaItem captureAndDetectAstronaut() {
-        AreaItem areaItem;
+        AreaItem areaItem = null;
         Mat image = Utility.takeAndSaveSnapshot(api, "Astronaut.jpg", SNAP_SHOT_WAIT_TIME);
+        if (image == null) {
+            Log.i(TAG, "Failed to take snapshot of astronaut");
+        }
         ARTagOutput[] detections = ARTagProcess.process(pointAtAstronaut, quaternionAtAstronaut, image);
 
-        int loopCounter = 0;
-        while (loopCounter < LOOP_LIMIT && detections.length == 0) {
-            loopCounter++;
-            Log.i(TAG, "Retaking image of astronaut for the " + loopCounter + " time");
-            image = Utility.takeAndSaveSnapshot(api, "Astronaut.jpg", 200);
-            detections = ARTagProcess.process(pointAtAstronaut, quaternionAtAstronaut, image);
+        {
+            int loopCounter = 0;
+            while (detections.length == 0 && loopCounter < LOOP_LIMIT) {
+                loopCounter++;
+                Log.i(TAG, "Retaking image of astronaut for the " + loopCounter + " time");
+                image = Utility.takeAndSaveSnapshot(api, "Astronaut.jpg", 200);
+                if (image == null) {
+                    Log.i(TAG, "Failed to take snapshot of astronaut");
+                    continue;
+                }
+                detections = ARTagProcess.process(pointAtAstronaut, quaternionAtAstronaut, image);
+            }
+            if (detections.length == 0) {
+                Log.i(TAG, "Failed to detect astronaut");
+                return null;
+            }
         }
 
         Log.i(TAG, "Astronaut location: " + detections[0].getSnapWorld());
-        api.saveMatImage(detections[0].getResultImage(), "Astronaut_result.jpg");
+        api.saveMatImage(detections[0].getResultImage(), "Astronaut_result.jpg"); // this api call return void. it is
+                                                                                  // not necessary to check the result
         areaItem = YOLOInference.getPredictions(detections[0].getResultImage());
 
         return areaItem;
@@ -259,19 +305,28 @@ public class YourService extends KiboRpcService {
             Utility.logSeparator();
             Log.i(TAG, "go to area " + Arrays.toString(areaGroups[i]));
 
+            Result isMoveToSuccessResult = null;
             for (int j = 0; j < outboundTrips[i].length; j++) {
-                Result isMoveToSuccessResult = api.moveTo(outboundTrips[i][j], areaOrientations[areaGroups[i][0]],
+                isMoveToSuccessResult = api.moveTo(outboundTrips[i][j], areaOrientations[areaGroups[i][0]],
                         false);
                 if (!isMoveToSuccessResult.hasSucceeded()) {
-                    Log.i(TAG, "Go to area " + Arrays.toString(areaGroups[i])
-                            + " fail, retrying with theta star algorithm");
-                    Utility.processPathToTarget(api, null, outboundTrips[i][outboundTrips[i].length - 1],
-                            areaOrientations[areaGroups[i][0]]);
                     break;
                 }
             }
-
-            processingAreaInfo(areaGroups[i]);
+            if (!isMoveToSuccessResult.hasSucceeded()) {
+                Log.i(TAG, "Go to area " + Arrays.toString(areaGroups[i])
+                        + " fail, retrying with theta star algorithm");
+                boolean success = Utility.processPathToTarget(api, null,
+                        outboundTrips[i][outboundTrips[i].length - 1],
+                        areaOrientations[areaGroups[i][0]]);
+                if (!success) {
+                    Log.i(TAG, "Failed to move to the area " + Arrays.toString(areaGroups[i]));
+                    // TODO: move to stable points
+                    // TODO: process area info of the stable points
+                }
+            } else {
+                processingAreaInfo(areaGroups[i]);
+            }
 
             Log.i(TAG, "Area " + Arrays.toString(areaGroups[i]) + " done");
             Utility.logSeparator();
@@ -284,7 +339,22 @@ public class YourService extends KiboRpcService {
     @Override
     protected void runPlan1() {
         // The mission starts.
-        api.startMission();
+        {
+            boolean isStarted = false;
+            int loopCounter = 0;
+            while (!isStarted && loopCounter < LOOP_LIMIT) {
+                try {
+                    isStarted = api.startMission();
+                } catch (Exception e) {
+                    Log.i(TAG, "Catch exception using 'api.startMission()': " + e.getMessage());
+                }
+                loopCounter++;
+            }
+            if (!isStarted) {
+                Log.i(TAG, "Failed to start mission");
+                return;
+            }
+        }
 
         double[][] navCamIntrinsics = api.getNavCamIntrinsics();
         ARTagProcess.setCameraMatrix(navCamIntrinsics[0]);
@@ -292,21 +362,22 @@ public class YourService extends KiboRpcService {
         YOLOInference.init(this.getResources());
         workerThread.start();
 
-        {
-            Kinematics kinematics = api.getRobotKinematics();
-            Log.i(TAG, "Starting point: " + kinematics.getPosition() + "" + kinematics.getOrientation());
-        }
-
         // Process the areas
         processAreas();
 
         worker.stop();
 
         // move to astronaut
-        Result isMoveToSuccessResult = api.moveTo(pointAtAstronaut, quaternionAtAstronaut, false);
-        if (!isMoveToSuccessResult.hasSucceeded()) {
-            Log.i(TAG, "Go to astronaut fail, retrying with theta star algorithm");
-            Utility.processPathToTarget(api, null, pointAtAstronaut, quaternionAtAstronaut);
+        {
+            Result isMoveToSuccessResult = api.moveTo(pointAtAstronaut, quaternionAtAstronaut, false);
+            if (!isMoveToSuccessResult.hasSucceeded()) {
+                Log.i(TAG, "Go to astronaut fail, retrying with theta star algorithm");
+                boolean success = Utility.processPathToTarget(api, null, pointAtAstronaut, quaternionAtAstronaut);
+                if (!success) {
+                    Log.i(TAG, "Failed to move to the astronaut");
+                    return;
+                }
+            }
         }
 
         try {
@@ -320,7 +391,23 @@ public class YourService extends KiboRpcService {
             api.setAreaInfo(i + 1, areaItems[i].getItem(), areaItems[i].getCount());
         }
 
-        api.reportRoundingCompletion();
+        // api.reportRoundingCompletion();
+        {
+            int loopCounter = 0;
+            boolean isReportRoundingCompletionSuccess = false;
+            while (!isReportRoundingCompletionSuccess && loopCounter < LOOP_LIMIT) {
+                try {
+                    isReportRoundingCompletionSuccess = api.reportRoundingCompletion();
+                } catch (Exception e) {
+                    Log.i(TAG, "Catch exception using 'api.reportRoundingCompletion()': " + e.getMessage());
+                }
+                loopCounter++;
+            }
+            if (!isReportRoundingCompletionSuccess) {
+                Log.i(TAG, "Failed to report rounding completion");
+                return;
+            }
+        }
 
         AreaItem areaItem = captureAndDetectAstronaut();
 

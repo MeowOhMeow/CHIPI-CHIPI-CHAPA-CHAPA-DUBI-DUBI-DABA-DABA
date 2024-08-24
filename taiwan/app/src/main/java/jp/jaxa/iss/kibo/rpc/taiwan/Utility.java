@@ -4,8 +4,10 @@ import android.util.Log;
 
 import org.opencv.core.Mat;
 
+import java.nio.file.Path;
 import java.util.List;
 
+import gov.nasa.arc.astrobee.Kinematics;
 import gov.nasa.arc.astrobee.types.Point;
 import gov.nasa.arc.astrobee.types.Quaternion;
 import gov.nasa.arc.astrobee.Result;
@@ -21,6 +23,30 @@ public class Utility {
     private static final int LOOP_LIMIT = 10;
     private static final double INCREMENT = 0.02;
     private static List<Point> tempPath = null;
+
+    /**
+     * Get robot kinematics
+     * 
+     * @param api: KiboRpcApi object
+     * @return Robot kinematics
+     */
+    public static Kinematics getRobotKinematics(KiboRpcApi api) {
+        Kinematics kinematics = null;
+        int loopCounter = 0;
+        while (kinematics == null && loopCounter < LOOP_LIMIT) {
+            try {
+                kinematics = api.getRobotKinematics();
+            } catch (Exception e) {
+                Log.i(TAG, "Catch exception using 'api.getRobotKinematics()': " + e.getMessage());
+            }
+            loopCounter++;
+        }
+        if (kinematics == null) {
+            Log.i(TAG, "Failed to get robot kinematics");
+            return null;
+        }
+        return kinematics;
+    }
 
     /**
      * Sleep for a given number of milliseconds
@@ -68,17 +94,23 @@ public class Utility {
      * @param path:              Path to the target point
      * @param targetPoint:       Target point
      * @param targetOrientation: Target orientation
+     * @return true if the robot successfully moves to the target point, false
      */
-    public static void processPathToTarget(
+    public static boolean processPathToTarget(
             KiboRpcApi api, List<Point> path, Point targetPoint, Quaternion targetOrientation) {
         if (path == null) {
-            tempPath = PathFindingAPI.findPath(api.getRobotKinematics().getPosition(),
+            Log.i(TAG, "Path is null");
+            Kinematics kinematics = getRobotKinematics(api);
+            if (kinematics == null) {
+                return false;
+            }
+            tempPath = PathFindingAPI.findPath(kinematics.getPosition(),
                     targetPoint,
                     YourService.expansionVal);
         } else {
             tempPath = path;
         }
-
+        double preExpVal = YourService.expansionVal;
         PathFindingAPI.logPoints(tempPath, "Path to the target point");
 
         boolean pathSuccess = false;
@@ -88,8 +120,17 @@ public class Utility {
             pathSuccess = moveToPathPoints(api, targetPoint, targetOrientation);
             loopCounter++;
         }
+        if (!pathSuccess) {
+            Log.i(TAG, "Failed to move to the path points");
+            Log.i(TAG, "Resetting expansionVal to: " + preExpVal);
+            YourService.expansionVal = preExpVal;
+            PathUpdateWork work = new PathUpdateWork();
+            YourService.worksQueue.add(work);
+            return false;
+        }
 
         Log.i(TAG, "Arrive at the target point");
+        return true;
     }
 
     /**
@@ -135,11 +176,50 @@ public class Utility {
      * @return the snapshot image
      */
     public static Mat takeAndSaveSnapshot(KiboRpcApi api, String name, long waitTime) {
-        api.flashlightControlFront(0.01f);
+        {
+            Result result = api.flashlightControlFront(0.01f);
+            int loopCounter = 0;
+            while (!result.hasSucceeded() && loopCounter < LOOP_LIMIT) {
+                result = api.flashlightControlFront(0.01f);
+                loopCounter++;
+            }
+            if (!result.hasSucceeded()) {
+                Log.i(TAG, "Failed to turn on the flashlight");
+                return null;
+            }
+        }
         sleep(waitTime);
-        Mat image = api.getMatNavCam();
+        Mat image = null;
+        {
+            boolean success = false;
+            int loopCounter = 0;
+            while (!success && loopCounter < LOOP_LIMIT) {
+                try {
+                    image = api.getMatNavCam();
+                    if (image != null)
+                        success = true;
+                } catch (Exception e) {
+                    Log.i(TAG, "Catch exception using 'api.getMatNavCam()': " + e.getMessage());
+                }
+                loopCounter++;
+            }
+            if (!success) {
+                Log.i(TAG, "Failed to get the image");
+                return null;
+            }
+        }
         api.saveMatImage(image, name);
-        api.flashlightControlFront(0f);
+        {
+            Result result = api.flashlightControlFront(0f);
+            int loopCounter = 0;
+            while (!result.hasSucceeded() && loopCounter < LOOP_LIMIT) {
+                result = api.flashlightControlFront(0f);
+                loopCounter++;
+            }
+            if (!result.hasSucceeded()) {
+                Log.i(TAG, "Failed to turn off the flashlight");
+            }
+        }
         return image;
     }
 
