@@ -46,9 +46,8 @@ public class YourService extends KiboRpcService {
     private static Worker worker;
     private static Thread workerThread;
 
-    private static Map<String, Element<Path>> observerElements = new HashMap<>();
-    public static Implementation observerImplementation;
-
+    private static Map<String, Element<Publisher.Path>> observerElements = new HashMap<>();
+    public static Implementation observerImplementation ;
     /**
      * Constructor for the YourService class.
      */
