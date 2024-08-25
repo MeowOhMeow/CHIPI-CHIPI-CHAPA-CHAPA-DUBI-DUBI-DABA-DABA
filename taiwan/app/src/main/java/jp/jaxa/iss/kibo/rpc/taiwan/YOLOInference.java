@@ -271,14 +271,14 @@ public class YOLOInference {
             }
         }
 
-        image_ave_cof=maxConf/count[returnIdx];
-        Log.i(TAG, "image_ave_cof" + image_ave_cof +"returnIdx "+ returnIdx );
+        image_ave_cof = maxConf / count[returnIdx];
+        Log.i(TAG, "image_ave_cof" + image_ave_cof + "returnIdx " + returnIdx);
 
         return new AreaItem(returnIdx, count[returnIdx]);
     }
-    
-    public static float get_ave_cof( ) {
+
+    public static float get_ave_cof() {
         return image_ave_cof;
-     }
+    }
 
 }

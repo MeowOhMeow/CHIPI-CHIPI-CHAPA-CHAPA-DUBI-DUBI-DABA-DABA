@@ -26,8 +26,9 @@ public class PathCalWork implements Runnable {
     private static float lower_ave_cof = Float.POSITIVE_INFINITY;
     private static AreaItem lower_cof_areaItem;
 
-    public PathCalWork(ARTagOutput detection, AreaItem[] areaItems, Map<String, Integer> areaInfo, Point pointAtAstronaut,
-                       double expansionVal) {
+    public PathCalWork(ARTagOutput detection, AreaItem[] areaItems, Map<String, Integer> areaInfo,
+            Point pointAtAstronaut,
+            double expansionVal) {
         super(); // This calls the Parent class constructor
         this.detection = detection;
         this.areaItems = areaItems;
@@ -50,11 +51,11 @@ public class PathCalWork implements Runnable {
         Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
         areaItems[areaIdx] = areaItem;
         areaInfo.put(areaItem.getItem(), areaIdx);
-        
-        if(YOLOInference.get_ave_cof()<lower_ave_cof){
-            lower_ave_cof=YOLOInference.get_ave_cof();
-            lower_cof_areaItem=areaItem;
-            Log.i(TAG, " lower_ave_cof" +  lower_ave_cof  );
+
+        if (YOLOInference.get_ave_cof() < lower_ave_cof) {
+            lower_ave_cof = YOLOInference.get_ave_cof();
+            lower_cof_areaItem = areaItem;
+            Log.i(TAG, " lower_ave_cof" + lower_ave_cof);
             Log.i(TAG, "ave_cof item: " + lower_cof_areaItem.getItem() + " " + lower_cof_areaItem.getCount());
 
             YourService.setLowerCofAreaItem(lower_cof_areaItem);

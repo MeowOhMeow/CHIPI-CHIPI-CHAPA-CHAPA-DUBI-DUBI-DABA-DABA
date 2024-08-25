@@ -4,7 +4,6 @@ import android.util.Log;
 
 import org.opencv.core.Mat;
 
-import java.nio.file.Path;
 import java.util.List;
 
 import gov.nasa.arc.astrobee.Kinematics;
@@ -20,7 +19,7 @@ import jp.jaxa.iss.kibo.rpc.taiwan.pathfinding.PathFindingAPI;
  */
 public class Utility {
     private static final String TAG = "Utility";
-    private static final int LOOP_LIMIT = 10;
+    private static final int LOOP_LIMIT = 5;
     private static final double INCREMENT = 0.02;
     private static List<Point> tempPath = null;
 

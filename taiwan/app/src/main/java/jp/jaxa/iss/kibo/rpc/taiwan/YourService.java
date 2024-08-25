@@ -2,7 +2,6 @@ package jp.jaxa.iss.kibo.rpc.taiwan;
 
 import android.util.Log;
 
-import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -23,8 +22,8 @@ import jp.jaxa.iss.kibo.rpc.taiwan.multithreading.Publisher.*;
  */
 public class YourService extends KiboRpcService {
     private static final String TAG = "YourService";
-    private static final int LOOP_LIMIT = 10;
-    private static final long SNAP_SHOT_WAIT_TIME = 2000;
+    private static final int LOOP_LIMIT = 5;
+    private static final long SNAP_SHOT_WAIT_TIME = 2100;
     private static final double STABLE_POINT_THRESHOLD = 0.4;
 
     private static Point[] stablePoints = { new Point(10.9922d, -9.8876d, 5.2776d),
@@ -46,8 +45,9 @@ public class YourService extends KiboRpcService {
     private static Worker worker;
     private static Thread workerThread;
 
-    private static Map<String, Element<Publisher.Path>> observerElements = new HashMap<>();
-    public static Implementation observerImplementation ;
+    private static Map<String, Element<Path>> observerElements = new HashMap<>();
+    public static Implementation observerImplementation;
+
     /**
      * Constructor for the YourService class.
      */
@@ -111,7 +111,8 @@ public class YourService extends KiboRpcService {
     private void categorizeDetections(ARTagOutput[] detections, Set<Integer> failedIdxs, List<Integer> successfulIdxs) {
         for (ARTagOutput detection : detections) {
             Integer idx = detection.getAreaIdx();
-            if (failedIdxs.remove(idx)) {
+            if (detection.getValid() && failedIdxs.contains(idx)) {
+                failedIdxs.remove(idx);
                 successfulIdxs.add(idx);
             }
         }
@@ -223,8 +224,8 @@ public class YourService extends KiboRpcService {
      *
      * @param areaItem: the item detected
      */
-    public static synchronized void setLowerCofAreaItem(AreaItem item) {
-        lower_cof_areaItem = item;
+    public static synchronized void setLowerCofAreaItem(AreaItem areaItem) {
+        lower_cof_areaItem = areaItem;
     }
 
     public static synchronized AreaItem getLowerCofAreaItem() {
@@ -234,7 +235,7 @@ public class YourService extends KiboRpcService {
     private void handleTarget(AreaItem areaItem) {
         if (areaItem == null) {
             Log.i(TAG, "No item detected");
-            Log.i(TAG, " LowerCofAreaItem " + YourService.getLowerCofAreaItem().getItem() );
+            Log.i(TAG, " LowerCofAreaItem " + YourService.getLowerCofAreaItem().getItem());
             areaItem = YourService.getLowerCofAreaItem();
         }
 
@@ -261,7 +262,7 @@ public class YourService extends KiboRpcService {
      * @return the item detected
      */
     private AreaItem captureAndDetectAstronaut() {
-        AreaItem areaItem = null;
+        AreaItem areaItem;
         Mat image = Utility.takeAndSaveSnapshot(api, "Astronaut.jpg", SNAP_SHOT_WAIT_TIME);
         if (image == null) {
             Log.i(TAG, "Failed to take snapshot of astronaut");
@@ -310,34 +311,59 @@ public class YourService extends KiboRpcService {
                 { 3 }
         };
 
-        for (int i = 0; i < areaGroups.length; i++) {
+        for (int groupIdx = 0; groupIdx < areaGroups.length; groupIdx++) {
             Utility.logSeparator();
-            Log.i(TAG, "go to area " + Arrays.toString(areaGroups[i]));
+            Log.i(TAG, "go to area " + Arrays.toString(areaGroups[groupIdx]));
 
             Result isMoveToSuccessResult = null;
-            for (int j = 0; j < outboundTrips[i].length; j++) {
-                isMoveToSuccessResult = api.moveTo(outboundTrips[i][j], areaOrientations[areaGroups[i][0]],
+            for (int j = 0; j < outboundTrips[groupIdx].length; j++) {
+                isMoveToSuccessResult = api.moveTo(outboundTrips[groupIdx][j],
+                        areaOrientations[areaGroups[groupIdx][0]],
                         false);
                 if (!isMoveToSuccessResult.hasSucceeded()) {
                     break;
                 }
             }
+            assert isMoveToSuccessResult != null;
             if (!isMoveToSuccessResult.hasSucceeded()) {
-                Log.i(TAG, "Go to area " + Arrays.toString(areaGroups[i])
+                Log.i(TAG, "Go to area " + Arrays.toString(areaGroups[groupIdx])
                         + " fail, retrying with theta star algorithm");
                 boolean success = Utility.processPathToTarget(api, null,
-                        outboundTrips[i][outboundTrips[i].length - 1],
-                        areaOrientations[areaGroups[i][0]]);
+                        outboundTrips[groupIdx][outboundTrips[groupIdx].length - 1],
+                        areaOrientations[areaGroups[groupIdx][0]]);
                 if (!success) {
-                    Log.i(TAG, "Failed to move to the area " + Arrays.toString(areaGroups[i]));
-                    // TODO: move to stable points
-                    // TODO: process area info of the stable points
+                    Log.i(TAG, "Failed to move to the area " + Arrays.toString(areaGroups[groupIdx]));
+                    if (groupIdx == 1) {
+                        double deltaDistance = 0.02;
+                        for (int retryTimes = 1; retryTimes <= 5; retryTimes++) {
+                            Point newPoint = new Point(
+                                    outboundTrips[groupIdx][outboundTrips[groupIdx].length - 1].getX(),
+                                    outboundTrips[groupIdx][outboundTrips[groupIdx].length - 1].getY(),
+                                    outboundTrips[groupIdx][outboundTrips[groupIdx].length - 1].getZ()
+                                            - deltaDistance * retryTimes);
+                            success = Utility.processPathToTarget(api, null, newPoint,
+                                    areaOrientations[areaGroups[groupIdx][0]]);
+                            if (success) {
+                                break;
+                            }
+                        }
+                        if (!success) {
+                            Log.i(TAG, "Fuck it");
+                        } else {
+                            processingAreaInfo(areaGroups[groupIdx]);
+                        }
+                    } else {
+                        Log.i(TAG, "No strategy to handle this case");
+                    }
+                }
+                else {
+                    processingAreaInfo(areaGroups[groupIdx]);
                 }
             } else {
-                processingAreaInfo(areaGroups[i]);
+                processingAreaInfo(areaGroups[groupIdx]);
             }
 
-            Log.i(TAG, "Area " + Arrays.toString(areaGroups[i]) + " done");
+            Log.i(TAG, "Area " + Arrays.toString(areaGroups[groupIdx]) + " done");
             Utility.logSeparator();
         }
     }
