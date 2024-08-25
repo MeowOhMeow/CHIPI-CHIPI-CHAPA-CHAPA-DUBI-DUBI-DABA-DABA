@@ -2,6 +2,7 @@ package jp.jaxa.iss.kibo.rpc.taiwan;
 
 import android.util.Log;
 
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -35,6 +36,7 @@ public class YourService extends KiboRpcService {
     private static Point[] snapPoints = new Point[4];
     private static Map<String, Integer> areaInfo = new HashMap<>();
     private static AreaItem[] areaItems = new AreaItem[4];
+    private static AreaItem lower_cof_areaItem;
 
     public static double expansionVal = 0.08;
     private static Point pointAtAstronaut = new Point(11.1852d, -6.7607d, 4.8828d);
@@ -222,11 +224,19 @@ public class YourService extends KiboRpcService {
      *
      * @param areaItem: the item detected
      */
+    public static synchronized void setLowerCofAreaItem(AreaItem item) {
+        lower_cof_areaItem = item;
+    }
+
+    public static synchronized AreaItem getLowerCofAreaItem() {
+        return lower_cof_areaItem;
+    }
+
     private void handleTarget(AreaItem areaItem) {
         if (areaItem == null) {
             Log.i(TAG, "No item detected");
-            // TODO: Handle the case when no item is detected
-            return;
+            Log.i(TAG, " LowerCofAreaItem " + YourService.getLowerCofAreaItem().getItem() );
+            areaItem = YourService.getLowerCofAreaItem();
         }
 
         Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
@@ -235,8 +245,8 @@ public class YourService extends KiboRpcService {
 
         if (areaIdx == null) {
             Log.i(TAG, "Item not found in the areaInfo map");
-            // TODO: Handle the case when the item is not found in the areaInfo map
-            return;
+            areaIdx = areaInfo.get(YourService.getLowerCofAreaItem().getItem());
+            Log.i(TAG, "areaIdx: " + areaIdx);
         }
 
         List<Point> points = (observerElements.get(String.valueOf(areaIdx))).getData().getPoints();
