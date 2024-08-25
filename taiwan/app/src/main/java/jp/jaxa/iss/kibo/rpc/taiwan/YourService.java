@@ -80,12 +80,10 @@ public class YourService extends KiboRpcService {
         Set<Integer> failedIdxs = new HashSet<>();
         List<Integer> successfulIdxs = new ArrayList<>();
 
-        // TODO: handle the case when the ar tag is not valid
         initializeIndices(areaIdxs, failedIdxs);
         categorizeDetections(detections, failedIdxs, successfulIdxs);
 
         processSuccessfulDetections(successfulIdxs, detections);
-        // TODO: test failed detections
         processFailedDetections(failedIdxs);
     }
 
@@ -155,17 +153,17 @@ public class YourService extends KiboRpcService {
             if (Utility.calEuclideanDistance(kinematics.getPosition(),
                     stablePoints[areaIdx]) > STABLE_POINT_THRESHOLD) {
                 Result isMoveToSuccessResult = api.moveTo(stablePoints[areaIdx], areaOrientations[areaIdx], false);
-                boolean success = false;
                 if (!isMoveToSuccessResult.hasSucceeded()) {
                     Log.i(TAG, "Move to stable point " + areaIdx + " fail, retrying with theta star algorithm");
-                    success = Utility.processPathToTarget(api, null, stablePoints[areaIdx], areaOrientations[areaIdx]);
-                }
-                if (!success) {
-                    Log.i(TAG, "Failed to move to stable point " + areaIdx);
-                    return;
+                    boolean success = Utility.processPathToTarget(api, null, stablePoints[areaIdx],
+                            areaOrientations[areaIdx]);
+                    if (!success) {
+                        Log.i(TAG, "Failed to move to stable point " + areaIdx);
+                        return;
+                    }
                 }
 
-                handleRetakeForFailedDetection(areaIdx, kinematics);
+                handleRetakeForFailedDetection(areaIdx);
             }
         }
     }
@@ -173,13 +171,17 @@ public class YourService extends KiboRpcService {
     /**
      * Handle the retake for failed detection.
      *
-     * @param areaIdx:    the area index
-     * @param kinematics: the kinematics
+     * @param areaIdx: the area index
      */
-    private void handleRetakeForFailedDetection(int areaIdx, Kinematics kinematics) {
+    private void handleRetakeForFailedDetection(int areaIdx) {
         Mat imageRetake = Utility.takeAndSaveSnapshot(api, "Area" + areaIdx + "_stable.jpg", SNAP_SHOT_WAIT_TIME);
         if (imageRetake == null) {
             Log.i(TAG, "Failed to take snapshot of area " + areaIdx + " stable point");
+            return;
+        }
+        Kinematics kinematics = Utility.getRobotKinematics(api);
+        if (kinematics == null) {
+            Log.i(TAG, "Failed to get robot kinematics");
             return;
         }
         ARTagOutput[] detectionsRetake = ARTagProcess.process(kinematics.getPosition(), kinematics.getOrientation(),
@@ -355,8 +357,7 @@ public class YourService extends KiboRpcService {
                     } else {
                         Log.i(TAG, "No strategy to handle this case");
                     }
-                }
-                else {
+                } else {
                     processingAreaInfo(areaGroups[groupIdx]);
                 }
             } else {
