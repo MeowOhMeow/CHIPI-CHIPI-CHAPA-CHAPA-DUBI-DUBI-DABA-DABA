@@ -423,6 +423,10 @@ public class YourService extends KiboRpcService {
 
         // Set the area information
         for (int i = 0; i < 4; i++) {
+            if (areaItems[i] == null) {
+                Log.i(TAG, "Area " + i + " not detected");
+                continue;
+            }
             api.setAreaInfo(i + 1, areaItems[i].getItem(), areaItems[i].getCount());
         }
 
