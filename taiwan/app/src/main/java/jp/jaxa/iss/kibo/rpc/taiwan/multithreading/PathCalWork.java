@@ -23,8 +23,8 @@ public class PathCalWork implements Runnable {
     private Map<String, Integer> areaInfo;
     private Point pointAtAstronaut;
     private double expansionVal;
-    private static float lower_ave_cof = Float.POSITIVE_INFINITY;
-    private static AreaItem lower_cof_areaItem;
+    private static float lowestAvgConf = Float.POSITIVE_INFINITY;
+    private static AreaItem lowestConfAreaItem;
 
     public PathCalWork(ARTagOutput detection, AreaItem[] areaItems, Map<String, Integer> areaInfo,
             Point pointAtAstronaut,
@@ -52,13 +52,13 @@ public class PathCalWork implements Runnable {
         areaItems[areaIdx] = areaItem;
         areaInfo.put(areaItem.getItem(), areaIdx);
 
-        if (YOLOInference.get_ave_cof() < lower_ave_cof) {
-            lower_ave_cof = YOLOInference.get_ave_cof();
-            lower_cof_areaItem = areaItem;
-            Log.i(TAG, " lower_ave_cof" + lower_ave_cof);
-            Log.i(TAG, "ave_cof item: " + lower_cof_areaItem.getItem() + " " + lower_cof_areaItem.getCount());
+        if (YOLOInference.getAvgConf() < lowestAvgConf) {
+            lowestAvgConf = YOLOInference.getAvgConf();
+            lowestConfAreaItem = areaItem;
+            Log.i(TAG, "Current lowestAvgConf" + lowestAvgConf + " " + lowestConfAreaItem.getItem() + " "
+                    + lowestConfAreaItem.getCount());
 
-            YourService.setLowerCofAreaItem(lower_cof_areaItem);
+            YourService.setLowestConfAreaItem(lowestConfAreaItem);
         }
 
         List<Point> points = PathFindingAPI.findPath(pointAtAstronaut, detection.getSnapWorld(), expansionVal);

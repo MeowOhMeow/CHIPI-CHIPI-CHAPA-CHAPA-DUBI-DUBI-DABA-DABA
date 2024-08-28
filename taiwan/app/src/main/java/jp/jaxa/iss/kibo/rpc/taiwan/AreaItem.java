@@ -4,7 +4,7 @@ package jp.jaxa.iss.kibo.rpc.taiwan;
  * Class to hold the information of an item in the area
  */
 public class AreaItem {
-    private static final String[] itemMap = {
+    private static final String[] ITEM_MAP = {
             "beaker",
             "goggle",
             "hammer",
@@ -22,11 +22,11 @@ public class AreaItem {
     /**
      * Constructor for the AreaItem class
      * 
-     * @param itemIdx: index of the item in the itemMap
+     * @param itemIdx: index of the item in the ITEM_MAP
      * @param count:   count of the item
      */
     public AreaItem(int itemIdx, int count) {
-        this.item = itemMap[itemIdx];
+        this.item = ITEM_MAP[itemIdx];
         this.count = count;
     }
 

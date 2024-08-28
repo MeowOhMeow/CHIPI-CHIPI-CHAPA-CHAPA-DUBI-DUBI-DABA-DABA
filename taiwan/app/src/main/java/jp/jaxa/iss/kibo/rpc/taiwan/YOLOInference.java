@@ -32,7 +32,7 @@ public class YOLOInference {
     private static OrtSession session;
     private static final float CONF_THRESHOLD = 0.7f;
     private static final float NMS_THRESHOLD = 0.6f;
-    private static float image_ave_cof = 0f;
+    private static float imageAvgConf = 0f;
 
     /**
      * Initialize the YOLO model
@@ -271,14 +271,14 @@ public class YOLOInference {
             }
         }
 
-        image_ave_cof = maxConf / count[returnIdx];
-        Log.i(TAG, "image_ave_cof" + image_ave_cof + "returnIdx " + returnIdx);
+        imageAvgConf = maxConf / count[returnIdx];
+        Log.i(TAG, "imageAvgConf" + imageAvgConf + "returnIdx " + returnIdx);
 
         return new AreaItem(returnIdx, count[returnIdx]);
     }
 
-    public static float get_ave_cof() {
-        return image_ave_cof;
+    public static float getAvgConf() {
+        return imageAvgConf;
     }
 
 }

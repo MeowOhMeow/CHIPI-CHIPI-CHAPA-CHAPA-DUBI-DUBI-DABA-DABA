@@ -35,7 +35,7 @@ public class YourService extends KiboRpcService {
     private static Point[] snapPoints = new Point[4];
     private static Map<String, Integer> areaInfo = new HashMap<>();
     private static AreaItem[] areaItems = new AreaItem[4];
-    private static AreaItem lower_cof_areaItem;
+    private static AreaItem lowestConfAreaItem;
 
     public static double expansionVal = 0.08;
     private static Point pointAtAstronaut = new Point(11.1852d, -6.7607d, 4.8828d);
@@ -226,19 +226,15 @@ public class YourService extends KiboRpcService {
      *
      * @param areaItem: the item detected
      */
-    public static synchronized void setLowerCofAreaItem(AreaItem areaItem) {
-        lower_cof_areaItem = areaItem;
-    }
-
-    public static synchronized AreaItem getLowerCofAreaItem() {
-        return lower_cof_areaItem;
+    public static synchronized void setLowestConfAreaItem(AreaItem areaItem) {
+        lowestConfAreaItem = areaItem;
     }
 
     private void handleTarget(AreaItem areaItem) {
         if (areaItem == null) {
             Log.i(TAG, "No item detected");
-            Log.i(TAG, " LowerCofAreaItem " + YourService.getLowerCofAreaItem().getItem());
-            areaItem = YourService.getLowerCofAreaItem();
+            areaItem = lowestConfAreaItem;
+            Log.i(TAG, "Using the lowest confidence item: " + areaItem.getItem() + " " + areaItem.getCount());
         }
 
         Log.i(TAG, "Detected item: " + areaItem.getItem() + " " + areaItem.getCount());
@@ -247,8 +243,7 @@ public class YourService extends KiboRpcService {
 
         if (areaIdx == null) {
             Log.i(TAG, "Item not found in the areaInfo map");
-            areaIdx = areaInfo.get(YourService.getLowerCofAreaItem().getItem());
-            Log.i(TAG, "areaIdx: " + areaIdx);
+            return;
         }
 
         List<Point> points = (observerElements.get(String.valueOf(areaIdx))).getData().getPoints();

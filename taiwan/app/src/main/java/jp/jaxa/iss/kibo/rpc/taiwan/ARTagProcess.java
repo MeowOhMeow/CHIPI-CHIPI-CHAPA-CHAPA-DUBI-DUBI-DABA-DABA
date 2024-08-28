@@ -29,15 +29,17 @@ public class ARTagProcess {
 
     private static final String TAG = "ARTagProcess";
 
-    private static double snapDistance = 0.6d;
+    private static double SNAP_DISTANCE = 0.6d;
     private static Mat distortCoefficient = null;
     private static Mat cameraMatrix = null;
-    private static Mat newCameraMatrix = new Mat();
+    private static Mat newCameraMatrix = null;
     private static Dictionary ArUcoDict = Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
     private static DetectorParameters parameters = DetectorParameters.create();
-    private static final Point[] areaCenter = { new Point(10.95d, -10.58d, 5.195d), new Point(10.925d, -8.875d, 3.76203d),
+    private static final Point[] AREA_CENTERS = { new Point(10.95d, -10.58d, 5.195d),
+            new Point(10.925d, -8.875d, 3.76203d),
             new Point(10.925d, -7.925d, 3.76093d), new Point(9.866984d, -6.8525d, 4.945d),
             new Point(11.143d, -6.7607d, 4.9654d) };
+    private static final double[] CAMERA_OFFSET = { -0.135, 0.0375, 0, 1 };
 
     private static class DetectionResult {
 
@@ -104,7 +106,7 @@ public class ARTagProcess {
      * @param snapDistance: snap distance
      */
     public static void setSnapDistance(double snapDistance) {
-        ARTagProcess.snapDistance = snapDistance;
+        ARTagProcess.SNAP_DISTANCE = snapDistance;
     }
 
     public static ARTagOutput[] process(Point center, Quaternion orientation, Mat img) {
@@ -139,8 +141,8 @@ public class ARTagProcess {
 
             int whereARTagIs = -1;
             double leastBoxDistance = Double.MAX_VALUE;
-            for (int areaIdx = 0; areaIdx < areaCenter.length; areaIdx++) {
-                double boxDistance = Utility.calEuclideanDistance(ARTagWorld, areaCenter[areaIdx]);
+            for (int areaIdx = 0; areaIdx < AREA_CENTERS.length; areaIdx++) {
+                double boxDistance = Utility.calEuclideanDistance(ARTagWorld, AREA_CENTERS[areaIdx]);
                 if (boxDistance < leastBoxDistance) {
                     leastBoxDistance = boxDistance;
                     whereARTagIs = areaIdx;
@@ -158,15 +160,13 @@ public class ARTagProcess {
     }
 
     /**
-     * Get the world point from the camera point
+     * Get the item point in camera coordinates
      *
-     * @param center:      astrobee center point
-     * @param orientation: astrobee orientation
-     * @param rvec:        rvec from aruco
-     * @param tvec:        tvec from aruco
-     * @return Point: world point
+     * @param rvec: rvec from aruco
+     * @param tvec: tvec from aruco
+     * @return double[]: item point in camera coordinates
      */
-    private static Point getCameraWorldPoint(Point center, Quaternion orientation, Mat rvec, Mat tvec) {
+    private static double[] getItemPointInCamera(Mat rvec, Mat tvec) {
         // get tvec and rotation matrix
         double[] arTagInCamera = { tvec.get(0, 0)[0], tvec.get(0, 0)[1], tvec.get(0, 0)[2] };
         Mat rotationMatrix = new Mat();
@@ -177,13 +177,6 @@ public class ARTagProcess {
                 { rotationMatrix.get(1, 0)[0], rotationMatrix.get(1, 1)[0], rotationMatrix.get(1, 2)[0] },
                 { rotationMatrix.get(2, 0)[0], rotationMatrix.get(2, 1)[0], rotationMatrix.get(2, 2)[0] } };
 
-        Log.i(TAG, "tvec: " + arTagInCamera[0] + " " + arTagInCamera[1] + " " + arTagInCamera[2]);
-        Log.i(TAG, "R: " + R[0][0] + " " + R[0][1] + " " + R[0][2]);
-        Log.i(TAG, "   " + R[1][0] + " " + R[1][1] + " " + R[1][2]);
-        Log.i(TAG, "   " + R[2][0] + " " + R[2][1] + " " + R[2][2]);
-
-        // artag to camera
-        double[] item_artag = { -0.135, 0.0375, 0, 1 };
         double[][] Rt01 = {
                 { R[0][0], R[0][1], R[0][2], arTagInCamera[0] },
                 { R[1][0], R[1][1], R[1][2], arTagInCamera[1] },
@@ -196,13 +189,26 @@ public class ARTagProcess {
         for (int i = 0; i < 4; i++) {
             double sum = 0;
             for (int j = 0; j < 4; j++) {
-                sum += Rt01[i][j] * item_artag[j];
+                sum += Rt01[i][j] * CAMERA_OFFSET[j];
             }
             itemPointInCamera[i] = sum;
         }
         // convert to x to front, y to right, z to down
-        double[] item_camera = { itemPointInCamera[2], itemPointInCamera[0], itemPointInCamera[1] };
-        double[] snapPoint = { item_camera[0] - snapDistance, item_camera[1], item_camera[2], 1 };
+        return new double[] { itemPointInCamera[2], itemPointInCamera[0], itemPointInCamera[1] };
+    }
+
+    /**
+     * Get the world point from the camera point
+     *
+     * @param center:      astrobee center point
+     * @param orientation: astrobee orientation
+     * @param rvec:        rvec from aruco
+     * @param tvec:        tvec from aruco
+     * @return Point: world point
+     */
+    private static Point getCameraWorldPoint(Point center, Quaternion orientation, Mat rvec, Mat tvec) {
+        double[] itemInCamera = getItemPointInCamera(rvec, tvec);
+        double[] snapPoint = { itemInCamera[0] - SNAP_DISTANCE, itemInCamera[1], itemInCamera[2], 1 };
 
         double[] Q = { orientation.getW(), orientation.getX(), orientation.getY(), orientation.getZ() };
         double[] centerPoint = { center.getX(), center.getY(), center.getZ() };
@@ -221,37 +227,8 @@ public class ARTagProcess {
      * @return Point: world point
      */
     private static Point getARTagWorldPoint(Point center, Quaternion orientation, Mat rvec, Mat tvec) {
-        // get tvec and rotation matrix
-        double[] arTagInCamera = { tvec.get(0, 0)[0], tvec.get(0, 0)[1], tvec.get(0, 0)[2] };
-        Mat rotationMatrix = new Mat();
-        Calib3d.Rodrigues(rvec, rotationMatrix);
-        // Mat rotationMatrix= rotation.inv();
-        double[][] R = {
-                { rotationMatrix.get(0, 0)[0], rotationMatrix.get(0, 1)[0], rotationMatrix.get(0, 2)[0] },
-                { rotationMatrix.get(1, 0)[0], rotationMatrix.get(1, 1)[0], rotationMatrix.get(1, 2)[0] },
-                { rotationMatrix.get(2, 0)[0], rotationMatrix.get(2, 1)[0], rotationMatrix.get(2, 2)[0] } };
-
-        // artag to camera
-        double[] item_artag = { -0.135, 0.0375, 0, 1 };
-        double[][] Rt01 = {
-                { R[0][0], R[0][1], R[0][2], arTagInCamera[0] },
-                { R[1][0], R[1][1], R[1][2], arTagInCamera[1] },
-                { R[2][0], R[2][1], R[2][2], arTagInCamera[2] },
-                { 0, 0, 0, 1 }
-        };
-
-        double[] itemPointInCamera = new double[4];
-        // dot product, z to front, x to right, y to down
-        for (int i = 0; i < 4; i++) {
-            double sum = 0;
-            for (int j = 0; j < 4; j++) {
-                sum += Rt01[i][j] * item_artag[j];
-            }
-            itemPointInCamera[i] = sum;
-        }
-        // convert to x to front, y to right, z to down
-        double[] item_camera = { itemPointInCamera[2], itemPointInCamera[0], itemPointInCamera[1] };
-        double[] ARTagPoint = { item_camera[0], item_camera[1], item_camera[2], 1 };
+        double[] itemInCamera = getItemPointInCamera(rvec, tvec);
+        double[] ARTagPoint = { itemInCamera[0], itemInCamera[1], itemInCamera[2], 1 };
 
         double[] Q = { orientation.getW(), orientation.getX(), orientation.getY(), orientation.getZ() };
         double[] centerPoint = { center.getX(), center.getY(), center.getZ() };
