@@ -178,11 +178,11 @@ public class Utility {
         {
             Result result = api.flashlightControlFront(0.01f);
             int loopCounter = 0;
-            while (!result.hasSucceeded() && loopCounter < LOOP_LIMIT) {
+            while ((result == null || !result.hasSucceeded()) && loopCounter < LOOP_LIMIT) {
                 result = api.flashlightControlFront(0.01f);
                 loopCounter++;
             }
-            if (!result.hasSucceeded()) {
+            if (result == null || !result.hasSucceeded()) {
                 Log.i(TAG, "Failed to turn on the flashlight");
                 return null;
             }
@@ -209,14 +209,14 @@ public class Utility {
         }
         api.saveMatImage(image, name);
         {
-            Result result = api.flashlightControlFront(0f);
+            Result result = api.flashlightControlFront(0.0f);
             int loopCounter = 0;
-            while (!result.hasSucceeded() && loopCounter < LOOP_LIMIT) {
-                result = api.flashlightControlFront(0f);
+            while ((result == null || !result.hasSucceeded()) && loopCounter < LOOP_LIMIT) {
+                result = api.flashlightControlFront(0.0f);
                 loopCounter++;
             }
-            if (!result.hasSucceeded()) {
-                Log.i(TAG, "Failed to turn off the flashlight");
+            if (result == null || !result.hasSucceeded()) {
+                Log.i(TAG, "Failed to turn on the flashlight");
             }
         }
         return image;

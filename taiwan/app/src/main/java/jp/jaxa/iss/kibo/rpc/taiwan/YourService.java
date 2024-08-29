@@ -426,7 +426,6 @@ public class YourService extends KiboRpcService {
             api.setAreaInfo(i + 1, areaItems[i].getItem(), areaItems[i].getCount());
         }
 
-        // api.reportRoundingCompletion();
         {
             int loopCounter = 0;
             boolean isReportRoundingCompletionSuccess = false;
